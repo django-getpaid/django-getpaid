@@ -1,0 +1,16 @@
+<html>
+<body>
+<h1>django-getpaid example project</h1>
+<p>This is an example project of how django-getpaid manage order payment workflow.</p>
+<p>First you will need to create an order. In this simple example order has just one item which have
+name and price.</p>
+
+<h2>Please fill the form to create an order</h2>
+<form action="" method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <input type="submit" value="Place your order">
+</form>
+
+</body>
+</html>

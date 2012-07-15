@@ -1,0 +1,128 @@
+from django.db import models
+from django.conf import settings
+from django.utils.translation import ugettext_lazy as _
+from datetime import datetime
+import sys
+from abstract_mixin import AbstractMixin
+#import signals
+import signals
+
+PAYMENT_STATUS_CHOICES = (
+        ('new', _("New")),
+        ('in_progress', _("In progress")),
+        ('partially_paid', _("Partially paid")),
+        ('paid', _("Paid")),
+        ('failed', _("Failed")),
+        )
+
+class PaymentManager(models.Manager):
+    def get_query_set(self):
+        return super(PaymentManager, self).get_query_set().select_related('order')
+
+
+class PaymentFactory(models.Model, AbstractMixin):
+    """
+    This is an abstract class that defines a structure of Payment model that will be
+    generated dynamically with one additional field: ``order``
+    """
+    amount = models.DecimalField(decimal_places=4, max_digits=20)
+    currency = models.CharField(max_length=3)
+    status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='new')
+    backend = models.CharField(max_length=50)
+    created_on = models.DateTimeField(auto_now_add=True)
+    paid_on = models.DateTimeField(blank=True, null=True, default=None)
+    amount_paid = models.DecimalField(decimal_places=4, max_digits=20, default=0)
+
+    class Meta:
+        abstract = True
+
+    @classmethod
+    def contribute(cls, order, **kwargs):
+        return {'order': models.ForeignKey(order, **kwargs)}
+
+
+    @classmethod
+    def create(cls, order, backend):
+        """
+            Builds Payment object based on given Order instance
+        """
+        payment = Payment()
+        payment.order = order
+        payment.backend = backend
+        signals.new_payment_query.send(sender=None, order=order, payment=payment)
+        payment.save()
+        signals.new_payment.send(sender=None, order=order, payment=payment)
+        return payment
+
+    def get_processor(self):
+        try:
+            __import__(self.backend)
+            module = sys.modules[self.backend]
+            return module.processor
+        except (ImportError, AttributeError):
+            raise ValueError("Backend '%s' is not available or provides no processor." % self.backend)
+
+    def change_status(self, new_status):
+        """
+        Always change payment status via this method. Otherwise the signal
+        will not be emitted.
+        """
+        old_status = self.status
+        self.status = new_status
+        self.save()
+        signals.payment_status_changed.send(
+            sender=type(self), instance=self,
+            old_status=old_status, new_status=new_status
+            )
+
+    def on_success(self, amount=None):
+        """
+        Called when payment receives successful balance income. It defaults to
+        complete payment, but can optionally accept received amount as a parameter
+        to handle partial payments.
+
+        Returns boolean value if payment was fully paid
+        """
+        self.paid_on = datetime.now()
+        if amount:
+            self.amount_paid = amount
+        else:
+            self.amount_paid = self.amount
+        fully_paid = (self.amount_paid >= self.amount)
+        if fully_paid:
+            self.change_status('paid')
+        else:
+            self.change_status('partially_paid')
+        return fully_paid
+
+
+    def on_failure(self):
+        """
+        Called when payment was failed
+        """
+        self.change_status('failed')
+
+
+from django.db.models.loading import cache as app_cache, register_models
+#from utils import import_backend_modules
+
+def register_to_payment(order_class, **kwargs):
+    """
+    A function for registering unaware order class to ``getpaid``. This will
+    generate a ``Payment`` model class that will store payments with
+    ForeignKey to original order class
+    """
+    global Payment
+    global Order
+    class Payment(PaymentFactory.construct(order=order_class, **kwargs)):
+        objects = PaymentManager()
+
+#    Payment = _Payment
+#    register_models('getpaid', Payment)
+    Order = order_class
+#    backend_models_modules = import_backend_modules('models')
+#    for backend_name, models in backend_models_modules.items():
+#        app_cache.register_models(backend_name, *models.build_models(Payment))
+    return Payment
+
+

@@ -1,0 +1,1 @@
+from models import register_to_payment

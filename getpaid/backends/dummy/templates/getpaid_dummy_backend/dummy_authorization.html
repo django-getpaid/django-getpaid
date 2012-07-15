@@ -1,0 +1,15 @@
+<html>
+<body>
+<h1>django-getpaid dummy backend</h1>
+
+<p>Are you authorizing <strong>Payment #{{ payment.pk }}</strong> valued to <strong>{{ payment.amount }} {{ payment.currency }}</strong> for <strong>
+    Order #{{ payment.order.pk }} "{{ payment.order }}"</strong>?
+
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <input type="submit" value="Continue">
+</form>
+
+</body>
+</html>
