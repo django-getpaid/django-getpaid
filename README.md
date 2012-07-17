@@ -1,5 +1,5 @@
-Welcome to django-getpaid's documentation!
-==========================================
+Welcome to django-getpaid's!
+============================
 
 **django-getpaid** is carefully designed multi-broker payment processor for django applications. The main advantages of this django application is:
  * instead of only one payment broker, you can use **multiple payment brokers** in your application, what is wise considering ane single payment broker downtime,
