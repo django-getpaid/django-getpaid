@@ -1,4 +1,4 @@
-Welcome to django-getpaid's!
+Welcome to django-getpaid!
 ============================
 
 **django-getpaid** is carefully designed multi-broker payment processor for django applications. The main advantages of this django application is:
