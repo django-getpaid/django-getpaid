@@ -13,6 +13,23 @@
 
 import sys, os
 
+sys.path.append(os.path.join(
+                        os.path.join(os.path.dirname(__file__), os.pardir),
+                        os.pardir
+                    )
+                )
+sys.path.append( os.path.join(
+                                os.path.join(
+                                        os.path.join(os.path.dirname(__file__), os.pardir),
+                                        os.pardir
+                                ),
+                                'getpaid_test_project'
+                        )
+                )
+
+#import django
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "getpaid_test_project.settings_docs")
+
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
