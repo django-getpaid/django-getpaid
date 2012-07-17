@@ -7,8 +7,8 @@ Each payment backend delivers a payment channel for a defined list of currencies
 
 Just to have an overview a payment backend has a very flexible architecture, allowing it to introduce own logic, urls and even models.
 
-Dummy backend
--------------
+Dummy backend ``getpaid.backends.dummy``
+----------------------------------------
 This is a mock of payment backend that can be used only for testing/demonstrating purposes.
 
 Dummy backend is accepting only ``USD``, ``EUR`` or ``PLN`` currency transactions. After redirecting to payment page it will display a dummy form where you can accept or decline a payment.
@@ -31,8 +31,8 @@ No additional setup is needed for dummy backend.
 
 
 
-PayU backend
-------------
+PayU backend ``getpaid.backends.payu``
+--------------------------------------
 This backend can handle payment processing via Polish money broker `PayU <http://payu.pl>`_ which is currently a part of the biggest on Polish market e-commerce provider - Allegro Group.
 
 PayU accepts only payments in ``PLN``.
@@ -49,13 +49,24 @@ Don't forget to add backend path also to ``INSTALLED_APPS``::
     INSTALLED_APPS += ('getpaid.backends.payu', )
 
 
+There is no need to adding any urls definitions to main ``urls.py`` file, as they will be loaded automatically itself by ``getpaid`` application.
+
 Setup backend
 `````````````
-In order to start working with PayU you will need to have an activated account in PayU service. In this service you will need to define a new Shop with new Point of Sale (POS). After that you will have an access to following configuration variables:
- * ``pos_id`` - identificator of POS,
- * ``key1`` - according to PayU documentation this is a string that is used to compute md5 signature send by Shop,
- * ``key2``- according to PayU documentation this is a string that is used to compute md5 signature send from Shop,
- * ``pos_auth_key`` - just a kind of secret password for POS.
+In order to start working with PayU you will need to have an activated account in PayU service. In this service you will need to define a new Shop with new Point of Sale (POS). After that you will have an access to following configuration variables.
+
+
+**pos_id**
+    identificator of POS,
+
+**key1**
+    according to PayU documentation this is a string that is used to compute md5 signature send by Shop,
+
+**key2**
+    according to PayU documentation this is a string that is used to compute md5 signature send from Shop,
+
+**pos_auth_key**
+    just a kind of secret password for POS.
 
 
 You need to provide this information in ``GETPAID_BACKENDS_SETTINGS`` dictionary::
@@ -72,12 +83,38 @@ You need to provide this information in ``GETPAID_BACKENDS_SETTINGS`` dictionary
     }
 
 There are some additional options you can provide:
- * ``signing`` - for security reasons PayU can check a signature of all data that is sent from your service while redirecting to payment gateway; unless you really know what you are doing, this should be always on; default is True;
- * ``testing`` - when you test your service you can enable this option, all payments for PayU will have predefined "Test Payment" method which is provided by PayU service (need to be enabled); default is False;
+
+**signing**
+    for security reasons PayU can check a signature of all data that is sent from your service while redirecting to payment gateway; unless you really know what you are doing, this should be always on; default is True;
+
+**testing**
+    when you test your service you can enable this option, all payments for PayU will have predefined "Test Payment" method which is provided by PayU service (need to be enabled); default is False;
+
+`getpaid_configuration` management command
+``````````````````````````````````````````
+After setting up django application it is also important to remember that some minimal configuration is needed also at PayU service configuration site. Please navigate to POS configuration, where you need to provide three links: success URL, failure URL, and online URL. The first two are used to redirect client after successful/failure payment. The third one is the address of script that will be notified about payment status change.
+
+``getpaid.backends.payu`` comes with ``getpaid_configuration`` management script that simplifies getting those links in your particular django eviroment. This is because you can customize path prefix when including urls from ``getpaid``.
+
+It will produce following example output::
+
+    $. /manage.py  payu_configuration
+    Login to PayU configuration page and setup following links:
+
+     * Success URL: /getpaid.backends.payu/success/%orderId%/
+     * Failure URL: /getpaid.backends.payu/failure/%orderId%/
+     * Online  URL: /getpaid.backends.payu/online/
+
+    Please remember to convert this paths to fully qualified URL by prefixing
+    them with protocol and domain name (http(s)://yourdomain).
+
+    Request signing is ON
+    Please be sure that you enabled signing payments in PayU configuration page.
 
 
-Additional information
-``````````````````````
+
+Running celery for asynchronus tasks
+````````````````````````````````````
 
 This backend is asynchronous (as PayU requires an asynchronous architecture - they send a "ping" message that a payment change a status, and you need to asynchronously request theirs service for details of what has changed). That means that this backend requires django-celery application. Please refer to django-celery documentation for any additional information.
 
@@ -85,3 +122,26 @@ If you just want to make a quick start with using django-getpaid and django-cele
 
     $ python manage.py celery worker --loglevel=info
 
+
+
+Deployment configuration - real client IP address
+`````````````````````````````````````````````````````
+
+PayU service for security reason requires on each redirection to provide IP address of the client that is going to pay using theirs service. For that reason the backend before making a redirection reads ``REMOTE_ADDR`` HTTP request metadata. In most common production deployments your django app will stand after a number of Web proxy servers like Web server, caches, load balancers, you name it. This will cause that ``REMOTE_ADDR`` will **always** be visible in your application as an IP of your Web proxy server (e.g. 127.0.0.0 if everything is set up on one machine).
+
+For that reason you need to take care by yourself to have correctly set ``REMOTE_ADDR`` that actually points on **real** client IP. One way to do that is to use some commonly used HTTP header called ``X-Forwarded-For``. This is a header that is set by most common Web proxy servers  to the **real** client IP address. Using simple django middleware you can rewrite your request data to assure that **real** client IP address overwrites any address  in ``REMOTE_ADDR``. One of solution taken from `The Django Book <http://www.djangobook.com/en/2.0/chapter17/>`_ is to use following middleware class::
+
+    class SetRemoteAddrFromForwardedFor(object):
+        def process_request(self, request):
+            try:
+                real_ip = request.META['HTTP_X_FORWARDED_FOR']
+            except KeyError:
+                pass
+            else:
+                # HTTP_X_FORWARDED_FOR can be a comma-separated list of IPs.
+                # Take just the first one.
+                real_ip = real_ip.split(",")[0]
+                request.META['REMOTE_ADDR'] = real_ip
+
+
+Enabling this middleware in your ``settings.py`` will fix the issue. Just make sure that your Web proxy server is actually setting ``X-Forwarded-For`` HTTP header.
