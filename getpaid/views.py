@@ -11,6 +11,11 @@ from getpaid.models import Payment
 class NewPaymentView(FormView):
     form_class = PaymentMethodForm
 
+    def get_form(self, form_class):
+        self.currency = self.kwargs['currency']
+        return form_class(self.currency, **self.get_form_kwargs())
+
+
     def get(self, request, *args, **kwargs):
         """
         This view operates only on POST requests from order view where you select payment method
@@ -20,7 +25,7 @@ class NewPaymentView(FormView):
     def form_valid(self, form):
         from getpaid.models import Payment
         payment = Payment.create(form.cleaned_data['order'], form.cleaned_data['backend'])
-        gateway_url = payment.get_processor()(payment)
+        gateway_url = payment.get_processor()(payment).get_gateway_url(self.request)
         payment.change_status('in_progress')
         return HttpResponseRedirect(gateway_url)
 

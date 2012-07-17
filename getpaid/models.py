@@ -6,6 +6,7 @@ import sys
 from abstract_mixin import AbstractMixin
 #import signals
 import signals
+from utils import import_backend_modules
 
 PAYMENT_STATUS_CHOICES = (
         ('new', _("New")),
@@ -27,15 +28,17 @@ class PaymentFactory(models.Model, AbstractMixin):
     """
     amount = models.DecimalField(decimal_places=4, max_digits=20)
     currency = models.CharField(max_length=3)
-    status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='new')
+    status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='new', db_index=True)
     backend = models.CharField(max_length=50)
-    created_on = models.DateTimeField(auto_now_add=True)
-    paid_on = models.DateTimeField(blank=True, null=True, default=None)
+    created_on = models.DateTimeField(auto_now_add=True, db_index=True)
+    paid_on = models.DateTimeField(blank=True, null=True, default=None, db_index=True)
     amount_paid = models.DecimalField(decimal_places=4, max_digits=20, default=0)
 
     class Meta:
         abstract = True
 
+    def __unicode__(self):
+        return "Payment #%d" % self.pk
     @classmethod
     def contribute(cls, order, **kwargs):
         return {'order': models.ForeignKey(order, **kwargs)}
@@ -58,7 +61,7 @@ class PaymentFactory(models.Model, AbstractMixin):
         try:
             __import__(self.backend)
             module = sys.modules[self.backend]
-            return module.processor
+            return module.PaymentProcessor
         except (ImportError, AttributeError):
             raise ValueError("Backend '%s' is not available or provides no processor." % self.backend)
 
@@ -111,18 +114,22 @@ def register_to_payment(order_class, **kwargs):
     A function for registering unaware order class to ``getpaid``. This will
     generate a ``Payment`` model class that will store payments with
     ForeignKey to original order class
+
+    This also will build a model class for every enabled backend.
     """
     global Payment
     global Order
     class Payment(PaymentFactory.construct(order=order_class, **kwargs)):
         objects = PaymentManager()
-
-#    Payment = _Payment
-#    register_models('getpaid', Payment)
+        class Meta:
+            ordering = ('-created_on',)
     Order = order_class
-#    backend_models_modules = import_backend_modules('models')
-#    for backend_name, models in backend_models_modules.items():
-#        app_cache.register_models(backend_name, *models.build_models(Payment))
+
+    # Now build models for backends
+
+    backend_models_modules = import_backend_modules('models')
+    for backend_name, models in backend_models_modules.items():
+        app_cache.register_models(backend_name, *models.build_models(Payment))
     return Payment
 
 

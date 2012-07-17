@@ -1,9 +1,11 @@
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext_lazy as _
-BACKEND_NAME = _('Dummy backend')
+from getpaid.backends import PaymentProcessorBase
 
-def processor(payment):
-    """
-    Routes a payment to Gateway, should return URL for redirection
-    """
-    return reverse('getpaid-dummy-authorization', kwargs={'pk' : payment.pk})
+class PaymentProcessor(PaymentProcessorBase):
+    BACKEND = 'getpaid.backends.dummy'
+    BACKEND_NAME = _('Dummy backend')
+    BACKEND_ACCEPTED_CURRENCY = ('PLN', 'EUR', 'USD')
+
+    def get_gateway_url(self, request):
+        return reverse('getpaid-dummy-authorization', kwargs={'pk' : self.payment.pk})

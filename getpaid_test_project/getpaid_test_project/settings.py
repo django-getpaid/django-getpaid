@@ -4,7 +4,17 @@
 GETPAID_BACKENDS = ('getpaid.backends.dummy',
                     'getpaid.backends.payu', )
 
-
+GETPAID_BACKENDS_SETTINGS = {
+    # Please provide your settings for backends
+    'getpaid.backends.payu' : {
+            'pos_id' : 123456789,
+            'key1' : 'xxx',
+            'key2' : 'xxx',
+            'pos_auth_key': 'xxx',
+            'signing' : True,
+    #        'testing' : True,
+        },
+}
 
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
@@ -129,8 +139,13 @@ INSTALLED_APPS = (
     # Uncomment the next line to enable admin documentation:
     # 'django.contrib.admindocs',
 
+    'djcelery',
+    'djcelery.transport',
+
     'getpaid',
     'getpaid.backends.dummy',
+    'getpaid.backends.payu',
+
 
     'getpaid_test_project.orders',
 )
@@ -153,7 +168,12 @@ LOGGING = {
             'level': 'ERROR',
             'filters': ['require_debug_false'],
             'class': 'django.utils.log.AdminEmailHandler'
-        }
+        },
+        'console' : {
+            'level':'DEBUG',
+            'class':'logging.StreamHandler',
+
+        },
     },
     'loggers': {
         'django.request': {
@@ -161,5 +181,22 @@ LOGGING = {
             'level': 'ERROR',
             'propagate': True,
         },
+
+
+        #You can do some fancy logging ;)
+        'getpaid.backends.payu':{
+            'handlers': ['console'],
+            'level': 'DEBUG',
+        }
     }
 }
+
+
+# This example uses the simplest django-celery queue possible - Database, don't use it on production!
+
+BROKER_URL = 'django://'
+
+
+
+import djcelery
+djcelery.setup_loader()

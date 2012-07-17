@@ -28,7 +28,8 @@ class DummyAuthorizationView(FormView):
     def form_valid(self, form):
         # Change payment status and jump to success_url or failure_url
         self.payment = get_object_or_404(Payment, pk=self.kwargs['pk'], status='in_progress', backend='getpaid.backends.dummy')
-        if form.cleaned_data['authorize_payment']:
+
+        if form.cleaned_data['authorize_payment'] == '1':
             self.success = True
             if not self.payment.on_success():
                 # This method returns if payment was fully paid

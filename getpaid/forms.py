@@ -10,9 +10,11 @@ class PaymentMethodForm(forms.Form):
     """
     Displays all available payments backends as choice list.
     """
+
+    def __init__(self, currency, *args, **kwargs):
+        super(PaymentMethodForm, self).__init__(*args, **kwargs)
+        self.fields['backend'] = ChoiceField(choices=get_backend_choices(currency), label=_("Payment method"))
+
     order = ModelChoiceField(widget=HiddenInput, queryset=Order.objects.all())
-    backend = ChoiceField(
-            choices=get_backend_choices(),
-            label=_("Payment method"),
-            )
+
 
