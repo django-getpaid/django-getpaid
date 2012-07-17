@@ -90,14 +90,18 @@ In most cases your backend will need to provide some additional urls - for examp
 
 .. note::
 
-    You don't need to register your backend's ``urls.py`` module with ``include()`` in your original project's ``urls.py``. All enabled applications will have theirs urls automatically appended, but they will be prefixed with backend full path. For example, consider following case::
+    You don't need to register your backend's ``urls.py`` module with ``include()`` in your original project's ``urls.py``. All enabled applications will have theirs urls automatically appended, but they will be prefixed with backend full path.
 
-       from django.conf.urls import patterns, url
-       from getpaid.backends.dummy.views import DummyAuthorizationView
 
-       urlpatterns = patterns('',
-           url(r'^payment/authorization/(?P<pk>[0-9]+)/$', DummyAuthorizationView.as_view(), name='getpaid-dummy-authorization'),
-       )
+For example, consider following case::
+
+   from django.conf.urls import patterns, url
+   from getpaid.backends.dummy.views import DummyAuthorizationView
+
+   urlpatterns = patterns('',
+       url(r'^payment/authorization/(?P<pk>[0-9]+)/$', DummyAuthorizationView.as_view(), name='getpaid-dummy-authorization'),
+   )
+
 
 This will expose a link that will point to something like: ``/getpaid.backends.dummy/payment/authorization/0/`` (of course ``getpaid.urls`` could be prefixed with some other path, then the whole path would also have some additional prefix e.g. ``/my/app/payments/getpaid.backends.dummy/payment/authorization/0/`` ). As you can see like in regular django app you connect your urls with app views.
 
