@@ -1,28 +1,16 @@
 import hashlib
+import httplib
 import logging
 import urllib
+import urllib2
 from django.template.base import Template
 from django.template.context import Context
 from django.utils.translation import ugettext_lazy as _
 import time
 from getpaid.backends import PaymentProcessorBase
-from celery import task
-
+from getpaid.backends.payu.tasks import get_payment_status_task
 
 logger = logging.getLogger('getpaid.backends.payu')
-
-@task()
-def get_payment_status_task(payment_id):
-    from getpaid.models import Payment
-    try:
-        payment = Payment.objects.get(pk=int(payment_id))
-    except Payment.DoesNotExist:
-        logger.error('Payment does not exist pk=%d' % payment_id)
-        return
-    processor = PaymentProcessor(payment)
-    processor.get_payment_status()
-
-
 
 
 class PaymentProcessor(PaymentProcessorBase):
@@ -36,6 +24,7 @@ class PaymentProcessor(PaymentProcessorBase):
         'payback_login', 'street', 'street_hn', 'street_an', 'city', 'post_code',
         'country', 'email', 'phone', 'language', 'client_ip', 'ts' )
     _ONLINE_SIG_FIELDS = ('pos_id', 'session_id', 'ts',)
+    _GET_SIG_FIELDS =  ('pos_id', 'session_id', 'ts',)
 
     @staticmethod
     def compute_sig(params, fields, key):
@@ -62,17 +51,13 @@ class PaymentProcessor(PaymentProcessorBase):
         if params['pos_id'] != int(PaymentProcessor.get_backend_setting('pos_id')):
             return 'POS_ID ERR'
 
-
-
-
         try:
             payment_id , session = session_id.split(':')
         except ValueError:
             logger.warning('OnlineView got message with wrong session_id, %s' % str(params))
             return 'SESSION_ID ERR'
 
-        print "REFRESH PAYMENT", payment_id
-        get_payment_status_task.delay(payment_id)
+        get_payment_status_task.delay(payment_id, session_id)
         return 'OK'
 
     def get_gateway_url(self, request):
@@ -129,5 +114,22 @@ class PaymentProcessor(PaymentProcessorBase):
         gateway_url = self._GATEWAY_URL + 'UTF/NewPayment?' + urllib.urlencode(params)
         return gateway_url
 
-    def get_payment_status(self):
-        print "PROCESSING PAYMENT", self.payment
+    def get_payment_status(self, session_id):
+        params = {}
+        params['pos_id'] = PaymentProcessor.get_backend_setting('pos_id')
+        params['session_id'] = session_id
+        params['ts'] = time.time()
+        key1 = PaymentProcessor.get_backend_setting('key1')
+
+        params['sig'] = PaymentProcessor.compute_sig(params, self._GET_SIG_FIELDS, key1)
+
+        for key in params.keys():
+            params[key] = unicode(params[key]).encode('utf-8')
+
+        data = urllib.urlencode(params)
+        url = self._GATEWAY_URL + 'UTF/Payment/get/xml'
+        request = urllib2.Request(url, data)
+        response = urllib2.urlopen(request)
+        xml_response = response.read()
+
+        print xml_response
