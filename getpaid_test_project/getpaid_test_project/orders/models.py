@@ -19,6 +19,11 @@ class Order(models.Model):
     def __unicode__(self):
         return self.name
 
+    def clean(self):
+        self.currency = self.currency.upper()
+
+
 getpaid.register_to_payment(Order, unique=False, related_name='payments')
 
+#noinspection PyUnresolvedReferences
 import listeners

@@ -22,6 +22,7 @@ Order total: {{ object.total }} {{ object.currency }}
 
 {% if order.payments.all %}
     <h2>Payments for order</h2>
+    <p>(refresh this page to refresh payments status)
     <table border=1>
         <tr>
             <th>id</th>

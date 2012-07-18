@@ -2,7 +2,7 @@
 
 
 GETPAID_BACKENDS = ('getpaid.backends.dummy',
-                    'getpaid.backends.payu', )
+                    'getpaid.backends.payu',)
 
 GETPAID_BACKENDS_SETTINGS = {
     # Please provide your settings for backends

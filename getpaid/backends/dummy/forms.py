@@ -1,6 +1,5 @@
 from django.forms import forms
 from django.forms.fields import ChoiceField
-from getpaid.models import Payment
 
 class DummyQuestionForm(forms.Form):
     """

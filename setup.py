@@ -1,13 +1,17 @@
 from distutils.core import setup
 
+with open('README.md') as file:
+    long_description = file.read()
+
 setup(
     name='django-getpaid',
+    description='Multi-broker payment processor for django',
+    long_description=long_description,
     version='1.0',
     packages=['getpaid',],
-    package_dir={'': 'getpaid'},
-    url='',
+    url='https://github.com/cypreess/django-getpaid',
     license='MIT',
     author='Krzysztof Dorosz',
     author_email='cypreess@gmail.com',
-    description='Django payment processor'
+    install_requires=['django'],
 )

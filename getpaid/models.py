@@ -1,10 +1,8 @@
 from django.db import models
-from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 from datetime import datetime
 import sys
 from abstract_mixin import AbstractMixin
-#import signals
 import signals
 from utils import import_backend_modules
 

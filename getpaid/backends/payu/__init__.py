@@ -1,10 +1,13 @@
+import datetime
+from decimal import Decimal
 import hashlib
-import httplib
 import logging
 import urllib
 import urllib2
+from xml.dom.minidom import parseString, Node
 from django.template.base import Template
 from django.template.context import Context
+from django.utils.timezone import utc
 from django.utils.translation import ugettext_lazy as _
 import time
 from getpaid.backends import PaymentProcessorBase
@@ -12,6 +15,16 @@ from getpaid.backends.payu.tasks import get_payment_status_task
 
 logger = logging.getLogger('getpaid.backends.payu')
 
+
+class PayUTransactionStatus:
+    NEW = 1
+    CANCELED = 2
+    REJECTED = 3
+    STARTED = 4
+    AWAITING = 5
+    REJECTED_AFTER_CANCEL = 7
+    FINISHED = 99
+    ERROR = 888
 
 class PaymentProcessor(PaymentProcessorBase):
     BACKEND = 'getpaid.backends.payu'
@@ -25,6 +38,7 @@ class PaymentProcessor(PaymentProcessorBase):
         'country', 'email', 'phone', 'language', 'client_ip', 'ts' )
     _ONLINE_SIG_FIELDS = ('pos_id', 'session_id', 'ts',)
     _GET_SIG_FIELDS =  ('pos_id', 'session_id', 'ts',)
+    _GET_RESPONSE_SIG_FIELDS =  ('pos_id', 'session_id', 'order_id', 'status', 'amount', 'desc', 'ts',)
 
     @staticmethod
     def compute_sig(params, fields, key):
@@ -65,10 +79,9 @@ class PaymentProcessor(PaymentProcessorBase):
         Routes a payment to Gateway, should return URL for redirection.
 
         """
-        params = {}
-        params['pos_id'] = PaymentProcessor.get_backend_setting('pos_id')
-        params['pos_auth_key'] = PaymentProcessor.get_backend_setting('pos_auth_key')
-        params['desc'] = PaymentProcessor.get_backend_setting('description', '')
+        params = {'pos_id': PaymentProcessor.get_backend_setting('pos_id'),
+                  'pos_auth_key': PaymentProcessor.get_backend_setting('pos_auth_key'),
+                  'desc': PaymentProcessor.get_backend_setting('description', '')}
         if not params['desc']:
             params['desc'] = unicode(self.payment.order)
         else:
@@ -87,11 +100,6 @@ class PaymentProcessor(PaymentProcessorBase):
         # Here we put payment.pk as we can get order through payment model
         params['order_id'] = self.payment.pk
 
-        #FIXME
-#        params['first_name'] = u"Jan"
-#        params['last_name'] = u"Kowalski"
-#        params['email'] = u"cypreess@gmail.com"
-
         # amount is number of Grosz, not PLN
         params['amount'] = int(self.payment.amount * 100)
 
@@ -101,8 +109,6 @@ class PaymentProcessor(PaymentProcessorBase):
         #         rather then web server proxy IP in your WSGI environment
         params['client_ip'] = request.META['REMOTE_ADDR']
 
-        params['client_ip'] = '87.239.219.102' #FIXME
-        print request.META['REMOTE_ADDR']
 
         if signing:
             params['ts'] = time.time()
@@ -115,11 +121,9 @@ class PaymentProcessor(PaymentProcessorBase):
         return gateway_url
 
     def get_payment_status(self, session_id):
-        params = {}
-        params['pos_id'] = PaymentProcessor.get_backend_setting('pos_id')
-        params['session_id'] = session_id
-        params['ts'] = time.time()
+        params = {'pos_id': PaymentProcessor.get_backend_setting('pos_id'), 'session_id': session_id, 'ts': time.time()}
         key1 = PaymentProcessor.get_backend_setting('key1')
+        key2 = PaymentProcessor.get_backend_setting('key2')
 
         params['sig'] = PaymentProcessor.compute_sig(params, self._GET_SIG_FIELDS, key1)
 
@@ -131,5 +135,32 @@ class PaymentProcessor(PaymentProcessorBase):
         request = urllib2.Request(url, data)
         response = urllib2.urlopen(request)
         xml_response = response.read()
+        xml_dom = parseString(xml_response)
+        tag_response = xml_dom.getElementsByTagName('trans')[0]
+        response_params={}
+        for tag in tag_response.childNodes:
+            if tag.nodeType == Node.ELEMENT_NODE:
+                response_params[tag.nodeName] = reduce(lambda x,y: x + y.nodeValue, tag.childNodes, u"")
+        if PaymentProcessor.compute_sig(response_params, self._GET_RESPONSE_SIG_FIELDS, key2) == response_params['sig']:
 
-        print xml_response
+            if not (int(response_params['pos_id']) == params['pos_id'] or int(response_params['order_id']) == self.payment.pk):
+                logger.error('Wrong pos_id and/or payment for Payment/get response data %s' % str(response_params))
+                return
+
+            status = int(response_params['status'])
+            if status == PayUTransactionStatus.FINISHED:
+                self.payment.amount_paid = Decimal(response_params['amount']) / Decimal('100')
+                self.payment.paid_on = datetime.datetime.utcnow().replace(tzinfo=utc)
+                if Decimal(response_params['amount']) / Decimal('100') >= self.payment.amount:
+                    self.payment.change_status('paid')
+                else:
+                    self.payment.change_status('partially_paid')
+            elif status in (    PayUTransactionStatus.CANCELED,
+                                PayUTransactionStatus.ERROR,
+                                PayUTransactionStatus.REJECTED,
+                                PayUTransactionStatus.REJECTED_AFTER_CANCEL):
+                self.payment.change_status('failed')
+
+
+        else:
+            logger.error('Wrong signature for Payment/get response data %s' % str(response_params))
