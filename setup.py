@@ -1,13 +1,13 @@
 from distutils.core import setup
 
-with open('README.md') as file:
+with open('README.rst') as file:
     long_description = file.read()
 
 setup(
     name='django-getpaid',
     description='Multi-broker payment processor for django',
     long_description=long_description,
-    version='1.0',
+    version='1.1',
     packages=['getpaid',],
     url='https://github.com/cypreess/django-getpaid',
     license='MIT',
