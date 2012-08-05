@@ -1,6 +1,13 @@
 #noinspection PyUnresolvedReferences
 from settings import *
 
+GETPAID_BACKENDS = ('getpaid.backends.dummy',
+                    'getpaid.backends.payu',
+                    'getpaid.backends.transferuj',
+                    )
+
+
+INSTALLED_APPS += ('getpaid.backends.payu', 'getpaid.backends.transferuj',)
 
 GETPAID_BACKENDS_SETTINGS = {
     # Please provide your settings for backends
@@ -12,40 +19,12 @@ GETPAID_BACKENDS_SETTINGS = {
         'signing' : True,
         #        'testing' : True,
     },
+
+    'getpaid.backends.transferuj' : {
+        'id' : 1234,
+        'key' : 'AAAAAAAA',
+
     }
 
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'filters': {
-        'require_debug_false': {
-            '()': 'django.utils.log.RequireDebugFalse'
-        }
-    },
-    'handlers': {
-        'mail_admins': {
-            'level': 'ERROR',
-            'filters': ['require_debug_false'],
-            'class': 'django.utils.log.AdminEmailHandler'
-        },
-        'console' : {
-            'level':'DEBUG',
-            'class':'logging.StreamHandler',
-
-            },
-        },
-    'loggers': {
-        'django.request': {
-            'handlers': ['mail_admins'],
-            'level': 'ERROR',
-            'propagate': True,
-            },
-
-
-        #You can do some fancy logging ;)
-        'getpaid.backends.payu':{
-            'handlers': [],
-            'level': 'DEBUG',
-            }
-    }
 }
+

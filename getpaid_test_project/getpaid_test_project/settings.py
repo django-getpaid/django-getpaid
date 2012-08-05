@@ -2,18 +2,18 @@
 
 
 GETPAID_BACKENDS = ('getpaid.backends.dummy',
-                    'getpaid.backends.payu',)
+                    )
 
 GETPAID_BACKENDS_SETTINGS = {
     # Please provide your settings for backends
-    'getpaid.backends.payu' : {
-            'pos_id' : 123456789,
-            'key1' : 'xxx',
-            'key2' : 'xxx',
-            'pos_auth_key': 'xxx',
-            'signing' : True,
-    #        'testing' : True,
-        },
+#    'getpaid.backends.payu' : {
+#            'pos_id' : 123456789,
+#            'key1' : 'xxx',
+#            'key2' : 'xxx',
+#            'pos_auth_key': 'xxx',
+#            'signing' : True,
+#            #'testing' : True,
+#        },
 }
 
 DEBUG = True
@@ -135,7 +135,7 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     # Uncomment the next line to enable the admin:
-    # 'django.contrib.admin',
+    'django.contrib.admin',
     # Uncomment the next line to enable admin documentation:
     # 'django.contrib.admindocs',
 
@@ -144,7 +144,7 @@ INSTALLED_APPS = (
 
     'getpaid',
     'getpaid.backends.dummy',
-    'getpaid.backends.payu',
+
 
 
     'getpaid_test_project.orders',
@@ -187,7 +187,12 @@ LOGGING = {
         'getpaid.backends.payu':{
             'handlers': ['console'],
             'level': 'DEBUG',
+        },
+        'getpaid.backends.transferuj':{
+            'handlers': ['console'],
+            'level': 'DEBUG',
         }
+
     }
 }
 

@@ -11,7 +11,9 @@ from django.db.models.loading import get_model
 from django.test import TestCase
 from django.test.client import Client
 import mock
-from getpaid.backends.payu import PaymentProcessor
+import getpaid.backends.payu
+import getpaid.backends.transferuj
+
 from getpaid_test_project.orders.models import Order
 
 
@@ -183,7 +185,7 @@ class PayUBackendTest(TestCase):
         payment = Payment(pk=99, order=order, amount=order.total, currency=order.currency, backend='getpaid.backends.payu')
         payment.save(force_insert=True)
         payment = Payment.objects.get(pk=99) # this line is because django bug https://code.djangoproject.com/ticket/5903
-        processor = PaymentProcessor(payment)
+        processor = getpaid.backends.payu.PaymentProcessor(payment)
         processor.get_payment_status('99:1342616247.41')
         self.assertEqual(payment.status, 'paid')
         self.assertNotEqual(payment.paid_on, None)
@@ -197,8 +199,92 @@ class PayUBackendTest(TestCase):
         payment = Payment(pk=98, order=order, amount=order.total, currency=order.currency, backend='getpaid.backends.payu')
         payment.save(force_insert=True)
         payment = Payment.objects.get(pk=98) # this line is because django bug https://code.djangoproject.com/ticket/5903
-        processor = PaymentProcessor(payment)
+        processor = getpaid.backends.payu.PaymentProcessor(payment)
         processor.get_payment_status('98:1342616247.41')
         self.assertEqual(payment.status, 'failed')
         self.assertEqual(payment.paid_on, None)
         self.assertEqual(payment.amount_paid, Decimal('0'))
+
+class TransferujBackendTest(TestCase):
+
+
+    def test_online_not_allowed_ip(self):
+        self.assertEqual('IP ERR', getpaid.backends.transferuj.PaymentProcessor.online('0.0.0.0', None,  None, None, None, None, None, None, None, None, None, None))
+
+        #Tests allowing IP given in settings
+        with self.settings(GETPAID_BACKENDS_SETTINGS={
+            'getpaid.backends.transferuj' : {'allowed_ip': ('1.1.1.1', '1.2.3.4'), 'key': ''},
+            }):
+            self.assertEqual('IP ERR', getpaid.backends.transferuj.PaymentProcessor.online('0.0.0.0', None,  None, None, None, None, None, None, None, None, None, None))
+            self.assertNotEqual('IP ERR', getpaid.backends.transferuj.PaymentProcessor.online('1.1.1.1', None,  None, None, None, None, None, None, None, None, None, None))
+            self.assertNotEqual('IP ERR', getpaid.backends.transferuj.PaymentProcessor.online('1.2.3.4', None,  None, None, None, None, None, None, None, None, None, None))
+
+
+        #Tests allowing all IP
+        with self.settings(GETPAID_BACKENDS_SETTINGS={
+            'getpaid.backends.transferuj' : {'allowed_ip': [], 'key': ''},
+            }):
+            self.assertNotEqual('IP ERR', getpaid.backends.transferuj.PaymentProcessor.online('0.0.0.0', None,  None, None, None, None, None, None, None, None, None, None))
+            self.assertNotEqual('IP ERR', getpaid.backends.transferuj.PaymentProcessor.online('1.1.1.1', None,  None, None, None, None, None, None, None, None, None, None))
+            self.assertNotEqual('IP ERR', getpaid.backends.transferuj.PaymentProcessor.online('1.2.3.4', None,  None, None, None, None, None, None, None, None, None, None))
+
+    def test_online_wrong_sig(self):
+        self.assertEqual('SIG ERR', getpaid.backends.transferuj.PaymentProcessor.online('195.149.229.109', '1234', '1', '', '1', '123.45', None, None, None, None, None, 'xxx'))
+        self.assertNotEqual('SIG ERR', getpaid.backends.transferuj.PaymentProcessor.online('195.149.229.109', '1234', '1', '', '1', '123.45', None, None, None, None, None, '21b028c2dbdcb9ca272d1cc67ed0574e'))
+
+    def test_online_wrong_id(self):
+        self.assertEqual('ID ERR', getpaid.backends.transferuj.PaymentProcessor.online('195.149.229.109', '1111', '1', '', '1', '123.45', None, None, None, None, None, '15bb75707d4374bc6e578c0cbf5a7fc7'))
+        self.assertNotEqual('ID ERR', getpaid.backends.transferuj.PaymentProcessor.online('195.149.229.109', '1234', '1', '', '1', '123.45', None, None, None, None, None, 'f5f8276fbaa98a6e05b1056ab7c3a589'))
+
+    def test_online_crc_error(self):
+        self.assertEqual('CRC ERR', getpaid.backends.transferuj.PaymentProcessor.online('195.149.229.109', '1234', '1', '', '99999', '123.45', None, None, None, None, None, 'f5f8276fbaa98a6e05b1056ab7c3a589'))
+        self.assertEqual('CRC ERR', getpaid.backends.transferuj.PaymentProcessor.online('195.149.229.109', '1234', '1', '', 'GRRGRRG', '123.45', None, None, None, None, None, '6a9e045010c27dfed24774b0afa37d0b'))
+
+
+    def test_online_payment_ok(self):
+        Payment = get_model('getpaid', 'Payment')
+        order = Order(name='Test EUR order', total='123.45', currency='PLN')
+        order.save()
+        payment = Payment(order=order, amount=order.total, currency=order.currency, backend='getpaid.backends.payu')
+        payment.save(force_insert=True)
+        self.assertEqual('TRUE', getpaid.backends.transferuj.PaymentProcessor.online('195.149.229.109', '1234', '1', '', payment.pk, '123.45', '123.45', '', 'TRUE', 0, '', '21b028c2dbdcb9ca272d1cc67ed0574e'))
+        payment = Payment.objects.get(pk=payment.pk)
+        self.assertEqual(payment.status, 'paid')
+        self.assertNotEqual(payment.paid_on, None)
+        self.assertEqual(payment.amount_paid, Decimal('123.45'))
+
+    def test_online_payment_ok_over(self):
+        Payment = get_model('getpaid', 'Payment')
+        order = Order(name='Test EUR order', total='123.45', currency='PLN')
+        order.save()
+        payment = Payment(order=order, amount=order.total, currency=order.currency, backend='getpaid.backends.payu')
+        payment.save(force_insert=True)
+        self.assertEqual('TRUE', getpaid.backends.transferuj.PaymentProcessor.online('195.149.229.109', '1234', '1', '', payment.pk, '123.45', '223.45', '', 'TRUE', 0, '', '21b028c2dbdcb9ca272d1cc67ed0574e'))
+        payment = Payment.objects.get(pk=payment.pk)
+        self.assertEqual(payment.status, 'paid')
+        self.assertNotEqual(payment.paid_on, None)
+        self.assertEqual(payment.amount_paid, Decimal('223.45'))
+
+    def test_online_payment_partial(self):
+        Payment = get_model('getpaid', 'Payment')
+        order = Order(name='Test EUR order', total='123.45', currency='PLN')
+        order.save()
+        payment = Payment(order=order, amount=order.total, currency=order.currency, backend='getpaid.backends.payu')
+        payment.save(force_insert=True)
+        self.assertEqual('TRUE', getpaid.backends.transferuj.PaymentProcessor.online('195.149.229.109', '1234', '1', '', payment.pk, '123.45', '23.45', '', 'TRUE', 0, '', '21b028c2dbdcb9ca272d1cc67ed0574e'))
+        payment = Payment.objects.get(pk=payment.pk)
+        self.assertEqual(payment.status, 'partially_paid')
+        self.assertNotEqual(payment.paid_on, None)
+        self.assertEqual(payment.amount_paid, Decimal('23.45'))
+
+    def test_online_payment_failure(self):
+        Payment = get_model('getpaid', 'Payment')
+        order = Order(name='Test EUR order', total='123.45', currency='PLN')
+        order.save()
+        payment = Payment(order=order, amount=order.total, currency=order.currency, backend='getpaid.backends.payu')
+        payment.save(force_insert=True)
+        self.assertEqual('TRUE', getpaid.backends.transferuj.PaymentProcessor.online('195.149.229.109', '1234', '1', '', payment.pk, '123.45', '23.45', '', False, 0, '', '21b028c2dbdcb9ca272d1cc67ed0574e'))
+        payment = Payment.objects.get(pk=payment.pk)
+        self.assertEqual(payment.status, 'failed')
+
+
