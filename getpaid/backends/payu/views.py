@@ -22,7 +22,7 @@ class OnlineView(View):
             ts = request.POST['ts']
             sig = request.POST['sig']
         except KeyError:
-            logger.warning('OnlineView got malformed POST request: %s' % str(request.POST))
+            logger.warning('Got malformed POST request: %s' % str(request.POST))
             return HttpResponse('MALFORMED')
 
         status = PaymentProcessor.online(pos_id, session_id, ts, sig)

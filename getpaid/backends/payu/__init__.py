@@ -55,7 +55,7 @@ class PaymentProcessor(PaymentProcessorBase):
 
         key2 = PaymentProcessor.get_backend_setting('key2')
         if sig != PaymentProcessor.compute_sig(params, PaymentProcessor._ONLINE_SIG_FIELDS, key2):
-            logger.warning('OnlineView got message with wrong sig, %s' % str(params))
+            logger.warning('Got message with wrong sig, %s' % str(params))
             return 'SIG ERR'
 
         try:
@@ -68,7 +68,7 @@ class PaymentProcessor(PaymentProcessorBase):
         try:
             payment_id , session = session_id.split(':')
         except ValueError:
-            logger.warning('OnlineView got message with wrong session_id, %s' % str(params))
+            logger.warning('Got message with wrong session_id, %s' % str(params))
             return 'SESSION_ID ERR'
 
         get_payment_status_task.delay(payment_id, session_id)
