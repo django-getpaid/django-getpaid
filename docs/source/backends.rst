@@ -7,6 +7,40 @@ Each payment backend delivers a payment channel for a defined list of currencies
 
 Just to have an overview a payment backend has a very flexible architecture, allowing it to introduce own logic, urls and even models.
 
+
+.. warning::
+
+    **Getting real client IP address from HTTP request meta**
+
+    Many payment brokers for security reason requires checking or providing real clint IP address. For that reason the getpaid backend commonly uses ``REMOTE_ADDR`` HTTP meta. In most common production deployments your django app will stand after a number of proxy servers like Web server, caches, load balancers, you name it. This will cause that ``REMOTE_ADDR`` will **always** be set for your application as an IP of your Web proxy server (e.g. 127.0.0.0 if everything is set up on local machine).
+
+    For that reason you need to take care by yourself of having correctly set ``REMOTE_ADDR`` that actually points on **real** client IP. A good way to do that is to use commonly used HTTP header called ``X-Forwarded-For``. This is a header that is set by most common Web proxy servers  to the **real** client IP address. Using simple django middleware you can rewrite your request data to assure that **real** client IP address overwrites any address  in ``REMOTE_ADDR``. One of solution taken from `The Django Book <http://www.djangobook.com/en/2.0/chapter17/>`_ is to use following middleware class::
+
+        class SetRemoteAddrFromForwardedFor(object):
+            def process_request(self, request):
+                try:
+                    real_ip = request.META['HTTP_X_FORWARDED_FOR']
+                except KeyError:
+                    pass
+                else:
+                    # HTTP_X_FORWARDED_FOR can be a comma-separated list of IPs.
+                    # Take just the first one.
+                    real_ip = real_ip.split(",")[0]
+                    request.META['REMOTE_ADDR'] = real_ip
+
+
+    Enabling this middleware in your ``settings.py`` will fix the issue. Just make sure that your Web proxy server is actually setting ``X-Forwarded-For`` HTTP header.
+
+
+
+.. warning::
+
+    **Set Sites domain name**
+
+    This module requires Sites framework to be enabled. All backends base on Sites domain configuration (to generate fully qualified URL for payment broker service). Please be sure that you set a correct domain for your deployment before running ``getpaid``.
+
+
+
 Dummy backend ``getpaid.backends.dummy``
 ----------------------------------------
 This is a mock of payment backend that can be used only for testing/demonstrating purposes.
@@ -31,8 +65,8 @@ No additional setup is needed for dummy backend.
 
 
 
-PayU backend ``getpaid.backends.payu``
---------------------------------------
+PayU.pl backend ``getpaid.backends.payu``
+-----------------------------------------
 This backend can handle payment processing via Polish money broker `PayU <http://payu.pl>`_ which is currently a part of the biggest on Polish market e-commerce provider - Allegro Group.
 
 PayU accepts only payments in ``PLN``.
@@ -94,23 +128,31 @@ There are some additional options you can provide:
 ``````````````````````````````````````````
 After setting up django application it is also important to remember that some minimal configuration is needed also at PayU service configuration site. Please navigate to POS configuration, where you need to provide three links: success URL, failure URL, and online URL. The first two are used to redirect client after successful/failure payment. The third one is the address of script that will be notified about payment status change.
 
-``getpaid.backends.payu`` comes with ``getpaid_configuration`` management script that simplifies getting those links in your particular django eviroment. This is because you can customize path prefix when including urls from ``getpaid``.
+``getpaid.backends.payu`` comes with ``getpaid_configuration`` management script that simplifies getting those links in your particular django environment. This is because you can customize path prefix when including urls from ``getpaid``.
 
 It will produce following example output::
 
     $. /manage.py  payu_configuration
     Login to PayU configuration page and setup following links:
 
-     * Success URL: /getpaid.backends.payu/success/%orderId%/
-     * Failure URL: /getpaid.backends.payu/failure/%orderId%/
-     * Online  URL: /getpaid.backends.payu/online/
+     * Success URL: http://example.com/getpaid.backends.payu/success/%orderId%/
+                    https://example.com/getpaid.backends.payu/success/%orderId%/
 
-    Please remember to convert this paths to fully qualified URL by prefixing
-    them with protocol and domain name (http(s)://yourdomain).
+     * Failure URL: http://example.com/getpaid.backends.payu/failure/%orderId%/
+                    https://example.com/getpaid.backends.payu/failure/%orderId%/
+
+     * Online  URL: http://example.com/getpaid.backends.payu/online/
+                    https://example.com/getpaid.backends.payu/online/
+
+    To change domain name please edit Sites settings. Don't forget to setup your web server to accept https connection in order to use secure links.
 
     Request signing is ON
-    Please be sure that you enabled signing payments in PayU configuration page.
+     * Please be sure that you enabled signing payments in PayU configuration page.
 
+
+.. warning::
+
+    Please remember to set correct domain name in Sites framework.
 
 
 Running celery for asynchronus tasks
@@ -124,24 +166,99 @@ If you just want to make a quick start with using django-getpaid and django-cele
 
 
 
-Deployment configuration - real client IP address
-`````````````````````````````````````````````````````
-
-PayU service for security reason requires on each redirection to provide IP address of the client that is going to pay using theirs service. For that reason the backend before making a redirection reads ``REMOTE_ADDR`` HTTP request metadata. In most common production deployments your django app will stand after a number of Web proxy servers like Web server, caches, load balancers, you name it. This will cause that ``REMOTE_ADDR`` will **always** be visible in your application as an IP of your Web proxy server (e.g. 127.0.0.0 if everything is set up on one machine).
-
-For that reason you need to take care by yourself to have correctly set ``REMOTE_ADDR`` that actually points on **real** client IP. One way to do that is to use some commonly used HTTP header called ``X-Forwarded-For``. This is a header that is set by most common Web proxy servers  to the **real** client IP address. Using simple django middleware you can rewrite your request data to assure that **real** client IP address overwrites any address  in ``REMOTE_ADDR``. One of solution taken from `The Django Book <http://www.djangobook.com/en/2.0/chapter17/>`_ is to use following middleware class::
-
-    class SetRemoteAddrFromForwardedFor(object):
-        def process_request(self, request):
-            try:
-                real_ip = request.META['HTTP_X_FORWARDED_FOR']
-            except KeyError:
-                pass
-            else:
-                # HTTP_X_FORWARDED_FOR can be a comma-separated list of IPs.
-                # Take just the first one.
-                real_ip = real_ip.split(",")[0]
-                request.META['REMOTE_ADDR'] = real_ip
 
 
-Enabling this middleware in your ``settings.py`` will fix the issue. Just make sure that your Web proxy server is actually setting ``X-Forwarded-For`` HTTP header.
+Transferuj.pl backend ``getpaid.backends.transferuj``
+-----------------------------------------------------
+
+This backend can handle payment processing via Polish money broker `Transferuj.pl <http://transferuj.pl>`_.
+
+Transferuj.pl accepts only payments in ``PLN``.
+
+
+
+Enable backend
+``````````````
+Add backend full path to ``GETPAID_BACKENDS`` setting::
+
+    GETPAID_BACKENDS += ('getpaid.backends.transferuj', )
+
+
+Don't forget to add backend path also to ``INSTALLED_APPS``::
+
+    INSTALLED_APPS += ('getpaid.backends.transferuj', )
+
+
+There is no need to adding any urls definitions to main ``urls.py`` file, as they will be loaded automatically itself by ``getpaid`` application.
+
+Setup backend
+`````````````
+In order to start working with Transferuj.pl you will need to have an activated account in Transferuj.pl service. The following setup information need to be provided in the ``GETPAID_BACKENDS_SETTINGS`` configuration dict:
+
+
+**id**
+    Transferuj.pl client identificator,
+
+**key**
+    random (max. 16 characters long) string, that will be used in security signing of requests,
+
+
+You need to provide this information in ``GETPAID_BACKENDS_SETTINGS`` dictionary::
+
+    GETPAID_BACKENDS_SETTINGS = {
+        'getpaid.backends.transferuj' : {
+                'id' : 123456,
+                'key' : 'xxxxxxxxxxxxx',
+                'signing' : True,       # optional
+            },
+    }
+
+There are some additional options you can provide:
+
+**signing**
+    for security reasons Transferuj.pl can check a signature of some data that is sent from your service while redirecting to payment gateway; unless you really know what you are doing, this should be always on; default is True;
+
+**allowed_ip**
+    Transferuj.pl requires to check IP address when they send you a payment status change HTTP request. By default,
+    this module comes with list of hardcoded IP of Transferuj.pl system (according to the documentation). If you
+    really need to you can override this list of allowed IP, setting this variable.
+
+    .. note::
+
+        Setting empty list ``[]`` completely disables checking of IP address what **NOT recommended**.
+
+**force_ssl_online**
+    default: False; this option when turned to True, will force getpaid to return an HTTPS URL for Transferuj.pl to send
+    you payment status change.
+
+    .. warning::
+
+        Remember to set Sites framework domain in database, as this module uses this address to build fully qualified
+        URL.
+
+**force_ssl_return**
+    default: False; similarly to ``force_ssl_online`` but forces HTTPS for client returning links.
+
+    .. warning::
+
+        Remember to set Sites framework domain in database, as this module uses this address to build fully qualified
+        URL.
+
+`transferuj_configuration` management command
+`````````````````````````````````````````````
+After setting up django application it is also important to remember that some minimal configuration is needed also at Transferuj.pl service configuration site.
+
+``getpaid.backends.transferuj`` comes with ``transferuj_configuration`` management script that simplifies getting those links in your particular django eviroment. This is because you can customize path prefix when including urls from ``getpaid``.
+
+It will produce following example output::
+
+    $. /manage.py  transferuj_configuration
+    Please setup in Transferuj.pl user defined key (for security signing): xxxxxxxxxxxxx
+
+
+.. warning::
+
+    Please remember to set correct domain name in Sites framework.
+
+
+
