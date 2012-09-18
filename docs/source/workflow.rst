@@ -3,6 +3,19 @@ Payment workflow integration
 
 With few simple steps you will easily integrate your project with django-getpaid. This module is shipped with very well documented django-getpaid test project which can be found with module source code. Please refer to this code for implementation details.
 
+
+Connect urls
+------------
+
+**Required**
+
+Add to your urls::
+
+        url(r'', include('getpaid.urls')),
+
+
+
+
 Prepare your order model
 ------------------------
 
@@ -38,6 +51,10 @@ You can add some `kwargs` that are basically used for ``ForeignKey`` kwargs. In 
 There are two important things on that model. In fact two methods are required to be present in order class. The first one is ``__unicode__`` method as this will be used in few places as a fallback for generating order description. The second one is ``get_absolute_url`` method which should return an URL of order object. It is used again as a fallback for some final redirections after payment success of failure (if you do not provide otherwise).
 
 The second important thing that it actually don't mather if you even store `total` in database, or just can sum it up from some items. You will see why, in further sections.
+
+.. warning::
+
+    Remember to run ``./manage.py syncdb`` in order to create additional Database tables.
 
 
 Prepare payment form for order
