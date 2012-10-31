@@ -5,4 +5,4 @@ class DummyQuestionForm(forms.Form):
     """
     This dummy form asks for payment authorization.
     """
-    authorize_payment = ChoiceField(choices=((0, 'no'),(1, 'yes')))
+    authorize_payment = ChoiceField(choices=((1, 'yes'),(0, 'no')))

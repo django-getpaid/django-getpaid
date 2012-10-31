@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils.timezone import utc
 from django.utils.translation import ugettext_lazy as _
 from datetime import datetime
 import sys
@@ -84,7 +85,7 @@ class PaymentFactory(models.Model, AbstractMixin):
 
         Returns boolean value if payment was fully paid
         """
-        self.paid_on = datetime.now()
+        self.paid_on = datetime.utcnow().replace(tzinfo=utc)
         if amount:
             self.amount_paid = amount
         else:
