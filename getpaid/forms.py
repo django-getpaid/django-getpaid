@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.forms import forms
 from django.forms.fields import ChoiceField
 from django.forms.models import ModelChoiceField
@@ -17,4 +18,9 @@ class PaymentMethodForm(forms.Form):
 
     order = ModelChoiceField(widget=HiddenInput, queryset=Order.objects.all())
 
+    def clean_order(self):
+        if hasattr(self.cleaned_data['order'], 'is_ready_for_payment'):
+            if not self.cleaned_data['order'].is_ready_for_payment():
+                raise ValidationError('Order not ready for payment')
+        return self.cleaned_data['order']
 

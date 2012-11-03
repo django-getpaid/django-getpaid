@@ -57,6 +57,13 @@ The second important thing that it actually don't mather if you even store `tota
     Remember to run ``./manage.py syncdb`` in order to create additional Database tables.
 
 
+
+Controlling payment creation for an order
+`````````````````````````````````````````
+
+Getpaid supports payment creation policy for order. It means that yours order class can implement a method ``is_ready_for_payment()`` which will inform getpaid if creation of a payment for the given order is allowed. This is a typical situation if e.g. you want to disallow to make another payment for an order that status is "already paid" or that is expired by now. If you do not implement this method, getpaid will assume that payment is always allowed.
+
+
 Prepare payment form for order
 ------------------------------
 
