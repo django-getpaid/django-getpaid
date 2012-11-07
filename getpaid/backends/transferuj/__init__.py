@@ -14,7 +14,7 @@ from getpaid.backends import PaymentProcessorBase
 
 logger = logging.getLogger('getpaid.backends.transferuj')
 
-Payment = get_model('getpaid', 'Payment')
+
 
 class PaymentProcessor(PaymentProcessorBase):
     BACKEND = 'getpaid.backends.transferuj'
@@ -54,6 +54,7 @@ class PaymentProcessor(PaymentProcessorBase):
             logger.warning('Got message with wrong id, %s' % str(params))
             return 'ID ERR'
 
+        Payment = get_model('getpaid', 'Payment')
         try:
             payment = Payment.objects.select_related('order').get(pk=int(tr_crc))
         except (Payment.DoesNotExist, ValueError):
