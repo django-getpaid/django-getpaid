@@ -31,6 +31,7 @@ Contents:
    workflow
    backends
    custom_backends
+   south
    contributors
 
 
