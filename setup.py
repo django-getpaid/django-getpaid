@@ -14,4 +14,5 @@ setup(
     author='Krzysztof Dorosz',
     author_email='cypreess@gmail.com',
     install_requires=['django'],
+    package_data={'getpaid.backends.dummy': ['templates/getpaid_dummy_backend/*.html', ]},
 )
