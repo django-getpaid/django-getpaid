@@ -292,4 +292,19 @@ You need to provide this information in ``GETPAID_BACKENDS_SETTINGS`` dictionary
 Optional keys:
 
 **force_ssl**
-    forcing HTTPS on incoming connection from Dotpay; default ``False``
+    forcing HTTPS on incoming connections from Dotpay; default ``False``
+
+**lang**
+    default interface lang (refer to Dotpay manual); default: ``None``
+
+**onlinetransfer**
+    if broker should show only online payment methods (refer to Dotpay manual); default: ``False``
+
+**p_email**
+    custom merchant e-mail (refer to Dotpay manual); default: ``None``
+
+**p_info**
+    custom merchant name (refer to Dotpay manual); default: ``None``
+
+**tax**
+    1% charity (refer to Dotpay manual); default: ``False``

@@ -14,6 +14,7 @@ from django.utils.translation import ugettext_lazy as _
 import time
 from getpaid.backends import PaymentProcessorBase
 from getpaid.backends.payu.tasks import get_payment_status_task
+from getpaid.signals import user_data_query
 
 logger = logging.getLogger('getpaid.backends.dotpay')
 
@@ -99,9 +100,30 @@ class PaymentProcessor(PaymentProcessorBase):
             'amount' : str(self.payment.amount),
             'currency' : self.payment.currency,
             'type' : 0, # show "return" button after finished payment
+            'control' : str(self.payment.pk),
             'URL': self.get_URL(self.payment.pk),
             'URLC': self.get_URLC(),
         }
+
+        user_data = {
+            'email' : None,
+            'lang' : None,
+        }
+        #FIXME: TEst me
+        user_data_query.send(self.payment.order, user_data)
+
+        if PaymentProcessor.get_backend_setting('lang', False):
+            params['lang'] = PaymentProcessor.get_backend_setting('lang')
+        if PaymentProcessor.get_backend_setting('onlinetransfer', False):
+            params['onlinetransfer'] = 1
+        if PaymentProcessor.get_backend_setting('p_email', False):
+            params['p_email'] = PaymentProcessor.get_backend_setting('p_email')
+        if PaymentProcessor.get_backend_setting('p_info', False):
+            params['p_info'] = PaymentProcessor.get_backend_setting('p_info')
+        if PaymentProcessor.get_backend_setting('tax', False):
+            params['tax'] = 1
+
+
         gateway_url = self._GATEWAY_URL + '?' + urllib.urlencode(params)
         return gateway_url
 
