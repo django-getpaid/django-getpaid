@@ -28,6 +28,7 @@ Contents:
    :maxdepth: 2
 
    installation
+   settings
    workflow
    backends
    custom_backends

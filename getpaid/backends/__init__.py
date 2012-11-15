@@ -1,4 +1,7 @@
+from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
+from django.template.base import Template
+from django.template.context import Context
 from getpaid.utils import get_backend_settings
 
 class PaymentProcessorBase(object):
@@ -31,6 +34,17 @@ class PaymentProcessorBase(object):
         if payment.currency not in self.BACKEND_ACCEPTED_CURRENCY:
             raise ValueError("Backend '%s' cannot process '%s' payments." % self.BACKEND, payment.currency)
         self.payment = payment
+
+    def get_order_description(self, payment, order):
+        """
+        Renders order description using django template provided in ``settings.GETPAID_ORDER_DESCRIPTION``
+        or if not provided return unicode representation of ``Order object``.
+        """
+        template = getattr(settings, 'GETPAID_ORDER_DESCRIPTION', None)
+        if template:
+            return Template(template).render(Context({"payment": payment, "order": order}))
+        else:
+            return unicode(order)
 
 
     def get_gateway_url(self, request):

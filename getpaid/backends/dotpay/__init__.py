@@ -5,6 +5,8 @@ import logging
 import urllib
 import urllib2
 from xml.dom.minidom import parseString, Node
+from django.contrib.sites.models import Site
+from django.core.urlresolvers import reverse
 from django.template.base import Template
 from django.template.context import Context
 from django.utils.timezone import utc
@@ -17,14 +19,7 @@ logger = logging.getLogger('getpaid.backends.dotpay')
 
 
 class DotpayTransactionStatus:
-    NEW = 1
-    CANCELED = 2
-    REJECTED = 3
-    STARTED = 4
-    AWAITING = 5
-    REJECTED_AFTER_CANCEL = 7
-    FINISHED = 99
-    ERROR = 888
+    pass
 
 class PaymentProcessor(PaymentProcessorBase):
     BACKEND = 'getpaid.backends.dotpay'
@@ -75,50 +70,39 @@ class PaymentProcessor(PaymentProcessorBase):
 #        get_payment_status_task.delay(payment_id, session_id)
 #        return 'OK'
 
+    def get_URLC(self):
+        urlc = reverse('getpaid-dotpay-online')
+        current_site = Site.objects.get_current()
+        if PaymentProcessor.get_backend_setting('force_ssl', False):
+            return 'https://%s%s' % (current_site.domain, urlc)
+        else:
+            return 'http://%s%s' % (current_site.domain, urlc)
+
+    def get_URL(self, pk):
+        current_site = Site.objects.get_current()
+        url = reverse('getpaid-dotpay-return', kwargs={'pk' : pk})
+        if PaymentProcessor.get_backend_setting('force_ssl', False):
+            return 'https://%s%s' % (current_site.domain, url)
+        else:
+            return 'http://%s%s' % (current_site.domain, url)
+
+
+
     def get_gateway_url(self, request):
         """
         Routes a payment to Gateway, should return URL for redirection.
 
         """
-        params = {'pos_id': PaymentProcessor.get_backend_setting('pos_id'),
-                  'pos_auth_key': PaymentProcessor.get_backend_setting('pos_auth_key'),
-                  'desc': PaymentProcessor.get_backend_setting('description', '')}
-        if not params['desc']:
-            params['desc'] = unicode(self.payment.order)
-        else:
-            params['desc'] = Template(params['desc']).render(Context({"payment": self.payment, "order": self.payment.order}))
-
-        key1 = PaymentProcessor.get_backend_setting('key1')
-
-        signing = PaymentProcessor.get_backend_setting('signing', True)
-        testing = PaymentProcessor.get_backend_setting('testing', False)
-
-        if testing:
-            # Switch to testing mode, where payment method is set to "test payment"->"t"
-            # Warning: testing mode need to be enabled also in payu.pl system for this POS
-            params['pay_type'] = 't'
-
-        # Here we put payment.pk as we can get order through payment model
-        params['order_id'] = self.payment.pk
-
-        # amount is number of Grosz, not PLN
-        params['amount'] = int(self.payment.amount * 100)
-
-        params['session_id'] = "%d:%s" % (self.payment.pk, str(time.time()))
-
-        #Warning: please make sure that this header actually has client IP
-        #         rather then web server proxy IP in your WSGI environment
-        params['client_ip'] = request.META['REMOTE_ADDR']
-
-
-        if signing:
-            params['ts'] = time.time()
-            params['sig'] = PaymentProcessor.compute_sig(params, self._REQUEST_SIG_FIELDS, key1)
-
-        for key in params.keys():
-            params[key] = unicode(params[key]).encode('utf-8')
-
-        gateway_url = self._GATEWAY_URL + 'UTF/NewPayment?' + urllib.urlencode(params)
+        params = {
+            'id': PaymentProcessor.get_backend_setting('id'),
+            'description' : self.get_order_description(self.payment, self.payment.order),
+            'amount' : str(self.payment.amount),
+            'currency' : self.payment.currency,
+            'type' : 0, # show "return" button after finished payment
+            'URL': self.get_URL(self.payment.pk),
+            'URLC': self.get_URLC(),
+        }
+        gateway_url = self._GATEWAY_URL + '?' + urllib.urlencode(params)
         return gateway_url
 
 #    def get_payment_status(self, session_id):

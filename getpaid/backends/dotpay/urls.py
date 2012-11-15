@@ -1,10 +1,10 @@
 from django.conf.urls import patterns, url
 from django.views.decorators.csrf import csrf_exempt
-from getpaid.backends.payu.views import OnlineView, SuccessView, FailureView
+from getpaid.backends.dotpay.views import ReturnView
+from getpaid.backends.payu.views import OnlineView
 
 urlpatterns = patterns('',
     url(r'^online/$', csrf_exempt(OnlineView.as_view()), name='getpaid-dotpay-online'),
-    url(r'^success/(?P<pk>\d+)/$', csrf_exempt(SuccessView.as_view()), name='getpaid-dotpay-success'),
-    url(r'^failure/(?P<pk>\d+)/$', csrf_exempt(FailureView.as_view()), name='getpaid-dotpay-failure'),
+    url(r'^return/(?P<pk>\d+)/$', csrf_exempt(ReturnView.as_view()), name='getpaid-dotpay-return'),
 
 )

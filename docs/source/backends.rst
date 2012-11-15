@@ -268,3 +268,28 @@ Dotpay.eu backend ``getpaid.backends.dotpay``
 This backend can handle payment processing via Polish money broker `Dotpay.pl/Dotpay.eu <http://transferuj.eu>`_.
 
 Dotpay.eu accepts payments in ``PLN``, ``EUR``, ``USD``, ``GBP``, ``JPY``, ``CZK``, ``SEK``.
+
+
+Setup backend
+`````````````
+In order to start working with Dotpay you will need to have an activated account in Dotpay service.
+
+Required keys:
+
+**id**
+    client ID
+
+
+You need to provide this information in ``GETPAID_BACKENDS_SETTINGS`` dictionary::
+
+    GETPAID_BACKENDS_SETTINGS = {
+        'getpaid.backends.dotpay' : {
+                'id' : 123456,
+
+            },
+    }
+
+Optional keys:
+
+**force_ssl**
+    forcing HTTPS on incoming connection from Dotpay; default ``False``

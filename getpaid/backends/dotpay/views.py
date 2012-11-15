@@ -28,7 +28,7 @@ class OnlineView(View):
         status = PaymentProcessor.online(pos_id, session_id, ts, sig)
         return HttpResponse(status)
 
-class SuccessView(DetailView):
+class ReturnView(DetailView):
     """
     This view just redirects to standard backend success link.
     """
@@ -36,12 +36,3 @@ class SuccessView(DetailView):
 
     def render_to_response(self, context, **response_kwargs):
         return HttpResponseRedirect(reverse('getpaid-success-fallback', kwargs={'pk': self.object.pk}))
-
-class FailureView(DetailView):
-    """
-    This view just redirects to standard backend failure link.
-    """
-    model = Payment
-
-    def render_to_response(self, context, **response_kwargs):
-        return HttpResponseRedirect(reverse('getpaid-failure-fallback', kwargs={'pk': self.object.pk}))
