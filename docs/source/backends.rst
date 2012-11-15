@@ -262,3 +262,9 @@ It will produce following example output::
 
 
 
+Dotpay.eu backend ``getpaid.backends.dotpay``
+---------------------------------------------
+
+This backend can handle payment processing via Polish money broker `Dotpay.pl/Dotpay.eu <http://transferuj.eu>`_.
+
+Dotpay.eu accepts payments in ``PLN``, ``EUR``, ``USD``, ``GBP``, ``JPY``, ``CZK``, ``SEK``.
