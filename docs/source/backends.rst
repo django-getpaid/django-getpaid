@@ -291,6 +291,9 @@ You need to provide this information in ``GETPAID_BACKENDS_SETTINGS`` dictionary
 
 Optional keys:
 
+**PIN**
+    secret used for checking messeges md5; default ``""``
+
 **force_ssl**
     forcing HTTPS on incoming connections from Dotpay; default ``False``
 

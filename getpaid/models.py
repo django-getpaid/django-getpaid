@@ -38,6 +38,7 @@ class PaymentFactory(models.Model, AbstractMixin):
 
     def __unicode__(self):
         return "Payment #%d" % self.pk
+
     @classmethod
     def contribute(cls, order, **kwargs):
         return {'order': models.ForeignKey(order, **kwargs)}

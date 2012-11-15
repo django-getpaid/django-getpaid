@@ -1,7 +1,9 @@
 <html>
 <body>
 <h1>Order #{{ object.pk }}</h1>
-
+<p>
+<a href="{% url home %}">Home</a>
+<p>
 Order title: {{ object.name }}<br>
 Order total: {{ object.total }} {{ object.currency }}
 <p>

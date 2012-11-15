@@ -8,8 +8,8 @@ class Order(models.Model):
     but you can easily create more complicated models with multi-items it does not matter
     for payment processing.
     """
-    name = models.CharField(max_length=100)
-    total = models.DecimalField(decimal_places=2, max_digits=8, default=0)
+    name = models.CharField(max_length=100, default="Lock, Stock and Two Smoking Barrels")
+    total = models.DecimalField(decimal_places=2, max_digits=8, default='199.99')
     currency = models.CharField(max_length=3, default='EUR')
     status = models.CharField(max_length=1, blank=True, default='W', choices=(('W', 'Waiting for payment'),
                                                                                ('P', 'Payment complete')))
