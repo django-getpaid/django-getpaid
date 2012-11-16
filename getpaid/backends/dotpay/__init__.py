@@ -106,15 +106,14 @@ class PaymentProcessor(PaymentProcessorBase):
     def get_gateway_url(self, request):
         """
         Routes a payment to Gateway, should return URL for redirection.
-
         """
         params = {
             'id': PaymentProcessor.get_backend_setting('id'),
             'description' : self.get_order_description(self.payment, self.payment.order),
-            'amount' : str(self.payment.amount),
+            'amount' : self.payment.amount,
             'currency' : self.payment.currency,
             'type' : 0, # show "return" button after finished payment
-            'control' : str(self.payment.pk),
+            'control' : self.payment.pk,
             'URL': self.get_URL(self.payment.pk),
             'URLC': self.get_URLC(),
         }
@@ -143,6 +142,8 @@ class PaymentProcessor(PaymentProcessorBase):
         if PaymentProcessor.get_backend_setting('tax', False):
             params['tax'] = 1
 
+        for key in params.keys():
+            params[key] = unicode(params[key]).encode('utf-8')
 
         gateway_url = self._GATEWAY_URL + '?' + urllib.urlencode(params)
         return gateway_url

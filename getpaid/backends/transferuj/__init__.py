@@ -6,10 +6,9 @@ import datetime
 from django.contrib.sites.models import Site
 from django.core.urlresolvers import reverse
 from django.db.models.loading import get_model
-from django.template.base import Template
-from django.template.context import Context
 from django.utils.timezone import utc
 from django.utils.translation import ugettext_lazy as _
+from getpaid import signals
 from getpaid.backends import PaymentProcessorBase
 
 logger = logging.getLogger('getpaid.backends.transferuj')
@@ -83,12 +82,20 @@ class PaymentProcessor(PaymentProcessorBase):
         Routes a payment to Gateway, should return URL for redirection.
 
         """
-        params = {'id': PaymentProcessor.get_backend_setting('id'),
-                  'opis': PaymentProcessor.get_backend_setting('description', '')}
-        if not params['opis']:
-            params['opis'] = unicode(self.payment.order)
-        else:
-            params['opis'] = Template(params['opis']).render(Context({"payment": self.payment, "order": self.payment.order}))
+        params = {
+            'id': PaymentProcessor.get_backend_setting('id'),
+            'opis': self.get_order_description(self.payment, self.payment.order),
+        }
+
+        user_data = {
+            'email': None,
+            'lang': None,
+        }
+
+        signals.user_data_query.send(sender=None, order=self.payment.order, user_data=user_data)
+
+        if user_data['email']:
+            params['email'] = user_data['email']
 
         key = PaymentProcessor.get_backend_setting('key')
 
@@ -105,6 +112,8 @@ class PaymentProcessor(PaymentProcessorBase):
 
         for key in params.keys():
             params[key] = unicode(params[key]).encode('utf-8')
+
+        print type(params['opis']), params['opis']
 
         current_site = Site.objects.get_current()
 

@@ -10,6 +10,7 @@ from django.template.context import Context
 from django.utils.timezone import utc
 from django.utils.translation import ugettext_lazy as _
 import time
+from getpaid import signals
 from getpaid.backends import PaymentProcessorBase
 from getpaid.backends.payu.tasks import get_payment_status_task
 
@@ -32,6 +33,7 @@ class PaymentProcessor(PaymentProcessorBase):
     BACKEND_ACCEPTED_CURRENCY = ('PLN', )
 
     _GATEWAY_URL = 'https://www.platnosci.pl/paygw/'
+    _ACCEPTED_LANGS = ('pl', 'en')
     _REQUEST_SIG_FIELDS = ('pos_id', 'pay_type', 'session_id', 'pos_auth_key',
         'amount', 'desc', 'desc2', 'trsDesc', 'order_id', 'first_name', 'last_name',
         'payback_login', 'street', 'street_hn', 'street_an', 'city', 'post_code',
@@ -51,6 +53,7 @@ class PaymentProcessor(PaymentProcessorBase):
     @staticmethod
     def online(pos_id, session_id, ts, sig):
         params = {'pos_id' : pos_id, 'session_id': session_id, 'ts': ts, 'sig': sig}
+
 
 
         key2 = PaymentProcessor.get_backend_setting('key2')
@@ -79,13 +82,27 @@ class PaymentProcessor(PaymentProcessorBase):
         Routes a payment to Gateway, should return URL for redirection.
 
         """
-        params = {'pos_id': PaymentProcessor.get_backend_setting('pos_id'),
-                  'pos_auth_key': PaymentProcessor.get_backend_setting('pos_auth_key'),
-                  'desc': PaymentProcessor.get_backend_setting('description', '')}
-        if not params['desc']:
-            params['desc'] = unicode(self.payment.order)
-        else:
-            params['desc'] = Template(params['desc']).render(Context({"payment": self.payment, "order": self.payment.order}))
+        params = {
+            'pos_id': PaymentProcessor.get_backend_setting('pos_id'),
+            'pos_auth_key': PaymentProcessor.get_backend_setting('pos_auth_key'),
+            'desc': self.get_order_description(self.payment, self.payment.order),
+
+        }
+
+        user_data = {
+            'email': None,
+            'lang': None,
+        }
+
+        signals.user_data_query.send(sender=None, order=self.payment.order, user_data=user_data)
+        if user_data['email']:
+            params['email'] = user_data['email']
+
+        if user_data['lang'] and user_data['lang'].lower() in PaymentProcessor._ACCEPTED_LANGS:
+            params['language'] = user_data['lang'].lower()
+        elif PaymentProcessor.get_backend_setting('lang', False) and\
+                PaymentProcessor.get_backend_setting('lang').lower() in PaymentProcessor._ACCEPTED_LANGS:
+            params['language'] = PaymentProcessor.get_backend_setting('lang').lower()
 
         key1 = PaymentProcessor.get_backend_setting('key1')
 
@@ -116,7 +133,6 @@ class PaymentProcessor(PaymentProcessorBase):
 
         for key in params.keys():
             params[key] = unicode(params[key]).encode('utf-8')
-
         gateway_url = self._GATEWAY_URL + 'UTF/NewPayment?' + urllib.urlencode(params)
         return gateway_url
 
@@ -142,7 +158,6 @@ class PaymentProcessor(PaymentProcessorBase):
             if tag.nodeType == Node.ELEMENT_NODE:
                 response_params[tag.nodeName] = reduce(lambda x,y: x + y.nodeValue, tag.childNodes, u"")
         if PaymentProcessor.compute_sig(response_params, self._GET_RESPONSE_SIG_FIELDS, key2) == response_params['sig']:
-
             if not (int(response_params['pos_id']) == params['pos_id'] or int(response_params['order_id']) == self.payment.pk):
                 logger.error('Wrong pos_id and/or payment for Payment/get response data %s' % str(response_params))
                 return

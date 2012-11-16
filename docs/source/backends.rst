@@ -118,6 +118,9 @@ You need to provide this information in ``GETPAID_BACKENDS_SETTINGS`` dictionary
 
 There are some additional options you can provide:
 
+**lang**
+    default interface lang (refer to PayU manual); default: ``None``
+
 **signing**
     for security reasons PayU can check a signature of all data that is sent from your service while redirecting to payment gateway; unless you really know what you are doing, this should be always on; default is True;
 
@@ -296,6 +299,12 @@ Optional keys:
 
 **force_ssl**
     forcing HTTPS on incoming connections from Dotpay; default ``False``
+
+    .. warning::
+
+        **Set Sites domain name**
+
+        This module requires Sites framework to be enabled. All backends base on Sites domain configuration (to generate fully qualified URL for payment broker service). Please be sure that you set a correct domain for your deployment before running ``getpaid``.
 
 **lang**
     default interface lang (refer to Dotpay manual); default: ``None``

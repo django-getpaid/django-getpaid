@@ -1,12 +1,12 @@
 import logging
-from celery import task
+from celery.task.base import task
 from django.db.models.loading import get_model
 
 
 logger = logging.getLogger('getpaid.backends.payu')
 
 
-@task()
+@task
 def get_payment_status_task(payment_id, session_id):
     Payment = get_model('getpaid', 'Payment')
     try:
