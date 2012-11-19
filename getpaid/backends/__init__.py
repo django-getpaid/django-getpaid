@@ -39,13 +39,14 @@ class PaymentProcessorBase(object):
             raise ValueError("Backend '%s' cannot process '%s' payments." % self.BACKEND, payment.currency)
         self.payment = payment
 
-    def get_logo_url(self):
+    @classmethod
+    def get_logo_url(cls):
         """
         Get backend logo. Use always this method, instead of reading BACKEND_LOGO_URL attribute directly.
 
         :return: str
         """
-        return self.BACKEND_LOGO_URL
+        return cls.BACKEND_LOGO_URL
 
     def get_order_description(self, payment, order):
         """

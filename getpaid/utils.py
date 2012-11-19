@@ -1,6 +1,13 @@
 from django.conf import settings
 import sys
 
+
+def import_name(name):
+    components = name.split('.')
+    mod = __import__('.'.join(components[0:-1]), globals(), locals(), [components[-1]] )
+    return getattr(mod, components[-1])
+
+
 def import_backend_modules(submodule=None):
     backends = getattr(settings, 'GETPAID_BACKENDS', [])
     modules = {}
