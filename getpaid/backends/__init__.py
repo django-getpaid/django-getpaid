@@ -28,12 +28,24 @@ class PaymentProcessorBase(object):
     This constant should be any type of iterable that defines accepted currencies by the backend. Currencies should be
     set as three letters ISO code strings (eg. 'USD', 'EUR')
     """
+    BACKEND_LOGO_URL = None
+    """
+    A path in static root where payment logo could be find.
+    """
 
     def __init__(self, payment):
 
         if payment.currency not in self.BACKEND_ACCEPTED_CURRENCY:
             raise ValueError("Backend '%s' cannot process '%s' payments." % self.BACKEND, payment.currency)
         self.payment = payment
+
+    def get_logo_url(self):
+        """
+        Get backend logo. Use always this method, instead of reading BACKEND_LOGO_URL attribute directly.
+
+        :return: str
+        """
+        return self.BACKEND_LOGO_URL
 
     def get_order_description(self, payment, order):
         """

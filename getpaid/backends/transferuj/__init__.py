@@ -19,6 +19,8 @@ class PaymentProcessor(PaymentProcessorBase):
     BACKEND = 'getpaid.backends.transferuj'
     BACKEND_NAME = _('Transferuj.pl')
     BACKEND_ACCEPTED_CURRENCY = ('PLN', )
+    BACKEND_LOGO_URL = 'getpaid/backends/transferuj/transferuj_logo.png'
+
     _GATEWAY_URL = 'https://secure.transferuj.pl'
     _REQUEST_SIG_FIELDS = ('id', 'kwota', 'crc',)
     _ALLOWED_IP = ('195.149.229.109', )

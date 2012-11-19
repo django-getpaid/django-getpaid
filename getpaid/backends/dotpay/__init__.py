@@ -25,6 +25,7 @@ class PaymentProcessor(PaymentProcessorBase):
     BACKEND = 'getpaid.backends.dotpay'
     BACKEND_NAME = _('Dotpay')
     BACKEND_ACCEPTED_CURRENCY = ('PLN', 'EUR', 'USD', 'GBP', 'JPY', 'CZK', 'SEK' )
+    BACKEND_LOGO_URL = 'getpaid/backends/dotpay/dotpay_logo.png'
 
     _ALLOWED_IP = ('195.150.9.37', )
     _ACCEPTED_LANGS = ('pl', 'en', 'de', 'it', 'fr', 'es', 'cz', 'ru', 'bg')

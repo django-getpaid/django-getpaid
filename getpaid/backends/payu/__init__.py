@@ -31,6 +31,7 @@ class PaymentProcessor(PaymentProcessorBase):
     BACKEND = 'getpaid.backends.payu'
     BACKEND_NAME = _('PayU')
     BACKEND_ACCEPTED_CURRENCY = ('PLN', )
+    BACKEND_LOGO_URL = 'getpaid/backends/payu/payu_logo.png'
 
     _GATEWAY_URL = 'https://www.platnosci.pl/paygw/'
     _ACCEPTED_LANGS = ('pl', 'en')
