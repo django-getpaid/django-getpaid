@@ -20,5 +20,31 @@ setup(
         ],
     },
 
-    package_data={'getpaid.backends.dummy': ['templates/getpaid_dummy_backend/*.html', ]},
+    package_data={
+        'getpaid.backends.dummy': [
+            'templates/getpaid_dummy_backend/*.html',
+        ],
+
+        'getpaid.backends.dotpay': [
+            'static/*',
+            'static/getpaid/*',
+            'static/getpaid/backends/*',
+            'static/getpaid/backends/dotpay/*',
+        ],
+
+        'getpaid.backends.payu': [
+            'static/*',
+            'static/getpaid/*',
+            'static/getpaid/backends/*',
+            'static/getpaid/backends/payu/*',
+        ],
+
+        'getpaid.backends.transferuj': [
+            'static/*',
+            'static/getpaid/*',
+            'static/getpaid/backends/*',
+            'static/getpaid/backends/transferuj/*',
+        ],
+
+    },
 )
