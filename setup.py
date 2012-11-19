@@ -26,23 +26,14 @@ setup(
         ],
 
         'getpaid.backends.dotpay': [
-            'static/*',
-            'static/getpaid/*',
-            'static/getpaid/backends/*',
             'static/getpaid/backends/dotpay/*',
         ],
 
         'getpaid.backends.payu': [
-            'static/*',
-            'static/getpaid/*',
-            'static/getpaid/backends/*',
             'static/getpaid/backends/payu/*',
         ],
 
         'getpaid.backends.transferuj': [
-            'static/*',
-            'static/getpaid/*',
-            'static/getpaid/backends/*',
             'static/getpaid/backends/transferuj/*',
         ],
 
