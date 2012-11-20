@@ -132,5 +132,5 @@ class PaymentProcessor(PaymentProcessorBase):
             params['pow_url_blad'] = 'http://' + current_site.domain + reverse('getpaid-transferuj-failure', kwargs={'pk': self.payment.pk})
 
         gateway_url = self._GATEWAY_URL + '?' + urllib.urlencode(params)
-        return gateway_url
+        return gateway_url, "GET", {}
 

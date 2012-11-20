@@ -147,4 +147,4 @@ class PaymentProcessor(PaymentProcessorBase):
             params[key] = unicode(params[key]).encode('utf-8')
 
         gateway_url = self._GATEWAY_URL + '?' + urllib.urlencode(params)
-        return gateway_url
+        return gateway_url, "GET", {}
