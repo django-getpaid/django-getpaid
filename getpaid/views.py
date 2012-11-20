@@ -13,11 +13,11 @@ from getpaid.models import Payment
 
 class NewPaymentView(FormView):
     form_class = PaymentMethodForm
+    template_name = "getpaid/payment_post_form.html"
 
     def get_form(self, form_class):
         self.currency = self.kwargs['currency']
         return form_class(self.currency, **self.get_form_kwargs())
-
 
     def get(self, request, *args, **kwargs):
         """
@@ -35,19 +35,13 @@ class NewPaymentView(FormView):
         if gateway_url_tuple[1].upper() == 'GET':
             return HttpResponseRedirect(gateway_url_tuple[0])
         elif gateway_url_tuple[1].upper() == 'POST':
-            context = {}
+            context = self.get_context_data()
             context['gateway_url'] = processor.get_gateway_url(self.request)[0]
             context['form'] = processor.get_form(gateway_url_tuple[2])
 
-            template_name = "getpaid/payment_post_form.html"
-            try:
-                template_name = processor.get_backend_setting('template')
-            except ImproperlyConfigured:
-                pass
-
             return TemplateResponse(request = self.request,
-                template = template_name,
-                context = context,)
+                template = self.get_template_names(),
+                context = context)
         else:
             raise ImproperlyConfigured()
 
