@@ -124,6 +124,9 @@ There are some additional options you can provide:
 **signing**
     for security reasons PayU can check a signature of all data that is sent from your service while redirecting to payment gateway; unless you really know what you are doing, this should be always on; default is True;
 
+**method**
+    the HTTP method how to connect with broker system on new payment; default is 'GET';
+
 **testing**
     when you test your service you can enable this option, all payments for PayU will have predefined "Test Payment" method which is provided by PayU service (need to be enabled); default is False;
 
@@ -221,6 +224,9 @@ There are some additional options you can provide:
 **signing**
     for security reasons Transferuj.pl can check a signature of some data that is sent from your service while redirecting to payment gateway; unless you really know what you are doing, this should be always on; default is True;
 
+**method**
+    the HTTP method how to connect with broker system on new payment; default is 'GET';
+
 **allowed_ip**
     Transferuj.pl requires to check IP address when they send you a payment status change HTTP request. By default,
     this module comes with list of hardcoded IP of Transferuj.pl system (according to the documentation). If you
@@ -305,6 +311,9 @@ Optional keys:
         **Set Sites domain name**
 
         This module requires Sites framework to be enabled. All backends base on Sites domain configuration (to generate fully qualified URL for payment broker service). Please be sure that you set a correct domain for your deployment before running ``getpaid``.
+
+**method**
+    the HTTP method how to connect with broker system on new payment; default is 'GET';
 
 **lang**
     default interface lang (refer to Dotpay manual); default: ``None``

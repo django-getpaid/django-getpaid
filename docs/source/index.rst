@@ -33,7 +33,7 @@ Contents:
    backends
    custom_backends
    south
-   contributors
+
 
 
 Versioning
@@ -53,6 +53,24 @@ And constructed with the following guidelines:
 * Major version ``0`` means early development stage
 
 For more information on SemVer, please visit http://semver.org/.
+
+Developing
+==========
+
+Project leader:
+
+* Krzysztof Dorosz <cypreess@gmail.com>.
+
+
+Contributors:
+
+* Dominik Kozaczko <http://dominik.kozaczko.info>
+* Bernardo Pires Carneiro
+
+
+You are welcome to contribute to this project via `github <http://github.com>`_ fork & pull request.
+
+If you create your standalone backend (which you don't want to incorporate into this app) please write to me, you can still be mentioned as third party payment backend provider.
 
 
 Indices and tables
