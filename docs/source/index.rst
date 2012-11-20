@@ -36,6 +36,25 @@ Contents:
    contributors
 
 
+Versioning
+==========
+
+Semantic Version guidelines will be followed in this project versioning.
+
+Releases will be numbered with the following format:
+
+``<major>.<minor>.<patch>``
+
+And constructed with the following guidelines:
+
+* Breaking backward compatibility bumps the major (and resets the minor and patch)
+* New additions without breaking backward compatibility bumps the minor (and resets the patch)
+* Bug fixes and misc changes bumps the patch
+* Major version ``0`` means early development stage
+
+For more information on SemVer, please visit http://semver.org/.
+
+
 Indices and tables
 ==================
 
