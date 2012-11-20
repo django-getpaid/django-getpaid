@@ -67,6 +67,22 @@ class PaymentProcessorBase(object):
         """
         raise NotImplementedError('Must be implemented in PaymentProcessor')
 
+    def get_form(self):
+        """
+        Only used if the payment processor requires POST requests.
+        Generates a form only containg hidden input fields.
+        """
+        from getpaid.forms import PaymentHiddenInputsPostForm
+        return PaymentHiddenInputsPostForm(items=self.get_hidden_post_fields())
+
+    def get_hidden_post_fields(self):
+        """
+        Only used if the payment processor requires POST requests.
+        Implement this method to return a dictionary with all the fields
+        you need to post as hidden input fields.
+        """
+        return {}
+
     @classmethod
     def get_backend_setting(cls, name, default=None):
         """
