@@ -63,7 +63,6 @@ class PaymentMethodForm(forms.Form):
 class PaymentHiddenInputsPostForm(forms.Form):
     def __init__(self, items, *args, **kwargs):
         super(PaymentHiddenInputsPostForm, self).__init__(*args, **kwargs)
-        print items
 
         for key in items:
             self.fields[key] = CharField(initial=items[key], widget=HiddenInput)

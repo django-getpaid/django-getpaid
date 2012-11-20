@@ -135,7 +135,7 @@ class PaymentProcessor(PaymentProcessorBase):
         for key in params.keys():
             params[key] = unicode(params[key]).encode('utf-8')
         gateway_url = self._GATEWAY_URL + 'UTF/NewPayment?' + urllib.urlencode(params)
-        return gateway_url, "GET"
+        return gateway_url, "GET", {}
 
     def get_payment_status(self, session_id):
         params = {'pos_id': PaymentProcessor.get_backend_setting('pos_id'), 'session_id': session_id, 'ts': time.time()}

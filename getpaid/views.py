@@ -4,6 +4,7 @@ from django.core.exceptions import PermissionDenied, ImproperlyConfigured
 from django.core.urlresolvers import reverse
 from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
+from django.template.response import TemplateResponse
 from django.views.generic import DetailView
 from django.views.generic.base import RedirectView, TemplateView
 from django.views.generic.edit import FormView
@@ -27,41 +28,31 @@ class NewPaymentView(FormView):
     def form_valid(self, form):
         from getpaid.models import Payment
         payment = Payment.create(form.cleaned_data['order'], form.cleaned_data['backend'])
-        gateway_url = payment.get_processor()(payment).get_gateway_url(self.request)
+        processor = payment.get_processor()(payment)
+        gateway_url_tuple = processor.get_gateway_url(self.request)
         payment.change_status('in_progress')
 
-        if gateway_url[1] == 'GET':
-            return HttpResponseRedirect(gateway_url[0])
-        elif gateway_url[1] == 'POST':
-            return HttpResponseRedirect(reverse("getpaid-payment-post", args=[payment.pk]))
+        if gateway_url_tuple[1].upper() == 'GET':
+            return HttpResponseRedirect(gateway_url_tuple[0])
+        elif gateway_url_tuple[1].upper() == 'POST':
+            context = {}
+            context['gateway_url'] = processor.get_gateway_url(self.request)[0]
+            context['form'] = processor.get_form(gateway_url_tuple[2])
+
+            template_name = "getpaid/payment_post_form.html"
+            try:
+                template_name = processor.get_backend_setting('template')
+            except ImproperlyConfigured:
+                pass
+
+            return TemplateResponse(request = self.request,
+                template = template_name,
+                context = context,)
         else:
             raise ImproperlyConfigured()
 
     def form_invalid(self, form):
         raise PermissionDenied
-
-class PaymentPostView(DetailView):
-    model = Payment
-    template_name = "payment_post_form.html"
-
-    def get_template_names(self):
-        names = super(PaymentPostView, self).get_template_names()
-
-        processor = self.object.get_processor()(self.object)
-
-        try:
-            names.insert(0, processor.get_backend_setting('template'))
-        except ImproperlyConfigured:
-            pass
-        return names
-
-    def get_context_data(self, **kwargs):
-        context = super(PaymentPostView, self).get_context_data(**kwargs)
-        processor = self.object.get_processor()(self.object)
-
-        context['gateway_url'] = processor.get_gateway_url(self.request)[0]
-        context['form'] = processor.get_form()
-        return context
 
 class FallbackView(RedirectView):
     success = None
