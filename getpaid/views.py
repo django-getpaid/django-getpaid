@@ -31,7 +31,7 @@ class NewPaymentView(FormView):
         payment.change_status('in_progress')
 
         if gateway_url[1] == 'GET':
-            return HttpResponseRedirect(gateway_url)
+            return HttpResponseRedirect(gateway_url[0])
         elif gateway_url[1] == 'POST':
             return HttpResponseRedirect(reverse("getpaid-payment-post", args=[payment.pk]))
         else:
