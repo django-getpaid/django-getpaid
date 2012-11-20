@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.forms import forms
-from django.forms.fields import ChoiceField
+from django.forms.fields import ChoiceField, CharField
 from django.forms.models import ModelChoiceField
 from django.forms.widgets import HiddenInput, RadioSelect, RadioFieldRenderer, RadioInput
 from django.utils.encoding import force_unicode
@@ -60,3 +60,9 @@ class PaymentMethodForm(forms.Form):
                 raise ValidationError('Order not ready for payment')
         return self.cleaned_data['order']
 
+class PaymentHiddenInputsPostForm(forms.Form):
+    def __init__(self, items, *args, **kwargs):
+        super(PaymentHiddenInputsPostForm, self).__init__(*args, **kwargs)
+
+        for key in items:
+            self.fields[key] = CharField(initial=items[key], widget=HiddenInput)
