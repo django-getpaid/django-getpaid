@@ -21,6 +21,9 @@ setup(
     },
 
     package_data={
+        'getpaid': [
+            'templates/getpaid/*.html',
+        ],
         'getpaid.backends.dummy': [
             'templates/getpaid_dummy_backend/*.html',
         ],
