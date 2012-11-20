@@ -62,10 +62,20 @@ class PaymentProcessorBase(object):
 
     def get_gateway_url(self, request):
         """
-        Should return an URL that redirects to payment Gateway. Request context need to be given
-        because various payment engines requires information about client (e.g. a client IP).
+        Should return a tuple with the first item being the URL that redirects to payment Gateway
+        Second item should be if the request is made via GET or POST. Third item are the parameters
+        to be passed in case of a POST REQUEST. Request context need to be given because various
+        payment engines requires information about client (e.g. a client IP).
         """
         raise NotImplementedError('Must be implemented in PaymentProcessor')
+
+    def get_form(self, post_data):
+        """
+        Only used if the payment processor requires POST requests.
+        Generates a form only containg hidden input fields.
+        """
+        from getpaid.forms import PaymentHiddenInputsPostForm
+        return PaymentHiddenInputsPostForm(items=post_data)
 
     @classmethod
     def get_backend_setting(cls, name, default=None):

@@ -1,7 +1,6 @@
 from django.conf.urls import patterns, url, include
-from getpaid.views import NewPaymentView
+from getpaid.views import NewPaymentView, FallbackView
 from getpaid.utils import import_backend_modules
-from getpaid.views import FallbackView
 
 includes_list = []
 for backend_name, urls in import_backend_modules('urls').items():

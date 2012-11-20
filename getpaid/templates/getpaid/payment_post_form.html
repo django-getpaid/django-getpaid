@@ -1,0 +1,5 @@
+<form action="{{ gateway_url }}" method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <input type="submit" value="Confirm payment">
+</form>
