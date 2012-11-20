@@ -4,6 +4,7 @@ import logging
 import urllib
 import datetime
 from django.contrib.sites.models import Site
+from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse
 from django.db.models.loading import get_model
 from django.utils.timezone import utc
@@ -112,11 +113,6 @@ class PaymentProcessor(PaymentProcessorBase):
         if signing:
             params['md5sum'] = PaymentProcessor.compute_sig(params, self._REQUEST_SIG_FIELDS, key)
 
-        for key in params.keys():
-            params[key] = unicode(params[key]).encode('utf-8')
-
-        print type(params['opis']), params['opis']
-
         current_site = Site.objects.get_current()
 
         if PaymentProcessor.get_backend_setting('force_ssl_online', False):
@@ -131,6 +127,16 @@ class PaymentProcessor(PaymentProcessorBase):
             params['pow_url'] = 'http://' + current_site.domain + reverse('getpaid-transferuj-success', kwargs={'pk': self.payment.pk})
             params['pow_url_blad'] = 'http://' + current_site.domain + reverse('getpaid-transferuj-failure', kwargs={'pk': self.payment.pk})
 
-        gateway_url = self._GATEWAY_URL + '?' + urllib.urlencode(params)
-        return gateway_url, "GET", {}
+
+        if PaymentProcessor.get_backend_setting('method', 'get').lower() == 'post':
+            return self._GATEWAY_URL , 'POST', params
+        elif PaymentProcessor.get_backend_setting('method', 'get').lower() == 'get':
+            for key in params.keys():
+                params[key] = unicode(params[key]).encode('utf-8')
+            return self._GATEWAY_URL + '?' + urllib.urlencode(params), "GET", {}
+        else:
+            raise ImproperlyConfigured('Transferuj.pl payment backend accepts only GET or POST')
+
+
+
 
