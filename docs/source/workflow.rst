@@ -178,6 +178,21 @@ So this is a little piece of logic that you need to provide to map your order to
     
 .. note::
     One may wonder why isn't this handled directly on the order model via methods like get_total() and get_currency(). It was a design consideration that you may not have access to your order model and therefore couldn't add these methods. By using signals, it does matter if you have control or not over the order model.
+    
+**Optional**
+
+Most likely you would also give some sort of information about your customer to your payment processor. The signal ``getpaid.signals.user_data_query`` fills this gap. Here is the declaration::
+
+    user_data_query = Signal(providing_args=['order', 'user_data'])
+    new_payment_query.__doc__ = """
+    Sent to ask for filling user additional data:
+    	user_data['email']:		user email
+    	user_data['lang']:      lang code in ISO 2-char format
+    This data cannot be filled by ``getpaid`` because it is Order structure
+    agnostic. After filling values just do return.
+    """
+
+On the example above we are passing the customer email and its desired language. Some backends may also need additional information like the customers address, phone, etc. Because we want django-getpaid to be as agnostic as possible, here is a convention on the names we use.
 
 Handling changes of payment status
 ----------------------------------
