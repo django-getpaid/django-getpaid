@@ -3,9 +3,9 @@ Payment backends
 
 Payment backends are plug-and-play django applications that will make all necessary work to handle payment process via different money brokers. In this way you can handle multiple payment providers (not only multiple payment methods!) what is wise considering e.g. breakdown or downtime of a single payment broker.
 
-Each payment backend delivers a payment channel for a defined list of currencies. When using ``PaymentMethodForm`` for displaying available payment methods for order it will automatically filter payment methods regarding to provided payment currency. This is important as system is designed to handle payments in multiple currencies. If you need to support currency conversions you need to do it before calling payment method form in your part of application.
+Each payment backend delivers a payment channel for a defined list of currencies. When using ``PaymentMethodForm`` for displaying available payment methods for order it will automatically filter payment methods based on the provided payment currency. This is important as the system is designed to handle payments in multiple currencies. If you need to support currency conversions, you will need to do it before calling the payment method form in your part of application.
 
-Just to have an overview a payment backend has a very flexible architecture, allowing it to introduce own logic, urls and even models.
+Just to have an overview, a payment backend has a very flexible architecture, allowing you to introduce your own logic, urls and even models.
 
 
 .. warning::

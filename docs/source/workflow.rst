@@ -1,7 +1,7 @@
 Payment workflow integration
 ============================
 
-With few simple steps you will easily integrate your project with django-getpaid. This module is shipped with very well documented django-getpaid test project which can be found with module source code. Please refer to this code for implementation details.
+With a few simple steps you will easily integrate your project with django-getpaid. This module is shipped with a very well documented django-getpaid test project which is packed together with the source code. Please refer to this code for implementation details.
 
 
 Connect urls
@@ -16,12 +16,12 @@ Add to your urls::
 
 
 
-Prepare your order model
+Preparing your order model
 ------------------------
 
 **Required**
 
-First of all you need a model that will represent an order in you application. It does not matter how complicated the model is or what fields it provides, is it single item order, or multiple items order. Let's take an example from test project::
+First of all you need a model that will represent an order in you application. It does not matter how complicated the model is or what fields it provides, if it is a single item order or multiple items order. You can also use a previously defined model you have, even if it's from a 3rd party app. Let's take an example from the test project::
 
     from django.core.urlresolvers import reverse
     from django.db import models
@@ -42,34 +42,34 @@ First of all you need a model that will represent an order in you application. I
     getpaid.register_to_payment(Order, unique=False, related_name='payments')
 
 
-First of all class name is not important at all. You register a model with ``register_to_payment`` method.
+The class name is not important at all. Important is that you register your model using the ``register_to_payment`` method.
 
 .. autofunction:: getpaid.register_to_payment
 
 You can add some `kwargs` that are basically used for ``ForeignKey`` kwargs. In this example whe allow of creating multiple payments for one order, and naming One-To-Many relation.
 
-There are two important things on that model. In fact two methods are required to be present in order class. The first one is ``__unicode__`` method as this will be used in few places as a fallback for generating order description. The second one is ``get_absolute_url`` method which should return an URL of order object. It is used again as a fallback for some final redirections after payment success of failure (if you do not provide otherwise).
+There are two important things on that model. In fact two methods are required to be present in order class. The first one is ``__unicode__`` method as this will be used in few places as a fallback for generating order description. The second one is ``get_absolute_url`` method which should return the URL from the order object. It is used again as a fallback for some final redirections after payment success or failure (if you do not provide otherwise).
 
-The second important thing that it actually don't mather if you even store `total` in database, or just can sum it up from some items. You will see why, in further sections.
+It is also important to note that it actually doesn't mather if you store the order `total` in database. You can also calculate it manually, for example by summing the price of all items. You will see how in further sections.
 
 .. warning::
 
-    Remember to run ``./manage.py syncdb`` in order to create additional Database tables.
+    Remember to run ``./manage.py syncdb`` in order to create additional database tables.
 
 
 
 Controlling payment creation for an order
 `````````````````````````````````````````
 
-Getpaid supports payment creation policy for order. It means that yours order class can implement a method ``is_ready_for_payment()`` which will inform getpaid if creation of a payment for the given order is allowed. This is a typical situation if e.g. you want to disallow to make another payment for an order that status is "already paid" or that is expired by now. If you do not implement this method, getpaid will assume that payment is always allowed.
+Getpaid supports payment creation policy for an order. It means that your order class can implement a method ``is_ready_for_payment()`` which will inform getpaid if the creation of a payment for the given order is allowed. This is a typical situation if e.g. you want to disallow to make another payment for an order that has the status "already paid" or that is expired by now. If you do not implement this method, getpaid will assume that paying this order is always allowed.
 
 
-Prepare payment form for order
+Preparing payment form for an order
 ------------------------------
 
 **Required**
 
-Your application after some custom workflow just created an order object. That's fine. We now want to get paid for that order. So lets take a look on a view for creating a payment for an order::
+Your application after some custom workflow just created an order object. That's fine. We now want to get paid for that order. So let's take a look on a view for creating a payment for an order::
 
     from django.views.generic.detail import DetailView
     from getpaid.forms import PaymentMethodForm
@@ -84,9 +84,9 @@ Your application after some custom workflow just created an order object. That's
             return context
 
 
-Here we get a ``PaymentMethodForm`` object, that is parametrised with currency type. This is an important thing, because this form will display you only payments method that are suitable for a given order currency.
+Here we get a ``PaymentMethodForm`` object, that is parametrised with the currency type. This is important, because this form will only display payment methods that accept the given currency.
 
-``PaymentMethodForm`` provides two fields: HiddenInput with order_id and ChoiceField with backend name. This is how you use it in template::
+``PaymentMethodForm`` provides two fields: HiddenInput with order_id and ChoiceField with the backend name. This is how you use it in a template::
 
     <form action="{% url getpaid-new-payment currency=object.currency %}" method="post">
         {% csrf_token %}
@@ -95,10 +95,10 @@ Here we get a ``PaymentMethodForm`` object, that is parametrised with currency t
     </form>
 
 
-Action URL of form should point on named link  `getpaid-new-payment` that requires currency code argument. This form will redirect client from order view directly to page of payment broker.
+The action URL of this form should point to the named url  `getpaid-new-payment` that requires the currency code argument. This form will redirect the client from the order view directly to the page of the payment broker.
 
 
-When client will submit this form he will be redirected to getpaid internal view (``NewPaymentView``) which will do one of two things:
+When client submits this form he will be redirected to getpaid internal view (``NewPaymentView``) which will do one of two things:
 
     * redirect client to a payment broker (directly, via HTTP 302) - this action is made if payment backend is
       configured to contact with payment broker via GET method,
@@ -115,8 +115,8 @@ When client will submit this form he will be redirected to getpaid internal view
 
         This intermediate page is displayed only to emulate making a POST request from the client side. getpaid
         displays a template ``"getpaid/payment_post_form.html"`` that should be definitely overridden in your
-        project. On this page you should display some information *"please wait, you are being redirected to payment broker"* and add some JavaScript magic to submit form automatically after page is loaded. Context
-        variable that are available in this template are:
+        project. On this page you should display some information *"please wait, you are being redirected to payment broker"* and add some JavaScript magic to submit the form automatically after page is loaded. The following context
+        variables are available in this template:
 
             * ``form`` - a form with all input of type ``hidden``,
             * ``gateway_url`` - an external URL that should be used in ``action`` attribute of ``<form>``.
@@ -134,18 +134,18 @@ When client will submit this form he will be redirected to getpaid internal view
             </form>
 
       .. warning::
-        Do **not** put ``{% csrf %}`` token into that form, as it will results in CSRF leak. For more detailed
+        Do **not** put the ``{% csrf %}`` token in this form, as it will result in a CSRF leak. CSRF tokens are only used for internal URLs. For more detailed
         info please read `Django CSRF Documentation <https://docs.djangoproject.com/en/dev/ref/contrib/csrf/#how-to-use-it>`_.
 
       .. warning::
-        Remember that using POST methods does not bring any significant security over POST method. From one side using POST is more correct according to HTTP specification for actions that have side effects (like creating new payment), from the other side using GET redirects is far more easier way in this particular case, and it will not involve using hacks like "auto submitting forms on client side". That is the reason why using method GET to connecting with payment broker system is recommended over using POST method.
+        Remember that using POST methods do not bring any significant security over GET. On the one hand using POST is more correct according to the HTTP specification for actions that have side effects (like creating new payment), on the other hand using GET redirects is far easier in this particular case and it will not involve using hacks like "auto submitting forms on client side". That is the reason why using GET to connect with the payment broker system is recommended over using POST.
 
 Filling necessary payment data
 ------------------------------
 
 **Required**
 
-Because the idea of whole module is that it should be loosely coupled, there is this convention that it does not require any structure of your order model. But still it need to know some transaction details of your order. For that django signals is used. djang-getpaid while generating gateway redirect url will emit to your application a ``getpaid.signals.new_payment_query`` signal. Here is the signal declaration::
+Because the idea of whole module is that it should be loosely coupled, there is this convention that it does not require any structure of your order model. But it still needs to know some transaction details of your order. For that django signals are used. djang-getpaid while generating gateway redirect url will emit to your application a ``getpaid.signals.new_payment_query`` signal. Here is the signal declaration::
 
     new_payment_query = Signal(providing_args=['order', 'payment'])
     new_payment_query.__doc__ = """
@@ -156,7 +156,7 @@ Because the idea of whole module is that it should be loosely coupled, there is 
     agnostic. After filling values just return. Saving is done outside signal.
     """
 
-Your code should have some signal listeners, that will fill payment object with required information::
+Your code has to implement some signal listeners that will inform the payment object with the required information::
 
     from getpaid import signals
 
@@ -170,23 +170,26 @@ Your code should have some signal listeners, that will fill payment object with 
     signals.new_payment_query.connect(new_payment_query_listener)
 
 
-So this is a little piece of logic that you need to provide to map your order to payment object. As you can see you can do all fancy stuff here to get order total value and currency code.
+So this is a little piece of logic that you need to provide to map your order to a payment object. As you can see, you can do all fancy stuff here to get the order total value and currency code.
 
 .. note::
 
-    If you don't know where to put your listeners code, we recommend to put it in ``listeners.py`` file and then add a line ``import listeners`` to the end of you ``models.py`` file. Both files (``listeners.py`` and ``models.py``) should be placed in on of your app (possibly an app related to order model).
+    If you don't know where to put your listeners code, we recommend to put it in ``listeners.py`` file and then add a line ``import listeners`` to the end of your ``models.py`` file. Both files (``listeners.py`` and ``models.py``) should be placed in one of your apps (possibly an app related to the order model).
+    
+.. note::
+    One may wonder why isn't this handled directly on the order model via methods like get_total() and get_currency(). It was a design consideration that you may not have access to your order model and therefore couldn't add these methods. By using signals, it does matter if you have control or not over the order model.
 
 Handling changes of payment status
 ----------------------------------
 
 **Required**
 
-Signals are also used to inform you that some particular payment just change status. In this case you will use ``getpaid.signals.payment_status_changed`` signal which is defined as::
+Signals are also used to inform you that some particular payment just changed status. In this case you will use ``getpaid.signals.payment_status_changed`` signal which is defined as::
 
     payment_status_changed = Signal(providing_args=['old_status', 'new_status'])
     payment_status_changed.__doc__ = """Sent when Payment status changes."""
 
-example code that handles status change::
+example code that handles status changes::
 
     from getpaid import signals
 
@@ -202,14 +205,14 @@ example code that handles status change::
 
     signals.payment_status_changed.connect(payment_status_changed_listener)
 
-For example when payment changes status from any non 'paid' to 'paid' status, that means that all necessary amount was verified by your payment broker. You can now access ``payment.order`` object and do some stuff here.
+For example, when the payment status changes from any non 'paid' to 'paid' status, this means that all necessary amount was verified by your payment broker. You have access to the order object at ``payment.order``.
 
 Handling new payment creation
 -----------------------------
 
 **Optional**
 
-For some reasons (e.g. for KPI benchmarking) it can be important to you how many and which payments were made. For that reason you can handle ``getpaid.signals.new_payment`` signal defined as::
+For some reasons (e.g. for KPI benchmarking) it can be important to you to how many and which payments were made. For that reason you can handle ``getpaid.signals.new_payment`` signal defined as::
 
     new_payment = Signal(providing_args=['order', 'payment'])
     new_payment.__doc__ = """Sent after creating new payment."""

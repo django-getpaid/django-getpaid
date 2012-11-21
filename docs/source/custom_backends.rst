@@ -1,7 +1,7 @@
 Writing custom payment backend
 ==============================
 
-**django-getpaid** allows to use two types of custom backends: internal and third-party backends. There is no architectural difference between them, only the first one is shipped with django-getpaid code, while the second one can be maintained separately. However if you are going to provide payment backend to any popular payment method (in your country) you are very welcome to contribute you backend to django-getpaid. Some hints how to do that are described in :doc:`contributors` section.
+**django-getpaid** allows you to use two types of custom backends: internal and third-party backends. There is no architectural difference between them, only the first one is shipped with django-getpaid code, while the second one can be maintained separately. However if you are going to provide a payment backend to any popular payment method (even if it's only popular in your country) you are very welcome to contribute your backend to django-getpaid. Some hints how to do that are described in :doc:`contributors` section.
 
 Creating initial backend application
 ------------------------------------
@@ -11,7 +11,7 @@ All payment backends are standalone django apps. You can easily create one using
     $ django-admin.py startapp mybackend
 
 
-Before you can use this app as a legal django-getpaid backend you need to follow few more steps.
+Before using this app as a legal django-getpaid backend, you need to follow a few more steps described below.
 
 Creating ``PaymentProcessor`` class
 -----------------------------------
@@ -19,13 +19,13 @@ Creating ``PaymentProcessor`` class
 **Required**
 
 
-``PaymentProcessor`` class is one of the most important part of whole backend. All logic related to processing a payment should be put into this class. This class should derive from ``getpaid.backends.PaymentProcessorBase``.
+``PaymentProcessor`` class is one of the most important parts of whole backend. All logic related to processing a payment should be put into this class. This class should derive from ``getpaid.backends.PaymentProcessorBase``.
 
 .. autoclass:: getpaid.backends.PaymentProcessorBase
     :members:
     :undoc-members:
 
-Your ``PaymentProcessor`` need to be named exactly this way and can live anywhere in the code structure unless it could be imported from main scope. We recommend you to put this class directly into your app ``__init__.py`` file, as there is really no need to complicate structure more by adding additional file.
+Your ``PaymentProcessor`` needs to be named exactly this way and can live anywhere in the code structure unless it can be imported from main scope. We recommend you to put this class directly into your app ``__init__.py`` file, as there is really no need to complicate it anymore by adding additional files.
 
 Overriding ``get_gateway_url()`` method
 ---------------------------------------
@@ -33,7 +33,7 @@ Overriding ``get_gateway_url()`` method
 **Required**
 
 
-The most important thing from django-getpaid perspective is to overide ``get_gateway_url`` method which is an entry point to your backend. This method base on ``request`` context and ``self.payment`` should return an URL that will redirect client directly to payment gateway.
+This is the most important method from the django-getpaid perspective. You need to override the ``get_gateway_url`` method, which is an entry point to your backend. This method is based on the ``request`` context and on the ``self.payment`` and should return the URL to the payment gateway that the client will be redirected to.
 
 Providing extra models
 ----------------------
@@ -47,9 +47,9 @@ Your application in most cases will not need to provide any models at all. In th
     def build_models(payment_class):
         return []
 
-Method ``build_models`` is required for every payment backend as it allows to dynamically build django models in run-time, that need to depend on ``Payment`` class but don't want to use ``content_type`` in django.
+The method ``build_models`` is required for every payment backend as it allows to dynamically build django models in run-time, that need to depend on ``Payment`` class but don't want to use ``content_type`` in django.
 
-To do that you will need to use ``getpaid.abstract_mixin.AbstractMixin``, but please refer to code. Here is just simple example of working dynamically created model to give you some idea how is it working::
+To do that you will need to use ``getpaid.abstract_mixin.AbstractMixin``, please refer to code. Here is just a simple example of a working dynamically created model to give you an idea of how it works::
 
     from django.db import models
     from getpaid.abstract_mixin import AbstractMixin
@@ -73,7 +73,7 @@ To do that you will need to use ``getpaid.abstract_mixin.AbstractMixin``, but pl
         return [PaymentComment]
 
 
-This will create in a run-time a model ``PaymentComment`` which has two fields: CharField ``comment`` and ForeignKey ``payment``. You can use it in your backend.
+This will create in run-time a model ``PaymentComment`` which has two fields: CharField ``comment`` and ForeignKey ``payment``. You can use it in your backend.
 
 .. note::
 
@@ -103,7 +103,7 @@ For example, consider following case::
    )
 
 
-This will expose a link that will point to something like: ``/getpaid.backends.dummy/payment/authorization/0/`` (of course ``getpaid.urls`` could be prefixed with some other path, then the whole path would also have some additional prefix e.g. ``/my/app/payments/getpaid.backends.dummy/payment/authorization/0/`` ). As you can see like in regular django app you connect your urls with app views.
+This will expose a link that will point to something like: ``/getpaid.backends.dummy/payment/authorization/0/`` (of course ``getpaid.urls`` could be prefixed with some other path, then the whole path would also have some additional prefix e.g. ``/my/app/payments/getpaid.backends.dummy/payment/authorization/0/`` ). As you can see like in regular django app, you connect your urls with app views.
 
 Providing extra views
 ---------------------
@@ -115,7 +115,7 @@ If you need to provide some views, please use standard ``views.py`` django conve
 
 .. note::
 
-    It is highly recommended to manage all payment logic in additional methods of ``PaymentProcessor`` class. Let the view will be only a wrapper for preparing arguments for one ``PaymentProcessor`` logic method. In this way you will keep all payment processing related logic in one place.
+    It is highly recommended to manage all payment logic in additional methods of ``PaymentProcessor`` class. Let the view only be a wrapper for preparing arguments for one ``PaymentProcessor`` logic method. In this way you will keep all payment processing related logic in one place.
 
 .. warning::
 
@@ -126,11 +126,11 @@ Asynchronous tasks
 
 **Optional**
 
-django-getpaid is highly recommending using django-celery for all asynchronous processing. If you need to do any, please create celery tasks with ``@task()`` decorator.
+django-getpaid is highly recommending using django-celery for all asynchronous processing. If you need to do any, please create celery tasks with the ``@task()`` decorator.
 
 .. note::
 
-    As with view, when processing celery task please put or your business logic into one of ``PaymentProcessor`` method. Let the task function be only a wrapper for preparing arguments for one ``PaymentProcessor`` logic method.
+    Just like what we have done with the view, when processing celery tasks it is recommended to put your business logic in the class ``PaymentProcessor``. Let the task function only be a wrapper for preparing arguments for one ``PaymentProcessor`` logic method.
 
 
 Configuration management script
