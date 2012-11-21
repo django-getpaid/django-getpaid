@@ -4,7 +4,7 @@ Installation
 Gettings source code
 --------------------
 
-Source code of first stable version will be available on pypi.
+The source code of the first stable version will be available on pypi.
 
 For now you can download development version from: https://github.com/cypreess/django-getpaid.git
 
@@ -30,7 +30,7 @@ Create any iterable (tuple or list) named ``GETPAID_BACKENDS`` and provide full 
 
 
 
-After that put also in your ``settings.py`` a dictionary ``GETPAID_BACKENDS_SETTINGS``. This will keep all configurations specific to a single backend. Keys of this dictionary should be a full path of getpaid backends. Please referrer to :doc:`backends` section for names of available backends.
+After that put also in your ``settings.py`` a dictionary ``GETPAID_BACKENDS_SETTINGS``. This will keep all configurations specific to a single backend. Keys of this dictionary should be a full path of getpaid backends. Please refer to :doc:`backends` section for names of available backends.
 
 Each key should provide another dictonary object with some set of ``key->value`` pairs that are actual configuration settings for given backend::
 
@@ -45,7 +45,7 @@ Each key should provide another dictonary object with some set of ``key->value``
 Tests
 -----
 
-Some tests are provided in getpaid_test_project/tests.py as a django test suite. You can run them by::
+Some tests are provided in getpaid_test_project/tests.py as a django test suite. You can run them with::
 
     $ ./manage.py test orders --settings=getpaid_test_project.settings_test
 
