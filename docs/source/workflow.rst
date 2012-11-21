@@ -177,7 +177,22 @@ So this is a little piece of logic that you need to provide to map your order to
     If you don't know where to put your listeners code, we recommend to put it in ``listeners.py`` file and then add a line ``import listeners`` to the end of your ``models.py`` file. Both files (``listeners.py`` and ``models.py``) should be placed in one of your apps (possibly an app related to the order model).
     
 .. note::
-    One may wonder why isn't this handled directly on the order model via methods like get_total() and get_currency(). It was a design consideration that you may not have access to your order model and therefore couldn't add these methods. By using signals, it does matter if you have control or not over the order model.
+    One may wonder why isn't this handled directly on the order model via methods like get_total() and get_currency(). It was a design consideration that you may not have access to your order model and therefore couldn't add these methods. By using signals, it does not matter if you have control or not over the order model.
+    
+**Optional**
+
+Most likely you would also like to give some sort of information about your customer to your payment processor. The signal ``getpaid.signals.user_data_query`` fills this gap. Here is the declaration::
+
+    user_data_query = Signal(providing_args=['order', 'user_data'])
+    new_payment_query.__doc__ = """
+    Sent to ask for filling user additional data:
+    	user_data['email']:		user email
+    	user_data['lang']:      lang code in ISO 2-char format
+    This data cannot be filled by ``getpaid`` because it is Order structure
+    agnostic. After filling values just do return.
+    """
+
+On the example above we are passing the customer email and its desired language. Some backends may also need additional information like the customers address, phone, etc.
 
 Handling changes of payment status
 ----------------------------------
