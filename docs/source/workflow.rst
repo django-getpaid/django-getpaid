@@ -97,6 +97,49 @@ Here we get a ``PaymentMethodForm`` object, that is parametrised with currency t
 
 Action URL of form should point on named link  `getpaid-new-payment` that requires currency code argument. This form will redirect client from order view directly to page of payment broker.
 
+
+When client will submit this form he will be redirected to getpaid internal view (``NewPaymentView``) which will do one of two things:
+
+    * redirect client to a payment broker (directly, via HTTP 302) - this action is made if payment backend is
+      configured to contact with payment broker via GET method,
+
+      .. note::
+
+        Using GET method is recommended as it involves less intermediate steps while creating a payment.
+
+    * display intermediate page with a form with external action attribute - this action is made if
+      payment backend is configured to use POST method (or this is the only way to communicate with payment
+      broker).
+
+      .. note::
+
+        This intermediate page is displayed only to emulate making a POST request from the client side. getpaid
+        displays a template ``"getpaid/payment_post_form.html"`` that should be definitely overridden in your
+        project. On this page you should display some information *"please wait, you are being redirected to payment broker"* and add some JavaScript magic to submit form automatically after page is loaded. Context
+        variable that are available in this template are:
+
+            * ``form`` - a form with all input of type ``hidden``,
+            * ``gateway_url`` - an external URL that should be used in ``action`` attribute of ``<form>``.
+
+        This is an example of very basic template that could be used (assuming you are using jQuery)::
+
+            <script>
+                $(function(){
+                    $("#new_payment").submit();
+                });
+            </script>
+            <p> Please wait, you are being redirected to payment broker </p>
+            <form action="{{ gateway_url }}" method="post" id="new_payment">
+                {{ form.as_p }}
+            </form>
+
+      .. warning::
+        Do **not** put ``{% csrf %}`` token into that form, as it will results in CSRF leak. For more detailed
+        info please read `Django CSRF Documentation <https://docs.djangoproject.com/en/dev/ref/contrib/csrf/#how-to-use-it>`_.
+
+      .. warning::
+        Remember that using POST methods does not bring any significant security over POST method. From one side using POST is more correct according to HTTP specification for actions that have side effects (like creating new payment), from the other side using GET redirects is far more easier way in this particular case, and it will not involve using hacks like "auto submitting forms on client side". That is the reason why using method GET to connecting with payment broker system is recommended over using POST method.
+
 Filling necessary payment data
 ------------------------------
 

@@ -4,6 +4,7 @@ import hashlib
 import logging
 import urllib
 from django.contrib.sites.models import Site
+from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse
 from django.utils.timezone import utc
 from django.utils.translation import ugettext_lazy as _
@@ -143,8 +144,12 @@ class PaymentProcessor(PaymentProcessorBase):
         if PaymentProcessor.get_backend_setting('tax', False):
             params['tax'] = 1
 
-        for key in params.keys():
-            params[key] = unicode(params[key]).encode('utf-8')
 
-        gateway_url = self._GATEWAY_URL + '?' + urllib.urlencode(params)
-        return gateway_url, "GET", {}
+        if PaymentProcessor.get_backend_setting('method', 'get').lower() == 'post':
+            return self._GATEWAY_URL , 'POST', params
+        elif PaymentProcessor.get_backend_setting('method', 'get').lower() == 'get':
+            for key in params.keys():
+                params[key] = unicode(params[key]).encode('utf-8')
+            return self._GATEWAY_URL + '?' + urllib.urlencode(params), "GET", {}
+        else:
+            raise ImproperlyConfigured('Dotpay payment backend accepts only GET or POST')

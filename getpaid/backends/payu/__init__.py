@@ -5,6 +5,7 @@ import logging
 import urllib
 import urllib2
 from xml.dom.minidom import parseString, Node
+from django.core.exceptions import ImproperlyConfigured
 from django.template.base import Template
 from django.template.context import Context
 from django.utils.timezone import utc
@@ -132,10 +133,14 @@ class PaymentProcessor(PaymentProcessorBase):
             params['ts'] = time.time()
             params['sig'] = PaymentProcessor.compute_sig(params, self._REQUEST_SIG_FIELDS, key1)
 
-        for key in params.keys():
-            params[key] = unicode(params[key]).encode('utf-8')
-        gateway_url = self._GATEWAY_URL + 'UTF/NewPayment?' + urllib.urlencode(params)
-        return gateway_url, "GET", {}
+        if PaymentProcessor.get_backend_setting('method', 'get').lower() == 'post':
+            return self._GATEWAY_URL + 'UTF/NewPayment', 'POST', params
+        elif PaymentProcessor.get_backend_setting('method', 'get').lower() == 'get':
+            for key in params.keys():
+                params[key] = unicode(params[key]).encode('utf-8')
+            return self._GATEWAY_URL + 'UTF/NewPayment?' + urllib.urlencode(params), 'GET', {}
+        else:
+            raise ImproperlyConfigured('PayU payment backend accepts only GET or POST')
 
     def get_payment_status(self, session_id):
         params = {'pos_id': PaymentProcessor.get_backend_setting('pos_id'), 'session_id': session_id, 'ts': time.time()}
