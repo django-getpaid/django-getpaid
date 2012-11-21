@@ -30,7 +30,6 @@ def get_backend_choices(currency=None):
 
     for backend_name in backends_names:
         backend = import_name(backend_name)
-        print backend
         if currency:
             if currency in backend.PaymentProcessor.BACKEND_ACCEPTED_CURRENCY:
                 choices.append((backend_name, backend.PaymentProcessor.BACKEND_NAME, ))
