@@ -25,7 +25,7 @@ Creating ``PaymentProcessor`` class
     :members:
     :undoc-members:
 
-Your ``PaymentProcessor`` needs to be named exactly this way and can live anywhere in the code structure unless it can be imported from main scope. We recommend you to put this class directly into your app ``__init__.py`` file, as there is really no need to complicate it anymore by adding additional files.
+Your ``PaymentProcessor`` needs to be named exactly this way and can live anywhere in the code structure as long as it can be imported from the main scope. We recommend you to put this class directly into your app ``__init__.py`` file, as there is really no need to complicate it anymore by adding additional files.
 
 Overriding ``get_gateway_url()`` method
 ---------------------------------------
@@ -34,6 +34,21 @@ Overriding ``get_gateway_url()`` method
 
 
 This is the most important method from the django-getpaid perspective. You need to override the ``get_gateway_url`` method, which is an entry point to your backend. This method is based on the ``request`` context and on the ``self.payment`` and should return the URL to the payment gateway that the client will be redirected to.
+
+If your backend emits the ``getpaid.signals.user_data_query`` signal, please respect the convention below on which key names to expect as parameters. The objective is to make this signal as agnostic as possible to payment processors.
+
+*email
+*lang
+*name
+*address
+*address_number
+*address_complement
+*address_quarter
+*address_city
+*address_state
+*address_zip_code
+*phone
+*phone_area_code
 
 Providing extra models
 ----------------------
