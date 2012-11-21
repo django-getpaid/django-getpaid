@@ -35,7 +35,7 @@ Overriding ``get_gateway_url()`` method
 
 This is the most important method from the django-getpaid perspective. You need to override the ``get_gateway_url`` method, which is an entry point to your backend. This method is based on the ``request`` context and on the ``self.payment`` and should return the URL to the payment gateway that the client will be redirected to.
 
-If your backend emits the ``getpaid.signals.user_data_query`` signal, to make this signal as agnostic as possible to payment processors, please respect the convention below on which key names to expect as parameters::
+If your backend emits the ``getpaid.signals.user_data_query`` signal, please respect the convention below on which key names to expect as parameters. The objective is to make this signal as agnostic as possible to payment processors::
 *email
 *lang
 *name

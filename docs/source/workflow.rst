@@ -181,7 +181,7 @@ So this is a little piece of logic that you need to provide to map your order to
     
 **Optional**
 
-Most likely you would also give some sort of information about your customer to your payment processor. The signal ``getpaid.signals.user_data_query`` fills this gap. Here is the declaration::
+Most likely you would also like to give some sort of information about your customer to your payment processor. The signal ``getpaid.signals.user_data_query`` fills this gap. Here is the declaration::
 
     user_data_query = Signal(providing_args=['order', 'user_data'])
     new_payment_query.__doc__ = """
@@ -192,7 +192,7 @@ Most likely you would also give some sort of information about your customer to 
     agnostic. After filling values just do return.
     """
 
-On the example above we are passing the customer email and its desired language. Some backends may also need additional information like the customers address, phone, etc. Because we want django-getpaid to be as agnostic as possible, here is a convention on the names we use.
+On the example above we are passing the customer email and its desired language. Some backends may also need additional information like the customers address, phone, etc.
 
 Handling changes of payment status
 ----------------------------------
