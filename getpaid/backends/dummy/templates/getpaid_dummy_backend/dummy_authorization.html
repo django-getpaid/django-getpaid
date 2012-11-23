@@ -1,14 +1,20 @@
+{% load i18n %}
 <html>
 <body>
 <h1>django-getpaid dummy backend</h1>
 
-<p>Are you authorizing <strong>Payment #{{ payment.pk }}</strong> valued to <strong>{{ payment.amount }} {{ payment.currency }}</strong> for <strong>
-    Order #{{ payment.order.pk }} "{{ payment.order }}"</strong>?
 
+<p>
+    {% blocktrans with payment=payment amount=payment.amount currency=payment.currency order=order %}
+    Are you authorizing <strong>{{ payment }}</strong>
+    valued to <strong>{{ amount }} {{ currency }}</strong>
+    for <strong>{{ order }}</strong>?
+    {% endblocktrans %}
+</p>
 <form method="post">
     {% csrf_token %}
     {{ form.as_p }}
-    <input type="submit" value="Continue">
+    <input type="submit" value="{% trans "Continue" %}">
 </form>
 
 </body>

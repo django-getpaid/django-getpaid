@@ -8,11 +8,11 @@ import signals
 from utils import import_backend_modules
 
 PAYMENT_STATUS_CHOICES = (
-        ('new', _("New")),
-        ('in_progress', _("In progress")),
-        ('partially_paid', _("Partially paid")),
-        ('paid', _("Paid")),
-        ('failed', _("Failed")),
+        ('new', _("new")),
+        ('in_progress', _("in progress")),
+        ('partially_paid', _("partially paid")),
+        ('paid', _("paid")),
+        ('failed', _("failed")),
         )
 
 class PaymentManager(models.Manager):
@@ -25,19 +25,19 @@ class PaymentFactory(models.Model, AbstractMixin):
     This is an abstract class that defines a structure of Payment model that will be
     generated dynamically with one additional field: ``order``
     """
-    amount = models.DecimalField(decimal_places=4, max_digits=20)
-    currency = models.CharField(max_length=3)
-    status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='new', db_index=True)
-    backend = models.CharField(max_length=50)
-    created_on = models.DateTimeField(auto_now_add=True, db_index=True)
-    paid_on = models.DateTimeField(blank=True, null=True, default=None, db_index=True)
-    amount_paid = models.DecimalField(decimal_places=4, max_digits=20, default=0)
+    amount = models.DecimalField(_("amount"), decimal_places=4, max_digits=20)
+    currency = models.CharField(_("currency"), max_length=3)
+    status = models.CharField(_("status"), max_length=20, choices=PAYMENT_STATUS_CHOICES, default='new', db_index=True)
+    backend = models.CharField(_("backend"), max_length=50)
+    created_on = models.DateTimeField(_("created on"), auto_now_add=True, db_index=True)
+    paid_on = models.DateTimeField(_("paid on"), blank=True, null=True, default=None, db_index=True)
+    amount_paid = models.DecimalField(_("amount paid"), decimal_places=4, max_digits=20, default=0)
 
     class Meta:
         abstract = True
 
     def __unicode__(self):
-        return "Payment #%d" % self.pk
+        return _("Payment #%(id)d") % { 'id' : self.id }
 
     @classmethod
     def contribute(cls, order, **kwargs):
@@ -123,6 +123,9 @@ def register_to_payment(order_class, **kwargs):
         objects = PaymentManager()
         class Meta:
             ordering = ('-created_on',)
+            verbose_name = _("Payment")
+            verbose_name_plural = _("Payments")
+
     Order = order_class
 
     # Now build models for backends

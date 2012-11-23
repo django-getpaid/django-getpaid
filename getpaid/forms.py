@@ -57,7 +57,7 @@ class PaymentMethodForm(forms.Form):
     def clean_order(self):
         if hasattr(self.cleaned_data['order'], 'is_ready_for_payment'):
             if not self.cleaned_data['order'].is_ready_for_payment():
-                raise ValidationError('Order not ready for payment')
+                raise ValidationError(_('Order cannot be paid'))
         return self.cleaned_data['order']
 
 class PaymentHiddenInputsPostForm(forms.Form):

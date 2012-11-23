@@ -1,0 +1,142 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# 
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2012-11-23 15:51+0100\n"
+"PO-Revision-Date: 2012-11-23 15:51\n"
+"Last-Translator:   <cypreess@gmail.com>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: \n"
+"Plural-Forms: nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2)\n"
+"X-Translated-Using: django-rosetta 0.6.8\n"
+
+#: forms.py:51
+msgid "Payment method"
+msgstr "Metoda płatności"
+
+#: forms.py:60
+msgid "Order cannot be paid"
+msgstr "Zamówienie nie może być przekazane do zapłaty"
+
+#: models.py:11
+msgid "new"
+msgstr "nowa"
+
+#: models.py:12
+msgid "in progress"
+msgstr "w realizacji"
+
+#: models.py:13
+msgid "partially paid"
+msgstr "częściowo opłacona"
+
+#: models.py:14
+msgid "paid"
+msgstr "opłacona"
+
+#: models.py:15
+msgid "failed"
+msgstr "niepowodzenie"
+
+#: models.py:28
+msgid "amount"
+msgstr "kwota"
+
+#: models.py:29
+msgid "currency"
+msgstr "waluta"
+
+#: models.py:30
+msgid "status"
+msgstr "status"
+
+#: models.py:31
+msgid "backend"
+msgstr "backend"
+
+#: models.py:32
+msgid "created on"
+msgstr "utworzono"
+
+#: models.py:33
+msgid "paid on"
+msgstr "opłacono dnia"
+
+#: models.py:34
+msgid "amount paid"
+msgstr "zapłacona kwota"
+
+#: models.py:40
+#, python-format
+msgid "Payment #%(id)d"
+msgstr "Płatność #%(id)d"
+
+#: models.py:126
+msgid "Payment"
+msgstr "Płatność"
+
+#: models.py:127
+msgid "Payments"
+msgstr "Płatności"
+
+#: backends/dotpay/__init__.py:27
+msgid "Dotpay"
+msgstr "Dotpay"
+
+#: backends/dummy/__init__.py:7
+msgid "Dummy backend"
+msgstr "Dummy backend"
+
+#: backends/dummy/forms.py:9
+msgid "authorization"
+msgstr "autoryzacja"
+
+#: backends/dummy/forms.py:9
+msgid "yes"
+msgstr "tak"
+
+#: backends/dummy/forms.py:9
+msgid "no"
+msgstr "nie"
+
+#: backends/dummy/templates/getpaid_dummy_backend/dummy_authorization.html:8
+#, python-format
+msgid ""
+"\n"
+"    Are you authorizing <strong>%(payment)s</strong>\n"
+"    valued to <strong>%(amount)s %(currency)s</strong>\n"
+"    for <strong>%(order)s</strong>?\n"
+"    "
+msgstr ""
+"\n"
+"Czy autoryzujesz <strong>%(payment)s</strong>\n"
+"na kwotę <strong>%(amount)s %(currency)s</strong>\n"
+"za <strong>%(order)s</strong>?"
+
+#: backends/dummy/templates/getpaid_dummy_backend/dummy_authorization.html:17
+msgid "Continue"
+msgstr "Kontynuuj"
+
+#: backends/payu/__init__.py:33
+msgid "PayU"
+msgstr "PayU"
+
+#: backends/transferuj/__init__.py:21
+msgid "Transferuj.pl"
+msgstr "Transferuj.pl"
+
+#: templates/getpaid/payment_post_form.html:4
+msgid "Confirm payment"
+msgstr "Potwierdź płatność"
+
+#~ msgid "Paid"
+#~ msgstr "Opłacona"
