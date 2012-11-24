@@ -140,5 +140,3 @@ class PaymentProcessor(PaymentProcessorBase):
         elif status in (PagSeguroTransactionStatus.CANCELED,
                         PagSeguroTransactionStatus.REFUNDED):
             payment.change_status('failed')
-        elif status == PagSeguroTransactionStatus.IN_DISPUTE:
-            payment.change_status('in_progress')
