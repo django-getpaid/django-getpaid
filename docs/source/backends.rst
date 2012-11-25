@@ -360,7 +360,7 @@ You need to provide this information in ``GETPAID_BACKENDS_SETTINGS`` dictionary
     GETPAID_BACKENDS_SETTINGS = {
         'getpaid.backends.pagseguro' : {
                 'email': 'test@test.com',
-				'token': "AB310XDOPQO13LXPAO"
+                'token': "AB310XDOPQO13LXPAO"
             },
     }
     

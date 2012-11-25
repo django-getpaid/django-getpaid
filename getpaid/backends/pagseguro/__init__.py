@@ -57,27 +57,6 @@ class PaymentProcessor(PaymentProcessorBase):
         'email': 'cliente_email', # E-mail do cliente
     }
 
-    def __init__(self, payment):
-        super(PaymentProcessor, self).__init__(payment)
-        self.customer_info = {}
-        self.cart_items = []
-        self.merchant_info = {
-            'email_cobranca': PaymentProcessor.get_backend_setting('email'),
-            'tipo' : 'CP',
-            'moeda': self.payment.currency,
-            'encoding': 'UTF-8',
-
-            'ref_transacao': self.payment.id,
-        }
-
-        # collect shopping cart items
-        self.cart_items = []
-        shopping_cart_items_query.send(sender=None, order=self.payment.order, shopping_cart_items=self.cart_items)
-
-        # collect customer data
-        self.customer_info = {}
-        user_data_query.send(sender=None, order=self.payment.order, user_data=self.customer_info)
-
     def _validate_item(self, item):
         # checks if all required fields are present
         for field in self._ITEM_DATA_REQUIRED_FIELDS:
@@ -101,6 +80,25 @@ class PaymentProcessor(PaymentProcessorBase):
         return url_params
 
     def get_gateway_url(self, request):
+        self.customer_info = {}
+        self.cart_items = []
+        self.merchant_info = {
+            'email_cobranca': PaymentProcessor.get_backend_setting('email'),
+            'tipo' : 'CP',
+            'moeda': self.payment.currency,
+            'encoding': 'UTF-8',
+
+            'ref_transacao': self.payment.id,
+            }
+
+        # collect shopping cart items
+        self.cart_items = []
+        shopping_cart_items_query.send(sender=None, order=self.payment.order, shopping_cart_items=self.cart_items)
+
+        # collect customer data
+        self.customer_info = {}
+        user_data_query.send(sender=None, order=self.payment.order, user_data=self.customer_info)
+
         return self._GATEWAY_URL, 'POST', self.get_url_params()
 
     @staticmethod
