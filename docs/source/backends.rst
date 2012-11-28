@@ -331,47 +331,6 @@ Optional keys:
     1% charity (refer to Dotpay manual); default: ``False``
     
     
-    
-    
-    
-PagSeguro backend ``getpaid.backends.pagseguro``
----------------------------------------------
-
-This backend can handle payment processing via brazilian money broker `PagSeguro.com.br <http://pagseguro.com.br>`_.
-
-PagSeguro accepts payments exclusively in ``BRL``.
-
-
-Setup backend
-`````````````
-In order to start working with PagSeguro you will need to have an activated account with PagSeguro.
-
-Required keys:
-
-**email**
-    your seller's account e-mail
-    
-**token**
-    your secret token
-
-
-You need to provide this information in ``GETPAID_BACKENDS_SETTINGS`` dictionary::
-
-    GETPAID_BACKENDS_SETTINGS = {
-        'getpaid.backends.pagseguro' : {
-                'email': 'test@test.com',
-                'token': "AB310XDOPQO13LXPAO"
-            },
-    }
-    
-    
-Status changes
-`````````````
-Even though PagSeguro has 7 different statuses (pending, verifying, paid, available, in dispute, refunded and canceled), this only translates into 3 statuses in `django-getpaid`. Before the payment is made, the initial status is `in_progress`. Once it moves in PagSeguro to the paid state, this state also changes on this backend to paid. If at any point PagSeguro changes the transaction status to canceled or refunded, the status on this backend will also enter the failed state. Beware that all others statuses in between are ignored. You will not be notified if a transaction moves from paid to available or if it enters dispute. This should however make no difference, as it only really matters if your transaction at PagSeguro changes from in dispute to refunded or cancelled (and both are tracked).
-
-
-
-
 Moip backend ``getpaid.backends.moip``
 ---------------------------------------------
 
