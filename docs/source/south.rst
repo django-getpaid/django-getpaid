@@ -10,11 +10,11 @@ This option allows you to overwrite default South migrations search path and cre
 Step 1. Add ``SOUTH_MIGRATION_MODULES`` setting
 -----------------------------------------------
 
-You should put your custom migrations somewhere. The good place seems to be path ``PROJECT_ROOT/migrations/plans`` directory.
+You should put your custom migrations somewhere. The good place seems to be path ``PROJECT_ROOT/migrations/getpaid`` directory.
 
 .. note::
 
-    Remember that ``PROJECT_ROOT/migrations/plans`` path should be a python module, i.e. it needs to be importable from python.
+    Remember that ``PROJECT_ROOT/migrations/getpaid`` path should be a python module, i.e. it needs to be importable from python.
 
 Then put the following into ``settings.py``::
 
