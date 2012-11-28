@@ -10,10 +10,10 @@ from getpaid.signals import user_data_query
 from getpaid.backends import PaymentProcessorBase
 from lxml import etree
 
-logger = logging.getLogger('getpaid.backends.pagseguro')
+logger = logging.getLogger('getpaid.backends.moip')
 
 
-class PagSeguroTransactionStatus:
+class MoipTransactionStatus:
     AUTHORIZED = 1
     STARTED = 2
     IN_PROGRESS = 3
@@ -102,13 +102,13 @@ class PaymentProcessor(PaymentProcessorBase):
             logger.error('Payment does not exist with pk=%d' % params["id"])
             return
 
-        if params["status"] == PagSeguroTransactionStatus.AUTHORIZED:
+        if params["status"] == MoipTransactionStatus.AUTHORIZED:
             payment.amount_paid = Decimal(params["amount"])
             payment.paid_on = datetime.datetime.utcnow().replace(tzinfo=utc)
             payment.change_status('paid')
-        elif params["status"] in (PagSeguroTransactionStatus.CANCELED,
-                                  PagSeguroTransactionStatus.REFUNDED,
-                                  PagSeguroTransactionStatus.CHARGEBACK):
+        elif params["status"] in (MoipTransactionStatus.CANCELED,
+                                  MoipTransactionStatus.REFUNDED,
+                                  MoipTransactionStatus.CHARGEBACK):
             payment.change_status('failed')
 
     @staticmethod
