@@ -53,6 +53,8 @@ class PaymentFactory(models.Model, AbstractMixin):
         payment.order = order
         payment.backend = backend
         signals.new_payment_query.send(sender=None, order=order, payment=payment)
+        if payment.currency is None or payment.amount is None:
+            raise NotImplementedError('Please provide a listener for getpaid.signals.new_payment_query')
         payment.save()
         signals.new_payment.send(sender=None, order=order, payment=payment)
         return payment
