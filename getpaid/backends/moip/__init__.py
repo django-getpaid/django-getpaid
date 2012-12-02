@@ -85,7 +85,7 @@ class PaymentProcessor(PaymentProcessorBase):
         payment_full_url = "%s%s" % (gateway_url, self._SEND_INSTRUCTION_PAGE)
         self.command = 'curl -silent -u %s:%s -X POST -d \'%s\' %s' % (PaymentProcessor.get_backend_setting('token'),
                                                                        PaymentProcessor.get_backend_setting('key'),
-                                                                       etree.tostring(xml_body),
+                                                                       etree.tostring(xml_body, encoding='utf-8'),
                                                                        payment_full_url)
         ret = os.popen(self.command)
         response = ret.readlines()[-1]
