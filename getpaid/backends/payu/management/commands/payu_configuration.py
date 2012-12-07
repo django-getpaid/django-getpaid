@@ -24,9 +24,9 @@ class Command(BaseCommand):
 
         self.stdout.write(' * Failure URL: http://%s%s\n                https://%s%s\n\n' % (
             current_site.domain,
-            reverse('getpaid-payu-failure', kwargs={'pk': 1234}).replace('1234', '%orderId%'),
+            reverse('getpaid-payu-failure', kwargs={'pk': 1234, 'error': 9999}).replace('1234', r'%orderId%').replace('9999', r'%error%'),
             current_site.domain,
-            reverse('getpaid-payu-failure', kwargs={'pk': 1234}).replace('1234', '%orderId%'),
+            reverse('getpaid-payu-failure', kwargs={'pk': 1234, 'error': 9999}).replace('1234', r'%orderId%').replace('9999', r'%error%'),
             )
 
         )

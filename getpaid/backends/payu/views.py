@@ -44,4 +44,5 @@ class FailureView(DetailView):
     model = Payment
 
     def render_to_response(self, context, **response_kwargs):
+        logger.error("Payment %s failed on backend error %s" % (self.kwargs['pk'], self.kwargs['error']))
         return HttpResponseRedirect(reverse('getpaid-failure-fallback', kwargs={'pk': self.object.pk}))
