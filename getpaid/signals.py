@@ -26,3 +26,9 @@ new_payment.__doc__ = """Sent after creating new payment."""
 
 payment_status_changed = Signal(providing_args=['old_status', 'new_status'])
 payment_status_changed.__doc__ = """Sent when Payment status changes."""
+
+
+redirecting_to_payment_gateway_signal = Signal(providing_args=['request', 'order', 'payment', 'backend'])
+redirecting_to_payment_gateway_signal.__doc__ = """
+Sent just a moment before redirecting. A hook for analytics tools.
+"""
