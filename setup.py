@@ -23,6 +23,7 @@ setup(
     package_data={
         'getpaid': [
             'templates/getpaid/*.html',
+            'locale/pl/LC_MESSAGES/*',
         ],
         'getpaid.backends.dummy': [
             'templates/getpaid_dummy_backend/*.html',
