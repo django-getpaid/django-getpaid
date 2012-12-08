@@ -1,6 +1,7 @@
 from django.core.urlresolvers import reverse
 from django.shortcuts import get_object_or_404
 from django.views.generic.edit import FormView
+from getpaid.backends.dummy import PaymentProcessor
 from getpaid.backends.dummy.forms import DummyQuestionForm
 from getpaid.models import Payment
 
@@ -13,6 +14,7 @@ class DummyAuthorizationView(FormView):
         self.payment = get_object_or_404(Payment, pk=self.kwargs['pk'], status='in_progress',  backend='getpaid.backends.dummy')
         context['payment'] = self.payment
         context['order'] = self.payment.order
+        context['order_name'] = PaymentProcessor(self.payment).get_order_description(self.payment, self.payment.order)  # TODO: Refactoring of get_order_description needed, should not require payment arg
         return context
 
     def get_success_url(self):

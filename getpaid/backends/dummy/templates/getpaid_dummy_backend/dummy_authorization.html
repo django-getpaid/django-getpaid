@@ -6,9 +6,9 @@
 
 <p>
     {% blocktrans with payment=payment amount=payment.amount currency=payment.currency order=order %}
-    Are you authorizing <strong>{{ payment }}</strong>
+    Are you authorizing "<strong>{{ payment }}</strong>"
     valued to <strong>{{ amount }} {{ currency }}</strong>
-    for <strong>{{ order }}</strong>?
+    for "<strong>{{ order_name }}</strong>"?
     {% endblocktrans %}
 </p>
 <form method="post">
