@@ -27,6 +27,8 @@ class PaymentProcessor(PaymentProcessorBase):
     _ALLOWED_IP = ('195.149.229.109', )
 
     _ONLINE_SIG_FIELDS = ('id', 'tr_id', 'tr_amount', 'tr_crc', )
+    _ACCEPTED_LANGS = ('pl', 'en', 'de')
+
 
     @staticmethod
     def compute_sig(params, fields, key):
@@ -65,6 +67,9 @@ class PaymentProcessor(PaymentProcessorBase):
 
         logger.info('Incoming payment: id=%s, tr_id=%s, tr_date=%s, tr_crc=%s, tr_amount=%s, tr_paid=%s, tr_desc=%s, tr_status=%s, tr_error=%s, tr_email=%s' % (id, tr_id, tr_date, tr_crc, tr_amount, tr_paid, tr_desc, tr_status, tr_error, tr_email))
 
+        payment.external_id = tr_id
+        payment.description = tr_email
+
         if tr_status == 'TRUE':
             # Due to Transferuj documentation, we need to check if amount is correct
             payment.amount_paid = Decimal(tr_paid)
@@ -96,6 +101,14 @@ class PaymentProcessor(PaymentProcessorBase):
         }
 
         signals.user_data_query.send(sender=None, order=self.payment.order, user_data=user_data)
+
+
+        if user_data['lang'] and user_data['lang'].lower() in PaymentProcessor._ACCEPTED_LANGS:
+            params['jezyk'] = user_data['lang'].lower()
+        elif PaymentProcessor.get_backend_setting('lang', False) and\
+             PaymentProcessor.get_backend_setting('lang').lower() in PaymentProcessor._ACCEPTED_LANGS:
+            params['jezyk'] = PaymentProcessor.get_backend_setting('lang').lower()
+
 
         if user_data['email']:
             params['email'] = user_data['email']

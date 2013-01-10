@@ -253,6 +253,15 @@ There are some additional options you can provide:
         Remember to set Sites framework domain in database, as this module uses this address to build fully qualified
         URL.
 
+**lang**
+    default interface lang; default: ``None``
+
+    .. warning::
+
+        It seems that this feature is undocumented. Transferuj.pl accepts ``jezyk`` parameter and I have this
+        information from support (not from docs).
+
+
 `transferuj_configuration` management command
 `````````````````````````````````````````````
 After setting up django application it is also important to remember that some minimal configuration is needed also at Transferuj.pl service configuration site.

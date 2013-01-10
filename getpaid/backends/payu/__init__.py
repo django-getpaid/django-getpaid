@@ -168,6 +168,8 @@ class PaymentProcessor(PaymentProcessorBase):
                 logger.error('Wrong pos_id and/or payment for Payment/get response data %s' % str(response_params))
                 return
 
+            self.payment.external_id = response_params['id']
+
             status = int(response_params['status'])
             if status == PayUTransactionStatus.FINISHED:
                 self.payment.amount_paid = Decimal(response_params['amount']) / Decimal('100')

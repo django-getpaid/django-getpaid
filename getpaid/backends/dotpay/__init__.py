@@ -73,6 +73,10 @@ class PaymentProcessor(PaymentProcessorBase):
             logger.error('Got message with wrong currency, %s' % str(params))
             return 'CURRENCY ERR'
 
+        payment.external_id = params.get('t_id', '')
+        payment.description = params.get('email', '')
+
+
         if int(params['t_status']) == DotpayTransactionStatus.FINISHED:
             payment.amount_paid = Decimal(amount)
             payment.paid_on = datetime.datetime.utcnow().replace(tzinfo=utc)
