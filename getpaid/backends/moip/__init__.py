@@ -6,6 +6,7 @@ from django.core.urlresolvers import reverse
 from django.db.models import get_model
 from django.utils.timezone import utc
 import os
+import requests
 from getpaid.signals import user_data_query
 from getpaid.backends import PaymentProcessorBase
 from lxml import etree
@@ -35,16 +36,16 @@ class PaymentProcessor(PaymentProcessorBase):
     _ITEM_DATA_REQUIRED_FIELDS = ('id', 'description', 'quantity', 'value')
 
     _USER_DATA_TO_MOIP = {
-        'name': 'Nome', # Nome completo do cliente.
-        'address': 'Logradouro', # Logradouro do cliente (ex: Rua, Av, etc.)
-        'address_number': 'Numero', # Nº do imóvel do cliente (ex: 12)
-        'address_complement': 'Complemento', # Complemento (ex: Sala 109 ou Casa 1)
-        'address_zip_code': 'CEP', # O CEP de 8 dígitos do cliente. Somente números (ex: 22345678)
-        'address_quarter': 'Bairro', # Bairro do cliente
-        'address_city': 'Cidade', # Cidade do cliente (ex: São Paulo)
-        'address_state': 'Estado', # Estado do cliente (SP) no formato duas letras
-        'phone': 'TelefoneFixo', # Telefone fixo do cliente
-        'email': 'Email', # E-mail do cliente
+        'name': 'Nome',  # Nome completo do cliente.
+        'address': 'Logradouro',  # Logradouro do cliente (ex: Rua, Av, etc.)
+        'address_number': 'Numero',  # Nº do imóvel do cliente (ex: 12)
+        'address_complement': 'Complemento',  # Complemento (ex: Sala 109 ou Casa 1)
+        'address_zip_code': 'CEP',  # O CEP de 8 dígitos do cliente. Somente números (ex: 22345678)
+        'address_quarter': 'Bairro',  # Bairro do cliente
+        'address_city': 'Cidade',  # Cidade do cliente (ex: São Paulo)
+        'address_state': 'Estado',  # Estado do cliente (SP) no formato duas letras
+        'phone': 'TelefoneFixo',  # Telefone fixo do cliente
+        'email': 'Email',  # E-mail do cliente
     }
 
     def get_gateway_url(self, request):
@@ -81,17 +82,14 @@ class PaymentProcessor(PaymentProcessorBase):
                 if field in customer_info and field not in ('name', 'email'):
                     etree.SubElement(xml_buyer_address, self._USER_DATA_TO_MOIP[field]).text = customer_info[field]
 
-
         payment_full_url = "%s%s" % (gateway_url, self._SEND_INSTRUCTION_PAGE)
-        self.command = 'curl -silent -u %s:%s -X POST -d \'%s\' %s' % (PaymentProcessor.get_backend_setting('token'),
-                                                                       PaymentProcessor.get_backend_setting('key'),
-                                                                       etree.tostring(xml_body, encoding='utf-8'),
-                                                                       payment_full_url)
-        ret = os.popen(self.command)
-        response = ret.readlines()[-1]
-        token_element = etree.XML(response)
+        user = PaymentProcessor.get_backend_setting('token')
+        pwd = PaymentProcessor.get_backend_setting('key')
+        contents = etree.tostring(xml_body, encoding='utf-8')
+        response = requests.post(payment_full_url, auth=(user, pwd), data=contents).text
+        moip_payment_token = etree.XML(response)[0][2].text
 
-        return "%s/%s%s " % (gateway_url, self._RUN_INSTRUCTION_PAGE, token_element[0][2].text), 'GET', {}
+        return "%s/%s%s " % (gateway_url, self._RUN_INSTRUCTION_PAGE, moip_payment_token), 'GET', {}
 
     @staticmethod
     def process_notification(params):
