@@ -18,6 +18,9 @@ setup(
         'payu': [
             'django-celery>=3.0.11',
         ],
+        'moip': [
+        	'requests',
+        ],
     },
 
     package_data={
