@@ -13,7 +13,6 @@ setup(
     license='MIT',
     author='Krzysztof Dorosz',
     author_email='cypreess@gmail.com',
-    install_requires=['django>=1.4'],
     extras_require = {
         'payu': [
             'django-celery>=3.0.11',
