@@ -101,7 +101,8 @@ class PaymentProcessor(PaymentProcessorBase):
             logger.error('Payment does not exist with pk=%d' % params["id"])
             return
 
-        if params["status"] == MoipTransactionStatus.AUTHORIZED:
+        if params["status"] in (MoipTransactionStatus.AUTHORIZED,
+                                MoipTransactionStatus.AVAILABLE):
             payment.amount_paid = Decimal(params["amount"])
             payment.paid_on = datetime.datetime.utcnow().replace(tzinfo=utc)
             payment.change_status('paid')
