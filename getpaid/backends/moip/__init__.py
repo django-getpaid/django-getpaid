@@ -101,14 +101,15 @@ class PaymentProcessor(PaymentProcessorBase):
             logger.error('Payment does not exist with pk=%d' % params["id"])
             return
 
-        if params["status"] in (MoipTransactionStatus.AUTHORIZED,
-                                MoipTransactionStatus.AVAILABLE):
+        status_code = int(params["status"])
+        if status_code in (MoipTransactionStatus.AUTHORIZED,
+                           MoipTransactionStatus.AVAILABLE):
             payment.amount_paid = Decimal(params["amount"])
             payment.paid_on = datetime.datetime.utcnow().replace(tzinfo=utc)
             payment.change_status('paid')
-        elif params["status"] in (MoipTransactionStatus.CANCELED,
-                                  MoipTransactionStatus.REFUNDED,
-                                  MoipTransactionStatus.CHARGEBACK):
+        elif status_code in (MoipTransactionStatus.CANCELED,
+                             MoipTransactionStatus.REFUNDED,
+                             MoipTransactionStatus.CHARGEBACK):
             payment.change_status('failed')
 
     @staticmethod
