@@ -5,8 +5,8 @@ import datetime
 from django.core.urlresolvers import reverse
 from django.db.models import get_model
 from django.utils.timezone import utc
-import os
 import requests
+import time
 from getpaid.signals import user_data_query
 from getpaid.backends import PaymentProcessorBase
 from lxml import etree
@@ -62,7 +62,7 @@ class PaymentProcessor(PaymentProcessorBase):
         xml_values = etree.SubElement(xml_instruction, "Valores")
         etree.SubElement(xml_values, "Valor", moeda=self.payment.currency).text = str(self.payment.amount)
 
-        etree.SubElement(xml_instruction, "IdProprio").text = str(self.payment.id)
+        etree.SubElement(xml_instruction, "IdProprio").text = "%s-%s" % (str(self.payment.id), str(time.time()))
         etree.SubElement(xml_instruction, "URLRetorno").text = PaymentProcessor._get_view_full_url(request, 'getpaid-moip-success', args=(self.payment.id,))
         etree.SubElement(xml_instruction, "URLNotificacao").text = PaymentProcessor._get_view_full_url(request, 'getpaid-moip-notifications')
 
@@ -86,6 +86,8 @@ class PaymentProcessor(PaymentProcessorBase):
         user = PaymentProcessor.get_backend_setting('token')
         pwd = PaymentProcessor.get_backend_setting('key')
         contents = etree.tostring(xml_body, encoding='utf-8')
+        print contents
+
         response = requests.post(payment_full_url, auth=(user, pwd), data=contents).text
         moip_payment_token = etree.XML(response)[0][2].text
 
