@@ -97,7 +97,7 @@ class PaymentProcessor(PaymentProcessorBase):
     def process_notification(params):
         Payment = get_model('getpaid', 'Payment')
         try:
-            payment = Payment.objects.get(pk=int(params["id"]))
+            payment = Payment.objects.get(pk=int(params["id"].split("-")[0]))
         except Payment.DoesNotExist:
             logger.error('Payment does not exist with pk=%d' % params["id"])
             return
