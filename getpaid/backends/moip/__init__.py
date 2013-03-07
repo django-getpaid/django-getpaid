@@ -5,8 +5,8 @@ import datetime
 from django.core.urlresolvers import reverse
 from django.db.models import get_model
 from django.utils.timezone import utc
-import os
 import requests
+import time
 from getpaid.signals import user_data_query
 from getpaid.backends import PaymentProcessorBase
 from lxml import etree
@@ -62,7 +62,7 @@ class PaymentProcessor(PaymentProcessorBase):
         xml_values = etree.SubElement(xml_instruction, "Valores")
         etree.SubElement(xml_values, "Valor", moeda=self.payment.currency).text = str(self.payment.amount)
 
-        etree.SubElement(xml_instruction, "IdProprio").text = str(self.payment.id)
+        etree.SubElement(xml_instruction, "IdProprio").text = "%s-%s" % (str(self.payment.id), str(time.time()))
         etree.SubElement(xml_instruction, "URLRetorno").text = PaymentProcessor._get_view_full_url(request, 'getpaid-moip-success', args=(self.payment.id,))
         etree.SubElement(xml_instruction, "URLNotificacao").text = PaymentProcessor._get_view_full_url(request, 'getpaid-moip-notifications')
 
@@ -86,6 +86,7 @@ class PaymentProcessor(PaymentProcessorBase):
         user = PaymentProcessor.get_backend_setting('token')
         pwd = PaymentProcessor.get_backend_setting('key')
         contents = etree.tostring(xml_body, encoding='utf-8')
+
         response = requests.post(payment_full_url, auth=(user, pwd), data=contents).text
         moip_payment_token = etree.XML(response)[0][2].text
 
@@ -95,18 +96,20 @@ class PaymentProcessor(PaymentProcessorBase):
     def process_notification(params):
         Payment = get_model('getpaid', 'Payment')
         try:
-            payment = Payment.objects.get(pk=int(params["id"]))
+            payment = Payment.objects.get(pk=int(params["id"].split("-")[0]))
         except Payment.DoesNotExist:
             logger.error('Payment does not exist with pk=%d' % params["id"])
             return
 
-        if params["status"] == MoipTransactionStatus.AUTHORIZED:
+        status_code = int(params["status"])
+        if status_code in (MoipTransactionStatus.AUTHORIZED,
+                           MoipTransactionStatus.AVAILABLE):
             payment.amount_paid = Decimal(params["amount"])
             payment.paid_on = datetime.datetime.utcnow().replace(tzinfo=utc)
             payment.change_status('paid')
-        elif params["status"] in (MoipTransactionStatus.CANCELED,
-                                  MoipTransactionStatus.REFUNDED,
-                                  MoipTransactionStatus.CHARGEBACK):
+        elif status_code in (MoipTransactionStatus.CANCELED,
+                             MoipTransactionStatus.REFUNDED,
+                             MoipTransactionStatus.CHARGEBACK):
             payment.change_status('failed')
 
     @staticmethod
