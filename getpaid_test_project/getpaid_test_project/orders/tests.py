@@ -73,7 +73,7 @@ class OrderTest(TestCase):
                     {'order': order.pk,
                      'backend': 'getpaid.backends.payu'}
         )
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, 403)
 
 
 def fake_payment_get_response_success(request):
