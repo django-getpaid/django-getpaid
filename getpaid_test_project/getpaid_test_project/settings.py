@@ -189,6 +189,10 @@ LOGGING = {
             'handlers': ['console'],
             'level': 'DEBUG',
         },
+        'getpaid.backends.przelewy24':{
+            'handlers': ['console'],
+            'level': 'DEBUG',
+        },
         'getpaid.backends.transferuj':{
             'handlers': ['console'],
             'level': 'DEBUG',

@@ -26,7 +26,7 @@ def user_data_query_listener(sender, order=None, user_data=None, **kwargs):
     """
     Here we fill some static user data, just for test
     """
-#    user_data['email'] = 'test@test.com'
-    user_data['lang'] = 'EN'
+    user_data['email'] = 'test@test.com'
+    # user_data['lang'] = 'EN'
 
 signals.user_data_query.connect(user_data_query_listener)
