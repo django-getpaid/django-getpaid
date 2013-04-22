@@ -1,3 +1,10 @@
+# Author: Krzysztof Dorosz <cypreess@gmail.com>
+#
+# Disclaimer:
+# Writing and open sourcing this backend was kindly funded by Issue Stand
+# http://issuestand.com/
+#
+
 from decimal import Decimal
 import hashlib
 import logging
@@ -16,9 +23,7 @@ from getpaid import signals
 from getpaid.backends import PaymentProcessorBase
 from getpaid.backends.przelewy24.tasks import get_payment_status_task
 
-
 logger = logging.getLogger('getpaid.backends.przelewy24')
-
 
 class PaymentProcessor(PaymentProcessorBase):
     BACKEND = 'getpaid.backends.przelewy24'
