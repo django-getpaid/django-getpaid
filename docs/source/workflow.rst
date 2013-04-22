@@ -17,7 +17,7 @@ Add to your urls::
 
 
 Preparing your order model
-------------------------
+--------------------------
 
 **Required**
 
@@ -65,7 +65,7 @@ Getpaid supports payment creation policy for an order. It means that your order 
 
 
 Preparing payment form for an order
-------------------------------
+-----------------------------------
 
 **Required**
 

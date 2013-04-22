@@ -1,7 +1,7 @@
 Writing custom payment backend
 ==============================
 
-**django-getpaid** allows you to use two types of custom backends: internal and third-party backends. There is no architectural difference between them, only the first one is shipped with django-getpaid code, while the second one can be maintained separately. However if you are going to provide a payment backend to any popular payment method (even if it's only popular in your country) you are very welcome to contribute your backend to django-getpaid. Some hints how to do that are described in :doc:`contributors` section.
+**django-getpaid** allows you to use two types of custom backends: internal and third-party backends. There is no architectural difference between them, only the first one is shipped with django-getpaid code, while the second one can be maintained separately. However if you are going to provide a payment backend to any popular payment method (even if it's only popular in your country) you are very welcome to contribute your backend to django-getpaid. Some hints how to do that are described in :doc:`index` "Developing" section.
 
 Creating initial backend application
 ------------------------------------
@@ -37,18 +37,18 @@ This is the most important method from the django-getpaid perspective. You need 
 
 If your backend emits the ``getpaid.signals.user_data_query`` signal, please respect the convention below on which key names to expect as parameters. The objective is to make this signal as agnostic as possible to payment processors.
 
-*email
-*lang
-*name
-*address
-*address_number
-*address_complement
-*address_quarter
-*address_city
-*address_state
-*address_zip_code
-*phone
-*phone_area_code
+* email
+* lang
+* name
+* address
+* address_number
+* address_complement
+* address_quarter
+* address_city
+* address_state
+* address_zip_code
+* phone
+* phone_area_code
 
 Providing extra models
 ----------------------

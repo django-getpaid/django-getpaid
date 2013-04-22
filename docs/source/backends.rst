@@ -339,9 +339,81 @@ Optional keys:
 **tax**
     1% charity (refer to Dotpay manual); default: ``False``
     
-    
+
+
+
+Przelewy24 backend ``getpaid.backends.przelewy24``
+--------------------------------------------------
+
+This backend can handle payment processing via Polish money broker `Przelewy24.pl <http://www.przelewy24.pl/>`_.
+
+Przelewy24 accepts payments in ``PLN``.
+
+**Acknowledgements:** Przelewy24 backend was kindly funded by `Issue Stand <http://issuestand.com/>`_.
+
+
+Setup backend
+`````````````
+In order to start working with Przelewy24 you will need to have an activated account in Przelewy24 service.
+
+Required keys:
+
+**id**
+    client ID
+
+**crc**
+    CRC code for client ID
+
+You need to provide this information in ``GETPAID_BACKENDS_SETTINGS`` dictionary::
+
+    GETPAID_BACKENDS_SETTINGS = {
+        'getpaid.backends.przelewy24' : {
+                'id' : 123456,
+                'crc': 'fc1c0644f644fcc',
+            },
+    }
+
+
+
+
+Optional keys:
+
+**sandbox**
+    set ``True`` to use sandbox environment; default ``False``
+
+**lang**
+    default interface lang if not overridden by signal (``'pl', 'en', 'es', 'de', 'it'``); default: ``None``
+
+**ssl_return**
+    set this option to ``True`` if a client should return to your site after payment using HTTP SSL; default ``False``
+
+
+
+
+Additional info
+```````````````
+
+Przelewy24 naively assumes that all payments will end up with successful client redirection to the source webpage. According to documentation this redirection is also a signal for checking payment status. However, as you can easily
+imagine, client could close browser before redirection from payment site. Przelewy24 suggest that you could
+deliver them via e-mail additional URL that will be requested in such case (after 15 min delay).
+
+This is strongly recommended (as you may never receive some transactions confirmations), you can generate appropriate URL (to your django installation) using management command::
+
+    $ python manage.py przelewy24_configuration
+    Please contact with Przelewy24 (serwis@przelewy24.pl) and provide them with the following URL:
+
+    http://mydomain.com/getpaid.backends.przelewy24/online/
+
+    This is an additional URL for accepting payment status updates.
+
+    To change domain name please edit Sites settings. Don't forget to setup your web server to accept https connection in order to use secure links.
+
+    Sandbox mode is ON.
+
+
+
 Moip backend ``getpaid.backends.moip``
----------------------------------------------
+--------------------------------------
 
 This backend can handle payment processing via brazilian money broker `Moip.com.br <http://moip.com.br>`_.
 
