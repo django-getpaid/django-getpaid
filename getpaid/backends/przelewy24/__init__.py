@@ -94,6 +94,7 @@ class PaymentProcessor(PaymentProcessorBase):
         response_list = filter(lambda ll: ll, map(lambda l: l.strip(), response.splitlines()))
 
         if len(response_list) >= 2 and response_list[0] == 'RESULT' and response_list[1] == 'TRUE':
+            logger.info('Payment accepted %s' % str(params))
             self.payment.amount_paid = Decimal(p24_kwota) / Decimal('100')
             self.payment.paid_on = datetime.datetime.utcnow().replace(tzinfo=utc)
             if self.payment.amount_paid >= self.payment.amount:
