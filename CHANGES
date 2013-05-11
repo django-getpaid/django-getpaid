@@ -1,6 +1,11 @@
 django-getpaid changes
 ======================
 
+Version 1.5.0
+-------------
+* Adding new backend - Przelewy24.pl (thanks to IssueStand.com funding)
+* Fixing packaging package data (now using only MANIFEST.in)
+
 Version 1.4.0
 -------------
 * Cleaned version 1.3 from minor issues before implementing new backends

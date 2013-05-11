@@ -1,2 +1,5 @@
 include CHANGES
 include *.txt
+recursive-include getpaid/backends *.png *.html
+graft getpaid/locale
+graft getpaid/templates
