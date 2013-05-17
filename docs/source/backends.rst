@@ -451,3 +451,43 @@ You need to provide this information in ``GETPAID_BACKENDS_SETTINGS`` dictionary
 Status changes
 `````````````
 Even though Moip has 9 different statuses, this only translates into 3 statuses in `django-getpaid`. Before the payment is made, the initial status is `in_progress`. Once it moves in Moip to the authorized, the getpaid state also changes on this backend to paid. If at any point Moip changes the transaction status to chargeback or refunded, the status on this backend will also enter the failed state. Beware that all others statuses in between are ignored. You will not be notified if a transaction moves from paid to available or if it enters dispute. This should however make no difference, as it only really matters if your transaction at Moip changes from in dispute to refunded or chargedback (and both are tracked).
+
+
+Paymill backend ``getpaid.backends.paymill``
+--------------------------------------------
+
+This backend can handle payment processing via the "Stripe for Europe" `Paymill <http://paymill.com>`_.
+
+Paymill accepts payments in ``EUR``, ``CZK``, ``DKK``, ``HUF``, ``ISK``, ``ILS``, ``LVL``, ``CHF``, ``NOK``, ``PLN``, ``SEK``, ``TRY`` and ``GBP``.
+
+
+Setup backend
+`````````````
+In order to start working with Paymill you will need to have an activated account with Paymill.
+
+Required keys:
+
+**PAYMILL_PUBLIC_KEY**
+    your public key
+    
+**PAYMILL_PRIVATE_KEY**
+    your private key
+
+
+You need to provide this information in ``GETPAID_BACKENDS_SETTINGS`` dictionary::
+
+    GETPAID_BACKENDS_SETTINGS = {
+        'getpaid.backends.paymill': {
+            'PAYMILL_PUBLIC_KEY': '024436912481f223e137769e2886830b',
+            'PAYMILL_PRIVATE_KEY': '1b9a36f6g6e2d52aab7858f5a5eb8k67',
+        }
+    }
+    
+    
+A word about security
+`````````````````````
+Though we have to display the form for the credit card data on our website, it will never be sent to the server to comply with the `Payment Card Industry Data Security Standard <http://en.wikipedia.org/wiki/Payment_Card_Industry_Data_Security_Standard>`_. Instead, Paymill's JavaScript API is used to generate a token that is sent to the server to process the payment.
+
+Integration into your website
+`````````````````````````````
+You can (and should) overwrite the ``getpaid_paymill_backend/paymill.html`` file, but be sure to both include the form as well as the ``getpaid_paymill_backend/paymill_form.html`` file that shows the actual form and handles the JavaScript.
