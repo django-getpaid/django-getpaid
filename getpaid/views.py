@@ -12,6 +12,7 @@ from getpaid.forms import PaymentMethodForm
 from getpaid.models import Payment
 from getpaid.signals import redirecting_to_payment_gateway_signal
 
+
 class NewPaymentView(FormView):
     form_class = PaymentMethodForm
     template_name = "getpaid/payment_post_form.html"
@@ -41,14 +42,15 @@ class NewPaymentView(FormView):
             context['gateway_url'] = processor.get_gateway_url(self.request)[0]
             context['form'] = processor.get_form(gateway_url_tuple[2])
 
-            return TemplateResponse(request = self.request,
-                template = self.get_template_names(),
-                context = context)
+            return TemplateResponse(request=self.request,
+                template=self.get_template_names(),
+                context=context)
         else:
             raise ImproperlyConfigured()
 
     def form_invalid(self, form):
         raise PermissionDenied
+
 
 class FallbackView(RedirectView):
     success = None
@@ -57,7 +59,7 @@ class FallbackView(RedirectView):
     def get_redirect_url(self, **kwargs):
         self.payment = get_object_or_404(Payment, pk=self.kwargs['pk'])
 
-        if self.success :
+        if self.success:
             url_name = getattr(settings, 'GETPAID_SUCCESS_URL_NAME', None)
             if url_name is not None:
                 return reverse(url_name, kwargs={'pk': self.payment.order_id})

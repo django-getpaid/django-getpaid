@@ -8,6 +8,7 @@ from getpaid.models import Payment
 
 logger = logging.getLogger('getpaid.backends.transferuj')
 
+
 class OnlineView(View):
     """
     This View answers on Transferuj.pl payment status change request
@@ -27,12 +28,13 @@ class OnlineView(View):
             tr_error = request.POST['tr_error']
             tr_email = request.POST['tr_email']
             md5sum = request.POST['md5sum']
-        except KeyError, err:
-            logger.warning('Got malformed POST request: %s' %  str(request.POST))
+        except KeyError:
+            logger.warning('Got malformed POST request: %s' % str(request.POST))
             return HttpResponse('MALFORMED')
 
         status = PaymentProcessor.online(request.META['REMOTE_ADDR'], id, tr_id, tr_date, tr_crc, tr_amount, tr_paid, tr_desc, tr_status, tr_error, tr_email, md5sum)
         return HttpResponse(status)
+
 
 class SuccessView(DetailView):
     """
@@ -42,6 +44,7 @@ class SuccessView(DetailView):
 
     def render_to_response(self, context, **response_kwargs):
         return HttpResponseRedirect(reverse('getpaid-success-fallback', kwargs={'pk': self.object.pk}))
+
 
 class FailureView(DetailView):
     """

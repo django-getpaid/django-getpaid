@@ -42,7 +42,6 @@ class TransferujBackendTestCase(TestCase):
                                                                                     None, None, None, None, None, None,
                                                                                     None))
 
-
         #Tests allowing all IP
         with self.settings(GETPAID_BACKENDS_SETTINGS={
             'getpaid.backends.transferuj': {'allowed_ip': [], 'key': ''},
@@ -90,7 +89,6 @@ class TransferujBackendTestCase(TestCase):
                                                                              'GRRGRRG', '123.45', None, None, None,
                                                                              None, None,
                                                                              '6a9e045010c27dfed24774b0afa37d0b'))
-
 
     def test_online_payment_ok(self):
         Payment = get_model('getpaid', 'Payment')
@@ -151,12 +149,6 @@ class TransferujBackendTestCase(TestCase):
         self.assertEqual(payment.status, 'failed')
 
 
-
-
-
-
-
-
 def fake_payment_get_response_success(request):
     class fake_response:
         def read(self):
@@ -215,9 +207,6 @@ def fake_payment_get_response_failure(request):
     return fake_response()
 
 
-
-
-
 class PayUBackendTestCase(TestCase):
     def setUp(self):
         self.client = Client()
@@ -228,37 +217,37 @@ class PayUBackendTestCase(TestCase):
 
     def test_online_sig_err(self):
         response = self.client.post(reverse('getpaid-payu-online'), {
-            'pos_id' : 'wrong',
+            'pos_id': 'wrong',
             'session_id': '10:11111',
-            'ts' : '1111',
-            'sig' : 'wrong sig',
+            'ts': '1111',
+            'sig': 'wrong sig',
         })
         self.assertEqual(response.content, 'SIG ERR')
 
     def test_online_wrong_pos_id_err(self):
         response = self.client.post(reverse('getpaid-payu-online'), {
-            'pos_id' : '12345',
+            'pos_id': '12345',
             'session_id': '10:11111',
-            'ts' : '1111',
-            'sig' : '0d6129738c0aee9d4eb56f2a1db75ab4',
+            'ts': '1111',
+            'sig': '0d6129738c0aee9d4eb56f2a1db75ab4',
             })
         self.assertEqual(response.content, 'POS_ID ERR')
 
     def test_online_wrong_session_id_err(self):
         response = self.client.post(reverse('getpaid-payu-online'), {
-            'pos_id' : '123456789',
+            'pos_id': '123456789',
             'session_id': '111111',
-            'ts' : '1111',
-            'sig' : 'fcf3db081d5085b45fe86ed0c6a9aa5e',
+            'ts': '1111',
+            'sig': 'fcf3db081d5085b45fe86ed0c6a9aa5e',
             })
         self.assertEqual(response.content, 'SESSION_ID ERR')
 
     def test_online_ok(self):
         response = self.client.post(reverse('getpaid-payu-online'), {
-            'pos_id' : '123456789',
+            'pos_id': '123456789',
             'session_id': '1:11111',
-            'ts' : '1111',
-            'sig' : '2a78322c06522613cbd7447983570188',
+            'ts': '1111',
+            'sig': '2a78322c06522613cbd7447983570188',
             })
         self.assertEqual(response.content, 'OK')
 
@@ -269,7 +258,7 @@ class PayUBackendTestCase(TestCase):
         order.save()
         payment = Payment(pk=99, order=order, amount=order.total, currency=order.currency, backend='getpaid.backends.payu')
         payment.save(force_insert=True)
-        payment = Payment.objects.get(pk=99) # this line is because django bug https://code.djangoproject.com/ticket/5903
+        payment = Payment.objects.get(pk=99)  # this line is because django bug https://code.djangoproject.com/ticket/5903
         processor = getpaid.backends.payu.PaymentProcessor(payment)
         processor.get_payment_status('99:1342616247.41')
         self.assertEqual(payment.status, 'paid')
@@ -283,13 +272,12 @@ class PayUBackendTestCase(TestCase):
         order.save()
         payment = Payment(pk=98, order=order, amount=order.total, currency=order.currency, backend='getpaid.backends.payu')
         payment.save(force_insert=True)
-        payment = Payment.objects.get(pk=98) # this line is because django bug https://code.djangoproject.com/ticket/5903
+        payment = Payment.objects.get(pk=98)  # this line is because django bug https://code.djangoproject.com/ticket/5903
         processor = getpaid.backends.payu.PaymentProcessor(payment)
         processor.get_payment_status('98:1342616247.41')
         self.assertEqual(payment.status, 'failed')
         self.assertEqual(payment.paid_on, None)
         self.assertEqual(payment.amount_paid, Decimal('0'))
-
 
 
 def fake_przelewy24_payment_get_response_success(request):
@@ -309,20 +297,20 @@ ERR
 Some error description"""
     return fake_response()
 
+
 class Przelewy24PaymentProcessorTestCase(TestCase):
 
     def test_sig(self):
         # Test based on p24 documentation
         sig = przelewy24.PaymentProcessor.compute_sig({
-            'key1' : '9999',
-            'key2' : '2500',
-            'key3' : 'ccc',
-            'key4' : 'abcdefghijk',
-            'crc' : 'a123b456c789d012',
+            'key1': '9999',
+            'key2': '2500',
+            'key3': 'ccc',
+            'key4': 'abcdefghijk',
+            'crc': 'a123b456c789d012',
 
         }, ('key4', 'key1', 'key2', 'crc'), 'a123b456c789d012')
         self.assertEqual(sig, 'e2c43dec9578633c518e1f514d3b434b')
-
 
     @mock.patch("urllib2.urlopen", fake_przelewy24_payment_get_response_success)
     def test_get_payment_status_success(self):
@@ -355,7 +343,6 @@ class Przelewy24PaymentProcessorTestCase(TestCase):
         self.assertNotEqual(payment.paid_on, None)
         self.assertEqual(payment.amount_paid, Decimal('122.45'))
 
-
     @mock.patch("urllib2.urlopen", fake_przelewy24_payment_get_response_failed)
     def test_get_payment_status_failed(self):
         Payment = get_model('getpaid', 'Payment')
@@ -370,4 +357,3 @@ class Przelewy24PaymentProcessorTestCase(TestCase):
         self.assertEqual(payment.status, 'failed')
         self.assertEqual(payment.paid_on, None)
         self.assertEqual(payment.amount_paid, Decimal('0.0'))
-
