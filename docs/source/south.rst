@@ -51,7 +51,7 @@ Step 3. Migrate changes on deploy
 
 
 Step 4. Upgrading to new a version of getpaid
--------------------------------------------
+---------------------------------------------
 
 When there is a new version of getpaid, you can upgrade your module by simply using South to generate custom migration::
 

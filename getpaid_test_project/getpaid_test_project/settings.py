@@ -183,9 +183,17 @@ LOGGING = {
             'propagate': True,
         },
 
+        'getpaid_test_project':{
+            'handlers': ['console'],
+            'level': 'DEBUG',
+        },
 
         #You can do some fancy logging ;)
         'getpaid.backends.payu':{
+            'handlers': ['console'],
+            'level': 'DEBUG',
+        },
+        'getpaid.backends.przelewy24':{
             'handlers': ['console'],
             'level': 'DEBUG',
         },
