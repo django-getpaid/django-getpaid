@@ -36,7 +36,7 @@ class PaymentProcessorBase(object):
     def __init__(self, payment):
 
         if payment.currency not in self.BACKEND_ACCEPTED_CURRENCY:
-            raise ValueError("Backend '%s' cannot process '%s' payments." % self.BACKEND, payment.currency)
+            raise ValueError("Backend '%s' cannot process '%s' payments." % (self.BACKEND, payment.currency))
         self.payment = payment
 
     @classmethod

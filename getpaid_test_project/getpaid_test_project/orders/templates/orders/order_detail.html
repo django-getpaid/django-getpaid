@@ -1,8 +1,9 @@
+{% load url from future %}
 <html>
 <body>
 <h1>Order #{{ object.pk }}</h1>
 <p>
-<a href="{% url home %}">Home</a>
+<a href="{% url 'home' %}">Home</a>
 <p>
 Order title: {{ object.name }}<br>
 Order total: {{ object.total }} {{ object.currency }}
@@ -10,7 +11,7 @@ Order total: {{ object.total }} {{ object.currency }}
 
 {% if order.status == 'W' %}
 <h2>Choose payment type:</h2>
-<form action="{% url getpaid-new-payment currency=object.currency %}" method="post">
+<form action="{% url 'getpaid-new-payment' currency=object.currency %}" method="post">
     {% csrf_token %}
     {{ payment_form.as_p }}
     <input type="submit" value="Continue">
