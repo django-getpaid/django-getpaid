@@ -15,6 +15,7 @@ PAYMENT_STATUS_CHOICES = (
         ('failed', _("failed")),
         )
 
+
 class PaymentManager(models.Manager):
     def get_query_set(self):
         return super(PaymentManager, self).get_query_set().select_related('order')
@@ -39,12 +40,11 @@ class PaymentFactory(models.Model, AbstractMixin):
         abstract = True
 
     def __unicode__(self):
-        return _("Payment #%(id)d") % { 'id' : self.id }
+        return _("Payment #%(id)d") % {'id': self.id}
 
     @classmethod
     def contribute(cls, order, **kwargs):
         return {'order': models.ForeignKey(order, **kwargs)}
-
 
     @classmethod
     def create(cls, order, backend):
@@ -102,7 +102,6 @@ class PaymentFactory(models.Model, AbstractMixin):
             self.change_status('partially_paid')
         return fully_paid
 
-
     def on_failure(self):
         """
         Called when payment was failed
@@ -112,6 +111,7 @@ class PaymentFactory(models.Model, AbstractMixin):
 
 from django.db.models.loading import cache as app_cache, register_models
 #from utils import import_backend_modules
+
 
 def register_to_payment(order_class, **kwargs):
     """
@@ -123,8 +123,10 @@ def register_to_payment(order_class, **kwargs):
     """
     global Payment
     global Order
+
     class Payment(PaymentFactory.construct(order=order_class, **kwargs)):
         objects = PaymentManager()
+
         class Meta:
             ordering = ('-created_on',)
             verbose_name = _("Payment")
@@ -138,5 +140,3 @@ def register_to_payment(order_class, **kwargs):
     for backend_name, models in backend_models_modules.items():
         app_cache.register_models(backend_name, *models.build_models(Payment))
     return Payment
-
-

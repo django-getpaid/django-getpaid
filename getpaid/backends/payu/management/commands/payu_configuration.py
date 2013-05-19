@@ -3,6 +3,7 @@ from django.core.management.base import BaseCommand
 from django.core.urlresolvers import reverse
 from getpaid.backends.payu import PaymentProcessor
 
+
 class Command(BaseCommand):
     help = 'Display URL path for PayU Online URL configuration'
 
@@ -20,8 +21,6 @@ class Command(BaseCommand):
             )
         )
 
-
-
         self.stdout.write(' * Failure URL: http://%s%s\n                https://%s%s\n\n' % (
             current_site.domain,
             reverse('getpaid-payu-failure', kwargs={'pk': 1234, 'error': 9999}).replace('1234', r'%orderId%').replace('9999', r'%error%'),
@@ -31,8 +30,6 @@ class Command(BaseCommand):
 
         )
 
-
-
         self.stdout.write(' * Online  URL: http://%s%s\n                https://%s%s\n\n' % (
             current_site.domain,
             reverse('getpaid-payu-online'),
@@ -40,8 +37,6 @@ class Command(BaseCommand):
             reverse('getpaid-payu-online'),
             )
         )
-
-
 
         self.stdout.write('To change domain name please edit Sites settings. Don\'t forget to setup your web server to accept https connection in order to use secure links.\n')
         if PaymentProcessor.get_backend_setting('testing', False):
