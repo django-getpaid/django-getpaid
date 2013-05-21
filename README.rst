@@ -3,23 +3,36 @@ Welcome to django-getpaid!
 
 Documentation: http://django-getpaid.readthedocs.org/en/latest/
 
-**django-getpaid** is carefully designed multi-broker payment processor for Django applications. The main
-advantages of this application is:
- * instead of only one payment broker, you can use **multiple payment brokers** in your application, what is wise considering any single payment broker downtime,
- * payment brokers have a **flexible architecture** each one based on a django application structure (they can introduce own logic, views, urls, models),
- * support for **asynchronous** payment status change workflow (which is required by most brokers and is architecturally correct for production use),
- * support for **multiple payments currency** at the same time,
- * uses just a **minimal assumption** on your code, that you will have any kind of order model class.
+**django-getpaid** is carefully designed **multi-broker payment processor for Django** framework. It was designed
+to provide following features:
 
-The basic usage is to connect your order model class with `django-getpaid`. Because of advanced `AbstractMixin`, Payment model class uses real ``ForeignKey`` to your order class model, so it avoids messy django ``content_type`` relations.
+* **multiple payment brokers support** - allows using simultaneously many payments methods at the same time,
+* **multiple payments currency support** (getpaid will automatically filter available backends list accordingly to the payment currency),
+* **integration flexibility**  -  makes minimal assumption on 3rd party code - requires only an existence of any single django model representing an order,
+* **proper architecture design** - all backends which requires fetching payment confirmation are enforced to use asynchronous celery tasks.
 
-This app was written because still there is not a single reliable or simple to use payment processor. There are many  payments related projects out there like `Satchmo <http://satchmoproject.sadba.org/docs/dev/>`_, `python-payflowpro <https://github.com/bkeating/python-payflowpro/>`_, `django-authorizenet <https://github.com/zen4ever/django-authorizenet>`_, `mamona <https://github.com/emesik/mamona>`_, `django-paypal <https://github.com/johnboxall/django-paypal>`_, `django-payme <https://github.com/bradleyayers/django-payme/>`_, but none of them are satisfying. `Mamona` project was the most interesting payment app out there (because of general conception), but still has got some serious architectural pitfalls. Therefore `django-getpaid` in the basic stage was aimed to be a next version of `mamona`.
-Unfortunately plenty of architectural decisions of `mamona` author caused, that `django-getpaid` has been started as a separate project, while still borrowing a lot of great ideas from `mamona`, like e.g. `AbstractMixin`, dynamic model and urls loading, etc. Thanks, `mamona`!
 
+Supported backends:
+-------------------
+
+* `PayU.pl <http://payu.pl>`_
+* `Transferuj.pl <http://transferuj.pl>`_
+* `Dotpay.pl/Dotpay.eu <http://dotpay.eu>`_
+* `Przelewy24.pl <http://www.przelewy24.pl/>`_
 
 
 **Disclaimer:** this project has nothing in common with `getpaid <http://code.google.com/p/getpaid/>`_ plone project.
 It is mostly based on `mamona <https://github.com/emesik/mamona>`_ project.
+This app was written because there was not a single reliable or simple to use payment processor dedicated to django.
+You can refer to other payment modules which does not meet our needs:
+`Satchmo <http://satchmoproject.sadba.org/docs/dev/>`_,
+`python-payflowpro <https://github.com/bkeating/python-payflowpro/>`_,
+`django-authorizenet <https://github.com/zen4ever/django-authorizenet>`_,
+`mamona <https://github.com/emesik/mamona>`_,
+`django-paypal <https://github.com/johnboxall/django-paypal>`_,
+`django-payme <https://github.com/bradleyayers/django-payme/>`_.
+
+
 
 Payment workflow integration
 ============================
@@ -28,8 +41,8 @@ With few simple steps you will easily integrate your project with django-getpaid
 very well documented django-getpaid test project which can be found with module source code. Please refer to this
 code for implementation details.
 
-Prepare your order model
-------------------------
+Step 1. Prepare your order model
+--------------------------------
 
 **Required**
 
@@ -69,8 +82,8 @@ The second important thing is, that it actually doesn't matter if you store `tot
 You will see why, in further sections.
 
 
-Prepare payment form for order
-------------------------------
+Step 2. Prepare payment form for order
+--------------------------------------
 
 **Required**
 
@@ -106,8 +119,8 @@ for a given order currency.
 Action URL of form should point on named link  `getpaid-new-payment` that requires currency code argument.
 This form will redirect client from order view directly to page of payment broker.
 
-Filling necessary payment data
-------------------------------
+Step 3. Filling necessary payment data
+--------------------------------------
 
 **Required**
 
@@ -148,8 +161,8 @@ As you can see you can do all fancy stuff here to get order total value and curr
     and then add a line ``import listeners`` to the end of you ``models.py`` file. Both files
     (``listeners.py`` and ``models.py``) should be placed in on of your app (possibly an app related to order model).
 
-Handling changes of payment status
-----------------------------------
+Step 4. Handling changes of payment status
+------------------------------------------
 
 **Required**
 
@@ -178,7 +191,7 @@ example code that handles status change::
 For example: when payment changes status to 'paid', it means that the necessary amount was verified
 by your payment broker. You can now access ``payment.order`` object and do some stuff here.
 
-Handling new payment creation
+Step 5. Handling new payment creation
 -----------------------------
 
 **Optional**
@@ -195,10 +208,10 @@ You can handle ``getpaid.signals.new_payment`` signal defined as::
     This method will enable you to make on-line KPI processing. For batch processing you can as well just query
     the database for Payment model.
 
-Setup your payment backends
+Step 6. Setup your payment backends
 ---------------------------
 
 **Required**
 
-Please be sure to read carefully section :doc:`backends` for information on how to configure particular backends.
+Please be sure to read carefully  `Backends <https://django-getpaid.readthedocs.org/en/latest/backends.html>`_ section for information on how to configure particular backends.
 They will probably not work out of the box without providing some account keys or other credentials.
