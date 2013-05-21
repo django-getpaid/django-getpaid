@@ -15,13 +15,20 @@ to provide following features:
 Supported backends:
 -------------------
 
-* `PayU.pl <http://payu.pl>`_
-* `Transferuj.pl <http://transferuj.pl>`_
+In alphabetical order:
+
 * `Dotpay.pl/Dotpay.eu <http://dotpay.eu>`_
+* `Moip.com.br <http://moip.com.br>`_
+* `PayU.pl <http://payu.pl>`_
+* `Paymill.com <http://paymill.com>`_
 * `Przelewy24.pl <http://www.przelewy24.pl/>`_
+* `Transferuj.pl <http://transferuj.pl>`_
 
+Don't see the payment backend you need? `Writing your own backend <https://django-getpaid.readthedocs.org/en/latest/custom_backends.html>`_ is very simple. Pull requests are welcome.
 
-**Disclaimer:** this project has nothing in common with `getpaid <http://code.google.com/p/getpaid/>`_ plone project.
+Disclaimer
+----------
+This project has nothing in common with `getpaid <http://code.google.com/p/getpaid/>`_ plone project.
 It is mostly based on `mamona <https://github.com/emesik/mamona>`_ project.
 This app was written because there was not a single reliable or simple to use payment processor dedicated to django.
 You can refer to other payment modules which does not meet our needs:
