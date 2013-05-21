@@ -4,15 +4,11 @@ when you run "manage.py test".
 
 Replace this with more appropriate tests for your application.
 """
-from decimal import Decimal
 from django.core.urlresolvers import reverse
 from django.db.models.loading import get_model
 
 from django.test import TestCase
 from django.test.client import Client
-import mock
-import getpaid.backends.payu
-import getpaid.backends.transferuj
 
 from getpaid_test_project.orders.models import Order
 
@@ -21,15 +17,20 @@ class OrderTest(TestCase):
     def setUp(self):
         self.client = Client()
 
+    def test_order_view(self):
+        order = Order(name='Test EUR order', total=100, currency='EUR')
+        order.save()
+        self.assertTemplateUsed(self.client.get(order.get_absolute_url()), 'orders/order_detail.html')
+
     def test_successful_create_payment_dummy_eur(self):
         """
         Tests if payment is successfully created
         """
         order = Order(name='Test EUR order', total=100, currency='EUR')
         order.save()
-        response = self.client.post(reverse('getpaid-new-payment', kwargs={'currency' : 'EUR'}),
-                    {'order': order.pk,
-                     'backend': 'getpaid.backends.dummy'}
+        response = self.client.post(reverse('getpaid-new-payment', kwargs={'currency': 'EUR'}),
+                                    {'order': order.pk,
+                                     'backend': 'getpaid.backends.dummy'}
         )
         self.assertEqual(response.status_code, 302)
         Payment = get_model('getpaid', 'Payment')
@@ -47,9 +48,9 @@ class OrderTest(TestCase):
         """
         order = Order(name='Test PLN order', total=100, currency='PLN')
         order.save()
-        response = self.client.post(reverse('getpaid-new-payment', kwargs={'currency' : 'PLN'}),
-                {'order': order.pk,
-                 'backend': 'getpaid.backends.payu'}
+        response = self.client.post(reverse('getpaid-new-payment', kwargs={'currency': 'PLN'}),
+                                    {'order': order.pk,
+                                     'backend': 'getpaid.backends.payu'}
         )
         self.assertEqual(response.status_code, 302)
         Payment = get_model('getpaid', 'Payment')
@@ -69,9 +70,9 @@ class OrderTest(TestCase):
         """
         order = Order(name='Test EUR order', total=100, currency='EUR')
         order.save()
-        response = self.client.post(reverse('getpaid-new-payment', kwargs={'currency' : 'EUR'}),
-                    {'order': order.pk,
-                     'backend': 'getpaid.backends.payu'}
+        response = self.client.post(reverse('getpaid-new-payment', kwargs={'currency': 'EUR'}),
+                                    {'order': order.pk,
+                                     'backend': 'getpaid.backends.payu'}
         )
         self.assertEqual(response.status_code, 403)
 
