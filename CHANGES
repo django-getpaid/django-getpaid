@@ -1,10 +1,11 @@
 django-getpaid changes
 ======================
 
-(current developement)
+(master branch - current development)
 ----------------------
+* Adding paymill backend
 * PEP 8 improvements
-* adding support for django 1.5 in test project (+ tests)
+* Adding support for django 1.5 in test project (+ tests)
 
 
 Version 1.5.0
