@@ -1,0 +1,85 @@
+{% load i18n %}
+{% comment %}
+Paymill requires a custom form with some JS.
+{% endcomment %}
+
+<form id="payment-form" action="#" method="POST">
+    <input id="card-amount-int" type="hidden" value="{{ amount_int }}">
+    <input id="card-currency" type="hidden" value="{{ payment.currency }}">
+
+    <div class="form-row"><label>{% trans "Card number" %}</label>
+    <input id="card-number" type="text" size="20"></div>
+
+    <div class="form-row"><label>{% trans "CVC" %}</label>
+    <input id="card-cvc" type="text" size="4"></div>
+
+    <div class="form-row"><label>{% trans "Name" %}</label>
+    <input id="card-holdername" type="text" size="4"></div>
+
+    <div class="form-row"><label>{% trans "Expiry date (MM/YYYY)" %}</label>
+    <input id="card-expiry-month" type="text" size="2">
+    <span></span>
+    <input id="card-expiry-year" type="text" size="4"></div>
+
+
+    <button id="submit-button" type="submit">{% trans "Pay" %}</button>
+</form>
+
+{% comment %}
+This is the form that will hold the actual token that will be sent to the server
+{% endcomment %}
+<form id="payment-form-token" action="" method="POST">
+    {% csrf_token %}
+    {{ form.as_p }}
+</form>
+
+<script type="text/javascript" src="https://bridge.paymill.com/"></script>
+<script type="text/javascript">
+    var PAYMILL_PUBLIC_KEY = '{{ PAYMILL_PUBLIC_KEY }}';
+
+    var PaymillResponseHandler = function(error, result) {
+        if(error) {
+            document.getElementById('submit-button').disabled = '';
+            alert('Error!');
+        } else {
+            var token_form = document.getElementById('payment-form-token');
+            token_form.token.value = result.token;
+            token_form.submit();
+        }
+    }
+
+    var create_token = function(e) {
+        e.preventDefault();
+        // This function will handle the token generation
+
+        // Deactivate submit button to avoid further clicks
+        document.getElementById('submit-button').disabled = 'disabled';
+
+        var number_field = e.target['card-number'];
+        var expiry_month_field = e.target['card-expiry-month'];
+        var expiry_year_field = e.target['card-expiry-year'];
+        var cvc_field = e.target['card-cvc'];
+        var amount_int_field = e.target['card-amount-int'];
+        var currency_field = e.target['card-currency'];
+        var holdername_field = e.target['card-holdername'];
+
+        paymill.createToken({
+            number: number_field.value,
+            exp_month: expiry_month_field.value,
+            exp_year: expiry_year_field.value,
+            cvc: cvc_field.value,
+            amount_int: amount_int_field.value,
+            currency: currency_field.value,
+            cardholder: holdername_field.value
+        }, PaymillResponseHandler);
+        return false;
+    }
+
+    var payment_form = document.getElementById('payment-form');
+    if (!payment_form.addEventListener) {
+        payment_form.attachEvent("onsubmit", create_token);
+    }
+    else {
+        payment_form.addEventListener("submit", create_token, false);
+    }
+</script>

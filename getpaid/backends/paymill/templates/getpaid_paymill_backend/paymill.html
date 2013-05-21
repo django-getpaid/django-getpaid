@@ -1,0 +1,16 @@
+{% load i18n %}
+<html>
+<body>
+<h1>django-getpaid paymill backend</h1>
+
+
+<p>
+    {% blocktrans with payment=payment amount=payment.amount currency=payment.currency order=order %}
+    Please fill in your data to buy "<strong>{{ order_name }}</strong>"
+    for <strong>{{ amount }} {{ currency }}</strong>.
+    {% endblocktrans %}
+</p>
+{% include 'getpaid_paymill_backend/paymill_form.html' %}
+
+</body>
+</html>
