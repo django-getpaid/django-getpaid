@@ -147,7 +147,7 @@ class PaymentProcessor(PaymentProcessorBase):
         }
 
         if user_data['email']:
-            params['pay_from_email'] = 'aa' + user_data['email']
+            params['pay_from_email'] = user_data['email']
 
         if user_data['lang'] and user_data['lang'].lower() in PaymentProcessor._ACCEPTED_LANGS:
             params['language'] = user_data['lang'].lower()
