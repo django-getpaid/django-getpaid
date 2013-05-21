@@ -1,6 +1,12 @@
 django-getpaid changes
 ======================
 
+(current developement)
+----------------------
+* PEP 8 improvements
+* adding support for django 1.5 in test project (+ tests)
+
+
 Version 1.5.0
 -------------
 * Adding new backend - Przelewy24.pl (thanks to IssueStand.com funding)
