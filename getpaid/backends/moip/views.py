@@ -9,7 +9,6 @@ from getpaid.models import Payment
 logger = logging.getLogger('getpaid.backends.moip')
 
 
-
 class NotificationsView(View):
     """
     This view answers on Moip notifications requests.
@@ -21,11 +20,11 @@ class NotificationsView(View):
     def post(self, request, *args, **kwargs):
         try:
             params = {
-                'id' : request.POST['id_transacao'],
-                'amount' : request.POST['valor'],
-                'status' : request.POST['status_pagamento'],
+                'id': request.POST['id_transacao'],
+                'amount': request.POST['valor'],
+                'status': request.POST['status_pagamento'],
                 'moip_id': request.POST['cod_moip'],
-                'email' : request.POST['email_consumidor'],
+                'email': request.POST['email_consumidor'],
             }
         except KeyError:
             logger.warning('Got malformed POST request: %s' % str(request.POST))

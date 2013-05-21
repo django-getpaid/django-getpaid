@@ -4,6 +4,7 @@ from django.template.base import Template
 from django.template.context import Context
 from getpaid.utils import get_backend_settings
 
+
 class PaymentProcessorBase(object):
     """
     Base for all payment processors. It should at least be able to:
@@ -58,7 +59,6 @@ class PaymentProcessorBase(object):
             return Template(template).render(Context({"payment": payment, "order": order}))
         else:
             return unicode(order)
-
 
     def get_gateway_url(self, request):
         """

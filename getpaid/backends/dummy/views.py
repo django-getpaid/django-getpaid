@@ -5,13 +5,14 @@ from getpaid.backends.dummy import PaymentProcessor
 from getpaid.backends.dummy.forms import DummyQuestionForm
 from getpaid.models import Payment
 
+
 class DummyAuthorizationView(FormView):
     form_class = DummyQuestionForm
     template_name = "getpaid_dummy_backend/dummy_authorization.html"
 
     def get_context_data(self, **kwargs):
         context = super(DummyAuthorizationView, self).get_context_data(**kwargs)
-        self.payment = get_object_or_404(Payment, pk=self.kwargs['pk'], status='in_progress',  backend='getpaid.backends.dummy')
+        self.payment = get_object_or_404(Payment, pk=self.kwargs['pk'], status='in_progress', backend='getpaid.backends.dummy')
         context['payment'] = self.payment
         context['order'] = self.payment.order
         context['order_name'] = PaymentProcessor(self.payment).get_order_description(self.payment, self.payment.order)  # TODO: Refactoring of get_order_description needed, should not require payment arg
@@ -24,7 +25,6 @@ class DummyAuthorizationView(FormView):
         else:
             url = reverse('getpaid-failure-fallback', kwargs={'pk': self.payment.pk})
         return url
-
 
     def form_valid(self, form):
         # Change payment status and jump to success_url or failure_url
@@ -40,6 +40,3 @@ class DummyAuthorizationView(FormView):
             self.success = False
             self.payment.on_failure()
         return super(DummyAuthorizationView, self).form_valid(form)
-
-
-

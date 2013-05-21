@@ -28,6 +28,7 @@ class PayUTransactionStatus:
     FINISHED = 99
     ERROR = 888
 
+
 class PaymentProcessor(PaymentProcessorBase):
     BACKEND = 'getpaid.backends.payu'
     BACKEND_NAME = _('PayU')
@@ -39,10 +40,10 @@ class PaymentProcessor(PaymentProcessorBase):
     _REQUEST_SIG_FIELDS = ('pos_id', 'pay_type', 'session_id', 'pos_auth_key',
         'amount', 'desc', 'desc2', 'trsDesc', 'order_id', 'first_name', 'last_name',
         'payback_login', 'street', 'street_hn', 'street_an', 'city', 'post_code',
-        'country', 'email', 'phone', 'language', 'client_ip', 'ts' )
+        'country', 'email', 'phone', 'language', 'client_ip', 'ts')
     _ONLINE_SIG_FIELDS = ('pos_id', 'session_id', 'ts',)
-    _GET_SIG_FIELDS =  ('pos_id', 'session_id', 'ts',)
-    _GET_RESPONSE_SIG_FIELDS =  ('pos_id', 'session_id', 'order_id', 'status', 'amount', 'desc', 'ts',)
+    _GET_SIG_FIELDS = ('pos_id', 'session_id', 'ts',)
+    _GET_RESPONSE_SIG_FIELDS = ('pos_id', 'session_id', 'order_id', 'status', 'amount', 'desc', 'ts',)
 
     @staticmethod
     def compute_sig(params, fields, key):
@@ -54,9 +55,7 @@ class PaymentProcessor(PaymentProcessorBase):
 
     @staticmethod
     def online(pos_id, session_id, ts, sig):
-        params = {'pos_id' : pos_id, 'session_id': session_id, 'ts': ts, 'sig': sig}
-
-
+        params = {'pos_id': pos_id, 'session_id': session_id, 'ts': ts, 'sig': sig}
 
         key2 = PaymentProcessor.get_backend_setting('key2')
         if sig != PaymentProcessor.compute_sig(params, PaymentProcessor._ONLINE_SIG_FIELDS, key2):
@@ -71,7 +70,7 @@ class PaymentProcessor(PaymentProcessorBase):
             return 'POS_ID ERR'
 
         try:
-            payment_id , session = session_id.split(':')
+            payment_id, session = session_id.split(':')
         except ValueError:
             logger.warning('Got message with wrong session_id, %s' % str(params))
             return 'SESSION_ID ERR'
@@ -128,7 +127,6 @@ class PaymentProcessor(PaymentProcessorBase):
         #         rather then web server proxy IP in your WSGI environment
         params['client_ip'] = request.META['REMOTE_ADDR']
 
-
         if signing:
             params['ts'] = time.time()
             params['sig'] = PaymentProcessor.compute_sig(params, self._REQUEST_SIG_FIELDS, key1)
@@ -159,10 +157,10 @@ class PaymentProcessor(PaymentProcessorBase):
         xml_response = response.read()
         xml_dom = parseString(xml_response)
         tag_response = xml_dom.getElementsByTagName('trans')[0]
-        response_params={}
+        response_params = {}
         for tag in tag_response.childNodes:
             if tag.nodeType == Node.ELEMENT_NODE:
-                response_params[tag.nodeName] = reduce(lambda x,y: x + y.nodeValue, tag.childNodes, u"")
+                response_params[tag.nodeName] = reduce(lambda x, y: x + y.nodeValue, tag.childNodes, u"")
         if PaymentProcessor.compute_sig(response_params, self._GET_RESPONSE_SIG_FIELDS, key2) == response_params['sig']:
             if not (int(response_params['pos_id']) == params['pos_id'] or int(response_params['order_id']) == self.payment.pk):
                 logger.error('Wrong pos_id and/or payment for Payment/get response data %s' % str(response_params))
@@ -178,12 +176,11 @@ class PaymentProcessor(PaymentProcessorBase):
                     self.payment.change_status('paid')
                 else:
                     self.payment.change_status('partially_paid')
-            elif status in (    PayUTransactionStatus.CANCELED,
-                                PayUTransactionStatus.ERROR,
-                                PayUTransactionStatus.REJECTED,
-                                PayUTransactionStatus.REJECTED_AFTER_CANCEL):
+            elif status in (PayUTransactionStatus.CANCELED,
+                            PayUTransactionStatus.ERROR,
+                            PayUTransactionStatus.REJECTED,
+                            PayUTransactionStatus.REJECTED_AFTER_CANCEL):
                 self.payment.change_status('failed')
-
 
         else:
             logger.error('Wrong signature for Payment/get response data %s' % str(response_params))
