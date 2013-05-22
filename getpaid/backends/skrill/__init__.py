@@ -79,6 +79,10 @@ class PaymentProcessor(PaymentProcessorBase):
             logger.error('Got message with wrong currency, %s' % str(params))
             return 'CURRENCY ERR'
 
+        try:
+            status = int(status)
+        except ValueError:
+            return 'STATUS ERR'
 
         payment.external_id = mb_transaction_id
         payment.description = pay_from_email

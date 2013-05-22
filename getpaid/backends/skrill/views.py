@@ -23,7 +23,7 @@ class OnlineView(View):
             mb_transaction_id = request.POST['mb_transaction_id']
             mb_amount = request.POST['mb_amount']
             mb_currency = request.POST['mb_currency']
-            status = int(request.POST['status'])
+            status = request.POST['status']
             sig = request.POST['md5sig']
             pay_from_email = request.POST['pay_from_email']
         except KeyError:
