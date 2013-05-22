@@ -41,7 +41,9 @@ class PaymentProcessor(PaymentProcessorBase):
     @staticmethod
     def compute_sig(params, fields, key):
         text = ''
-        params.update({'secret_word_hash': hashlib.md5(key)})
+        m = hashlib.md5(key)
+        params.update({'secret_word_hash': m.hexdigest()})
+
         for field in fields:
             text += params.get(field, '')
         return hashlib.md5(text).hexdigest()
