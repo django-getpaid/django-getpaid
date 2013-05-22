@@ -53,7 +53,7 @@ class PaymentProcessor(PaymentProcessorBase):
 
         currency_suffix = PaymentProcessor.get_currency_suffix(mb_currency)
 
-        params = {'merchant_id' : merchant_id, 'transaction_id': transaction_id, 'mb_amount': mb_amount, 'mb_currency':mb_currency, status:'status', sig:'sig'}
+        params = {'merchant_id' : merchant_id, 'transaction_id': transaction_id, 'mb_amount': mb_amount, 'mb_currency':mb_currency, 'status':status, 'sig':sig}
 
         key2 = PaymentProcessor.get_backend_setting('secret_word%s' % currency_suffix)
         if sig != PaymentProcessor.compute_sig(params, PaymentProcessor._ONLINE_SIG_FIELDS, key2):
