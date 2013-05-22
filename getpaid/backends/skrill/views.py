@@ -16,6 +16,7 @@ class OnlineView(View):
     The most important logic of this view is delegated to ``PaymentProcessor.online()`` method
     """
     def post(self, request, *args, **kwargs):
+        logger.debug("received post from skrill: %s" % str(request.POST) )
         try:
             merchant_id = request.POST['merchant_id']
             transaction_id = request.POST['transaction_id']

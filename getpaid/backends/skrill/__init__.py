@@ -183,5 +183,5 @@ class PaymentProcessor(PaymentProcessorBase):
         params['cancel_url'] = self.get_return_url('failure', self.payment.pk)
         params['cancel_url_target'] ='_top'
         params['status_url'] = self.get_return_url('online')
-
+        logger.debug('sending payment to skrill: %s' % str(params))
         return self._GATEWAY_URL, 'POST', params
