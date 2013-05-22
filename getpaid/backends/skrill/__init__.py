@@ -58,7 +58,7 @@ class PaymentProcessor(PaymentProcessorBase):
         key2 = PaymentProcessor.get_backend_setting('secret_word%s' % currency_suffix)
         sig_check = PaymentProcessor.compute_sig(params, PaymentProcessor._ONLINE_SIG_FIELDS, key2)
         if sig != sig_check:
-            logger.warning('Got message with wrong sig, %s, expected sig %s' % str(params), sig_check)
+            logger.warning('Got message with wrong sig, %s, expected sig %s' % (str(params), sig_check))
             return 'SIG ERR'
 
         try:
