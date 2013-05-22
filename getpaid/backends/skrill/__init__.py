@@ -90,7 +90,7 @@ class PaymentProcessor(PaymentProcessorBase):
         if status == SkrillUTransactionStatus.PROCESSED:
             payment.amount_paid = Decimal(mb_amount)
             payment.paid_on = datetime.datetime.utcnow().replace(tzinfo=utc)
-            if Decimal(mb_amount) / Decimal('100') >= payment.amount:
+            if Decimal(mb_amount) >= payment.amount:
                 logger.debug('SKRILL: status PAID')
                 payment.change_status('paid')
             else:
