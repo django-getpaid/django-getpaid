@@ -21,9 +21,9 @@ class OnlineView(View):
             merchant_id = request.POST['merchant_id']
             transaction_id = request.POST['transaction_id']
             mb_transaction_id = request.POST['mb_transaction_id']
-            mb_amount = request.POST['mb_amount']
+            mb_amount = request.POST['mb_amoun
             mb_currency = request.POST['mb_currency']
-            status = request.POST['status']
+            status = int(request.POST['status'])
             sig = request.POST['md5sig']
             pay_from_email = request.POST['pay_from_email']
         except KeyError:
