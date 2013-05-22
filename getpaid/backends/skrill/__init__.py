@@ -88,7 +88,7 @@ class PaymentProcessor(PaymentProcessorBase):
         payment.description = pay_from_email
 
         if status == SkrillUTransactionStatus.PROCESSED:
-            payment.amount_paid = Decimal(mb_amount) / Decimal('100')
+            payment.amount_paid = Decimal(mb_amount)
             payment.paid_on = datetime.datetime.utcnow().replace(tzinfo=utc)
             if Decimal(mb_amount) / Decimal('100') >= payment.amount:
                 logger.debug('SKRILL: status PAID')
@@ -101,7 +101,7 @@ class PaymentProcessor(PaymentProcessorBase):
             logger.debug('SKRILL: status FAILED')
             payment.change_status('failed')
         else:
-            logger.error('SKRILL: uknown status %d' % status)
+            logger.error('SKRILL: unknown status %d' % status)
 
         return 'OK'
 
