@@ -22,7 +22,7 @@ logger = logging.getLogger('getpaid.backends.skrill')
 class SkrillUTransactionStatus:
     PENDING = 0
     PROCESSED = 2
-    CANCELLED = -1
+    CANCELED = -1
     FAILED = -2
     CHARGEBACK = -3
 
