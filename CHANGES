@@ -7,6 +7,9 @@ django-getpaid changes
 * PEP 8 improvements
 * Adding support for django 1.5 in test project (+ tests)
 
+Version 1.5.1
+-------------
+* Fixing packaging that causes errors with package installation
 
 Version 1.5.0
 -------------
