@@ -1,6 +1,10 @@
 django-getpaid changes
 ======================
 
+Version 1.5.1
+-------------
+* Fixing packaging that causes errors with package installation
+
 Version 1.5.0
 -------------
 * Adding new backend - Przelewy24.pl (thanks to IssueStand.com funding)
