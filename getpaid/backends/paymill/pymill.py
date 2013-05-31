@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 #pymill.py
-# From https://github.com/kliment/pymill since it's on on PyPi
+# From https://github.com/kliment/pymill since it's not on PyPi
 
 import requests
 
