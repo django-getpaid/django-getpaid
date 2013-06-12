@@ -4,8 +4,21 @@ import sys
 
 def import_name(name):
     components = name.split('.')
-    mod = __import__('.'.join(components[0:-1]), globals(), locals(), [components[-1]])
-    return getattr(mod, components[-1])
+
+    if len(components) == 1:
+        # direct module, import the module directly
+        mod = __import__(name, globals(), locals(), [name])
+    else:
+        # the module is within another, so we
+        # need to import it from there
+        parent_path = components[0:-1]
+        module_name = components[-1]
+
+        parent_mod = __import__(
+            '.'.join(parent_path), globals(), locals(), [module_name])
+        mod = getattr(parent_mod, components[-1])
+
+    return mod
 
 
 def import_backend_modules(submodule=None):
