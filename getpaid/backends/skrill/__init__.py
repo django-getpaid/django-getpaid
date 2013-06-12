@@ -116,6 +116,7 @@ class PaymentProcessor(PaymentProcessorBase):
             currency_suffix = '_%s' % currency.lower() if currency else ""
         else:
             currency_suffix = ""
+        logger.debug('currency suffix: %s' % currency_suffix)
         return currency_suffix
 
     def get_return_url(self, type, pk=None):
@@ -179,9 +180,9 @@ class PaymentProcessor(PaymentProcessorBase):
         #sescription
         params['amount_description'] = self.get_order_description(self.payment, self.payment.order)
         #payment methods
-        params['payment_methods'] = 'ACC';
+        params['payment_methods'] = PaymentProcessor.get_backend_setting('payment_methods')
         #fast checkout
-        params['payment_type'] = 'WLT';
+        params['payment_type'] = 'WLT'
         #hide login screen
         params['hide_login'] = 1
         # custom session_id
