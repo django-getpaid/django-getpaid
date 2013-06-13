@@ -6,6 +6,7 @@ django-getpaid changes
 * Adding paymill backend
 * PEP 8 improvements
 * Adding support for django 1.5 in test project (+ tests)
+* Fixed issue on `utils.import_name` to allow packages without parents
 
 Version 1.5.1
 -------------
