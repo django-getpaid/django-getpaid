@@ -2,6 +2,8 @@ Welcome to django-getpaid!
 ============================
 
 .. image:: https://travis-ci.org/cypreess/django-getpaid.png?branch=master
+   :target: https://travis-ci.org/cypreess/django-getpaid
+   
 Documentation: http://django-getpaid.readthedocs.org/en/latest/
 
 **django-getpaid** is carefully designed **multi-broker payment processor for Django** framework. It was designed
