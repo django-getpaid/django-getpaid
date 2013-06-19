@@ -1,6 +1,10 @@
 Welcome to django-getpaid!
 ============================
 
+.. image:: https://pypip.in/v/django-getpaid/badge.png
+   :target: https://crate.io/packages/django-getpaid
+.. image:: https://pypip.in/d/django-getpaid/badge.png
+   :target: https://crate.io/packages/django-getpaid   
 .. image:: https://travis-ci.org/cypreess/django-getpaid.png?branch=master
    :target: https://travis-ci.org/cypreess/django-getpaid
    
