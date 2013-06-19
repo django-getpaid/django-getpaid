@@ -3,7 +3,7 @@ python:
   - "2.7"
 # command to install dependencies
 install: 
-  - "pip install -q -e . --use-mirrors"
+  - "pip install -q -e .[przelewy24,payu,moip] --use-mirrors"
   - "pip install -r getpaid_test_project/pip.req --use-mirrors"
 # command to run tests
 script: "cd getpaid_test_project && python manage.py test orders getpaid --settings=getpaid_test_project.settings_test"
