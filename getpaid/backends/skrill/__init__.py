@@ -51,9 +51,9 @@ class PaymentProcessor(PaymentProcessorBase):
     @staticmethod
     def online(merchant_id, transaction_id, mb_amount, amount, mb_currency, currency, status, sig, mb_transaction_id, pay_from_email):
 
-        currency_suffix = PaymentProcessor.get_currency_suffix(mb_currency)
+        currency_suffix = PaymentProcessor.get_currency_suffix(currency)
 
-        params = {'merchant_id' : merchant_id, 'transaction_id': transaction_id, 'mb_amount': mb_amount, 'mb_currency':mb_currency, 'status':status, 'sig':sig}
+        params = {'merchant_id' : merchant_id, 'transaction_id': transaction_id, 'mb_amount': mb_amount, 'amount':amount, 'mb_currency':mb_currency, 'currency':currency, 'status':status, 'sig':sig}
 
         key2 = PaymentProcessor.get_backend_setting('secret_word%s' % currency_suffix)
         sig_check = PaymentProcessor.compute_sig(params, PaymentProcessor._ONLINE_SIG_FIELDS, key2)
