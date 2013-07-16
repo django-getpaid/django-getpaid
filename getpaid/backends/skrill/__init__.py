@@ -49,7 +49,7 @@ class PaymentProcessor(PaymentProcessorBase):
         return hashlib.md5(text).hexdigest().upper()
 
     @staticmethod
-    def online(merchant_id, transaction_id, mb_amount, mb_currency, status, sig, mb_transaction_id, pay_from_email):
+    def online(merchant_id, transaction_id, mb_amount, amount, mb_currency, currency, status, sig, mb_transaction_id, pay_from_email):
 
         currency_suffix = PaymentProcessor.get_currency_suffix(mb_currency)
 
@@ -75,7 +75,7 @@ class PaymentProcessor(PaymentProcessorBase):
             logger.error('Got message for non existing Payment, %s' % str(params))
             return 'PAYMENT ERR'
 
-        if  params['mb_currency'] != payment.currency.upper():
+        if  params['currency'] != payment.currency.upper():
             logger.error('Got message with wrong currency, %s' % str(params))
             return 'CURRENCY ERR'
 
@@ -88,9 +88,9 @@ class PaymentProcessor(PaymentProcessorBase):
         payment.description = pay_from_email
 
         if status == SkrillUTransactionStatus.PROCESSED:
-            payment.amount_paid = Decimal(mb_amount)
+            payment.amount_paid = Decimal(amount)
             payment.paid_on = datetime.datetime.utcnow().replace(tzinfo=utc)
-            if Decimal(mb_amount) >= payment.amount:
+            if Decimal(amount) >= payment.amount:
                 logger.debug('SKRILL: status PAID')
                 payment.change_status('paid')
             else:

@@ -23,6 +23,8 @@ class OnlineView(View):
             mb_transaction_id = request.POST['mb_transaction_id']
             mb_amount = request.POST['mb_amount']
             mb_currency = request.POST['mb_currency']
+            amount = request.POST['amount']
+            currency = request.POST['currency']
             status = request.POST['status']
             sig = request.POST['md5sig']
             pay_from_email = request.POST['pay_from_email']
@@ -30,7 +32,7 @@ class OnlineView(View):
             logger.warning('Got malformed POST request: %s' % str(request.POST))
             return HttpResponse('MALFORMED')
 
-        status = PaymentProcessor.online(merchant_id, transaction_id, mb_amount, mb_currency, status, sig, mb_transaction_id, pay_from_email)
+        status = PaymentProcessor.online(merchant_id, transaction_id, mb_amount, amount, mb_currency, currency,  status, sig, mb_transaction_id, pay_from_email)
         return HttpResponse(status)
 
 class SuccessView(DetailView):
