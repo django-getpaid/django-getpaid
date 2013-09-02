@@ -30,6 +30,7 @@ class PaymentProcessor(PaymentProcessorBase):
     BACKEND = 'getpaid.backends.moip'
     BACKEND_NAME = 'Moip'
     BACKEND_ACCEPTED_CURRENCY = ('BRL', )
+    BACKEND_LOGO_URL = 'getpaid/backends/moip/moip_logo.png'
 
     _SEND_INSTRUCTION_PAGE = '/ws/alpha/EnviarInstrucao/Unica'
     _RUN_INSTRUCTION_PAGE = 'Instrucao.do?token='
