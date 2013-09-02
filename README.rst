@@ -26,6 +26,7 @@ In alphabetical order:
 
 * `Dotpay.pl/Dotpay.eu <http://dotpay.eu>`_
 * `Moip.com.br <http://moip.com.br>`_
+* `PagSeguro.com.br <http://pagseguro.com.br>`_
 * `PayU.pl <http://payu.pl>`_
 * `Paymill.com <http://paymill.com>`_
 * `Przelewy24.pl <http://www.przelewy24.pl/>`_
