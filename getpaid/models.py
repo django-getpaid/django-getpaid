@@ -35,6 +35,7 @@ class PaymentFactory(models.Model, AbstractMixin):
     amount_paid = models.DecimalField(_("amount paid"), decimal_places=4, max_digits=20, default=0)
     external_id = models.CharField(_("external id"), max_length=64, blank=True, null=True)
     description = models.CharField(_("description"), max_length=128, blank=True, null=True)
+    payment_channel =  models.CharField(_("channel"), max_length=128, blank=True, null=True)
 
     class Meta:
         abstract = True

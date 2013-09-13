@@ -114,6 +114,7 @@ class PaymentProcessor(PaymentProcessorBase):
             'description': self.get_order_description(self.payment, self.payment.order),
             'amount': self.payment.amount,
             'currency': self.payment.currency,
+            'channel' : self.payment.payment_channel,
             'type': 0,  # show "return" button after finished payment
             'control': self.payment.pk,
             'URL': self.get_URL(self.payment.pk),
