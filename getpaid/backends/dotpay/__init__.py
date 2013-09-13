@@ -143,6 +143,7 @@ class PaymentProcessor(PaymentProcessorBase):
             params['p_info'] = PaymentProcessor.get_backend_setting('p_info')
         if PaymentProcessor.get_backend_setting('tax', False):
             params['tax'] = 1
+        params['ch_lock'] = PaymentProcessor.get_backend_setting('check_lock', 0)
 
         if PaymentProcessor.get_backend_setting('method', 'get').lower() == 'post':
             return self._GATEWAY_URL, 'POST', params
