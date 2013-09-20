@@ -15,7 +15,6 @@ from getpaid.backends import PaymentProcessorBase
 logger = logging.getLogger('getpaid.backends.transferuj')
 
 
-
 class PaymentProcessor(PaymentProcessorBase):
     BACKEND = 'getpaid.backends.transferuj'
     BACKEND_NAME = _('Transferuj.pl')
@@ -28,7 +27,6 @@ class PaymentProcessor(PaymentProcessorBase):
 
     _ONLINE_SIG_FIELDS = ('id', 'tr_id', 'tr_amount', 'tr_crc', )
     _ACCEPTED_LANGS = ('pl', 'en', 'de')
-
 
     @staticmethod
     def compute_sig(params, fields, key):
@@ -47,7 +45,7 @@ class PaymentProcessor(PaymentProcessorBase):
             logger.warning('Got message from not allowed IP %s' % str(allowed_ip))
             return 'IP ERR'
 
-        params = {'id' : id, 'tr_id': tr_id, 'tr_amount': tr_amount, 'tr_crc': tr_crc}
+        params = {'id': id, 'tr_id': tr_id, 'tr_amount': tr_amount, 'tr_crc': tr_crc}
         key = PaymentProcessor.get_backend_setting('key')
 
         if md5sum != PaymentProcessor.compute_sig(params, PaymentProcessor._ONLINE_SIG_FIELDS, key):
@@ -77,11 +75,10 @@ class PaymentProcessor(PaymentProcessorBase):
             if payment.amount <= Decimal(tr_paid):
                 # Amount is correct or it is overpaid
                 payment.change_status('paid')
-            else :
+            else:
                 payment.change_status('partially_paid')
         elif payment.status != 'paid':
             payment.change_status('failed')
-
 
         return 'TRUE'
 
@@ -102,13 +99,11 @@ class PaymentProcessor(PaymentProcessorBase):
 
         signals.user_data_query.send(sender=None, order=self.payment.order, user_data=user_data)
 
-
         if user_data['lang'] and user_data['lang'].lower() in PaymentProcessor._ACCEPTED_LANGS:
             params['jezyk'] = user_data['lang'].lower()
         elif PaymentProcessor.get_backend_setting('lang', False) and\
-             PaymentProcessor.get_backend_setting('lang').lower() in PaymentProcessor._ACCEPTED_LANGS:
+                PaymentProcessor.get_backend_setting('lang').lower() in PaymentProcessor._ACCEPTED_LANGS:
             params['jezyk'] = PaymentProcessor.get_backend_setting('lang').lower()
-
 
         if user_data['email']:
             params['email'] = user_data['email']
@@ -140,16 +135,11 @@ class PaymentProcessor(PaymentProcessorBase):
             params['pow_url'] = 'http://' + current_site.domain + reverse('getpaid-transferuj-success', kwargs={'pk': self.payment.pk})
             params['pow_url_blad'] = 'http://' + current_site.domain + reverse('getpaid-transferuj-failure', kwargs={'pk': self.payment.pk})
 
-
         if PaymentProcessor.get_backend_setting('method', 'get').lower() == 'post':
-            return self._GATEWAY_URL , 'POST', params
+            return self._GATEWAY_URL, 'POST', params
         elif PaymentProcessor.get_backend_setting('method', 'get').lower() == 'get':
             for key in params.keys():
                 params[key] = unicode(params[key]).encode('utf-8')
             return self._GATEWAY_URL + '?' + urllib.urlencode(params), "GET", {}
         else:
             raise ImproperlyConfigured('Transferuj.pl payment backend accepts only GET or POST')
-
-
-
-

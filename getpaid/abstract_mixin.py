@@ -7,6 +7,7 @@
 # http://gist.github.com/584106
 #
 
+
 class AbstractMixin(object):
     _classcache = {}
 
@@ -24,6 +25,6 @@ class AbstractMixin(object):
         key = (args, tuple(kwargs.items()))
         if not key in cls._classcache:
             clsname = ('%s%x' % (cls.__name__, hash(key))) \
-                    .replace('-', '_')
+                .replace('-', '_')
             cls._classcache[key] = type(clsname, (cls, ), attrs)
         return cls._classcache[key]

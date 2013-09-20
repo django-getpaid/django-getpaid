@@ -25,7 +25,12 @@ GETPAID_BACKENDS_SETTINGS = {
         'id' : 1234,
         'key' : 'AAAAAAAA',
 
-    }
+    },
+
+    'getpaid.backends.przelewy24': {
+        'id': 1234,
+        'crc': '1111111111111111',
+    },
 
 }
 

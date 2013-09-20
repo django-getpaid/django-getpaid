@@ -25,6 +25,7 @@ from getpaid.backends.przelewy24.tasks import get_payment_status_task
 
 logger = logging.getLogger('getpaid.backends.przelewy24')
 
+
 class PaymentProcessor(PaymentProcessorBase):
     BACKEND = 'getpaid.backends.przelewy24'
     BACKEND_NAME = _('Przelewy24')
@@ -42,14 +43,12 @@ class PaymentProcessor(PaymentProcessorBase):
     _SUCCESS_RETURN_SIG_FIELDS = ('p24_session_id', 'p24_order_id', 'p24_kwota', 'crc')
     _STATUS_SIG_FIELDS = ('p24_session_id', 'p24_order_id', 'p24_kwota', 'crc')
 
-
     @staticmethod
     def compute_sig(params, fields, crc):
         params = params.copy()
         params.update({'crc': crc})
         text = "|".join(map(lambda field: unicode(params.get(field, '')).encode('utf-8'), fields))
         return hashlib.md5(text).hexdigest()
-
 
     @staticmethod
     def on_payment_status_change(p24_session_id, p24_order_id, p24_kwota, p24_order_id_full, p24_crc):
@@ -92,7 +91,7 @@ class PaymentProcessor(PaymentProcessorBase):
         request = urllib2.Request(url, data)
         try:
             response = urllib2.urlopen(request).read()
-        except Exception, e:
+        except Exception:
             logger.exception('Error while getting payment status change %s data=%s' % (url, str(params)))
             return
 
@@ -155,5 +154,3 @@ class PaymentProcessor(PaymentProcessorBase):
 
         return self._SANDBOX_GATEWAY_URL if PaymentProcessor.get_backend_setting('sandbox',
                                                                                  False) else self._GATEWAY_URL, 'POST', params
-
-

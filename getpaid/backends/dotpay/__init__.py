@@ -25,7 +25,7 @@ class DotpayTransactionStatus:
 class PaymentProcessor(PaymentProcessorBase):
     BACKEND = 'getpaid.backends.dotpay'
     BACKEND_NAME = _('Dotpay')
-    BACKEND_ACCEPTED_CURRENCY = ('PLN', 'EUR', 'USD', 'GBP', 'JPY', 'CZK', 'SEK' )
+    BACKEND_ACCEPTED_CURRENCY = ('PLN', 'EUR', 'USD', 'GBP', 'JPY', 'CZK', 'SEK')
     BACKEND_LOGO_URL = 'getpaid/backends/dotpay/dotpay_logo.png'
 
     _ALLOWED_IP = ('195.150.9.37', )
@@ -76,7 +76,6 @@ class PaymentProcessor(PaymentProcessorBase):
         payment.external_id = params.get('t_id', '')
         payment.description = params.get('email', '')
 
-
         if int(params['t_status']) == DotpayTransactionStatus.FINISHED:
             payment.amount_paid = Decimal(amount)
             payment.paid_on = datetime.datetime.utcnow().replace(tzinfo=utc)
@@ -87,7 +86,6 @@ class PaymentProcessor(PaymentProcessorBase):
                 payment.change_status('partially_paid')
         elif int(params['t_status']) in [DotpayTransactionStatus.REJECTED, DotpayTransactionStatus.RECLAMATION, DotpayTransactionStatus.REFUNDED]:
             payment.change_status('failed')
-
 
         return 'OK'
 
@@ -101,13 +99,11 @@ class PaymentProcessor(PaymentProcessorBase):
 
     def get_URL(self, pk):
         current_site = Site.objects.get_current()
-        url = reverse('getpaid-dotpay-return', kwargs={'pk' : pk})
+        url = reverse('getpaid-dotpay-return', kwargs={'pk': pk})
         if PaymentProcessor.get_backend_setting('force_ssl', False):
             return 'https://%s%s' % (current_site.domain, url)
         else:
             return 'http://%s%s' % (current_site.domain, url)
-
-
 
     def get_gateway_url(self, request):
         """
@@ -115,18 +111,18 @@ class PaymentProcessor(PaymentProcessorBase):
         """
         params = {
             'id': PaymentProcessor.get_backend_setting('id'),
-            'description' : self.get_order_description(self.payment, self.payment.order),
-            'amount' : self.payment.amount,
-            'currency' : self.payment.currency,
-            'type' : 0, # show "return" button after finished payment
-            'control' : self.payment.pk,
+            'description': self.get_order_description(self.payment, self.payment.order),
+            'amount': self.payment.amount,
+            'currency': self.payment.currency,
+            'type': 0,  # show "return" button after finished payment
+            'control': self.payment.pk,
             'URL': self.get_URL(self.payment.pk),
             'URLC': self.get_URLC(),
         }
 
         user_data = {
-            'email' : None,
-            'lang' : None,
+            'email': None,
+            'lang': None,
         }
         signals.user_data_query.send(sender=None, order=self.payment.order, user_data=user_data)
 
@@ -136,7 +132,7 @@ class PaymentProcessor(PaymentProcessorBase):
         if user_data['lang'] and user_data['lang'].lower() in PaymentProcessor._ACCEPTED_LANGS:
             params['lang'] = user_data['lang'].lower()
         elif PaymentProcessor.get_backend_setting('lang', False) and \
-             PaymentProcessor.get_backend_setting('lang').lower() in PaymentProcessor._ACCEPTED_LANGS:
+                PaymentProcessor.get_backend_setting('lang').lower() in PaymentProcessor._ACCEPTED_LANGS:
             params['lang'] = PaymentProcessor.get_backend_setting('lang').lower()
 
         if PaymentProcessor.get_backend_setting('onlinetransfer', False):
@@ -148,9 +144,8 @@ class PaymentProcessor(PaymentProcessorBase):
         if PaymentProcessor.get_backend_setting('tax', False):
             params['tax'] = 1
 
-
         if PaymentProcessor.get_backend_setting('method', 'get').lower() == 'post':
-            return self._GATEWAY_URL , 'POST', params
+            return self._GATEWAY_URL, 'POST', params
         elif PaymentProcessor.get_backend_setting('method', 'get').lower() == 'get':
             for key in params.keys():
                 params[key] = unicode(params[key]).encode('utf-8')

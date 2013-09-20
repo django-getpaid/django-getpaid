@@ -1,21 +1,25 @@
 from django.core.urlresolvers import reverse
 from django.shortcuts import get_object_or_404
 from django.views.generic.edit import FormView
-from getpaid.backends.dummy import PaymentProcessor
-from getpaid.backends.dummy.forms import DummyQuestionForm
+from django.http import HttpResponseBadRequest
+from . import PaymentProcessor
+from .forms import PaymillForm
 from getpaid.models import Payment
+import pymill
 
 
-class DummyAuthorizationView(FormView):
-    form_class = DummyQuestionForm
-    template_name = "getpaid_dummy_backend/dummy_authorization.html"
+class PaymillView(FormView):
+    form_class = PaymillForm
+    template_name = 'getpaid_paymill_backend/paymill.html'
 
     def get_context_data(self, **kwargs):
-        context = super(DummyAuthorizationView, self).get_context_data(**kwargs)
-        self.payment = get_object_or_404(Payment, pk=self.kwargs['pk'], status='in_progress', backend='getpaid.backends.dummy')
+        context = super(PaymillView, self).get_context_data(**kwargs)
+        self.payment = get_object_or_404(Payment, pk=self.kwargs['pk'], status='in_progress',  backend='getpaid.backends.paymill')
         context['payment'] = self.payment
+        context['amount_int'] = int(self.payment.amount * 100)
         context['order'] = self.payment.order
         context['order_name'] = PaymentProcessor(self.payment).get_order_description(self.payment, self.payment.order)  # TODO: Refactoring of get_order_description needed, should not require payment arg
+        context['PAYMILL_PUBLIC_KEY'] = PaymentProcessor.get_backend_setting('PAYMILL_PUBLIC_KEY')
         return context
 
     def get_success_url(self):
@@ -28,9 +32,18 @@ class DummyAuthorizationView(FormView):
 
     def form_valid(self, form):
         # Change payment status and jump to success_url or failure_url
-        self.payment = get_object_or_404(Payment, pk=self.kwargs['pk'], status='in_progress', backend='getpaid.backends.dummy')
+        self.payment = get_object_or_404(Payment, pk=self.kwargs['pk'], status='in_progress', backend='getpaid.backends.paymill')
 
-        if form.cleaned_data['authorize_payment'] == '1':
+        pmill = pymill.Pymill(PaymentProcessor.get_backend_setting('PAYMILL_PRIVATE_KEY'))
+
+        token = form.cleaned_data['token']
+        card = pmill.newcard(token)['data']
+
+        amount = int(self.payment.amount * 100)
+
+        transaction = pmill.transact(amount, payment=card['id'])['data']
+
+        if transaction:
             self.success = True
             if not self.payment.on_success():
                 # This method returns if payment was fully paid
@@ -39,4 +52,4 @@ class DummyAuthorizationView(FormView):
         else:
             self.success = False
             self.payment.on_failure()
-        return super(DummyAuthorizationView, self).form_valid(form)
+        return super(PaymillView, self).form_valid(form)
