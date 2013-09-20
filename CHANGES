@@ -2,12 +2,17 @@ django-getpaid changes
 ======================
 
 (master branch - current development)
-----------------------
+-------------------------------------
+* none yet
+
+Version 1.6.0
+-------------
 * Adding paymill backend
 * PEP 8 improvements
 * Adding support for django 1.5 in test project (+ tests)
 * Fixed issue on `utils.import_name` to allow packages without parents
 * Adding dependency to pytz for przelewy24 backend
+* Refactoring of PayU backend (xml->txt api, better logging) and adding support for non-auto payment accepting
 
 Version 1.5.1
 -------------
