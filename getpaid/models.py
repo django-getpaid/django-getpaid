@@ -74,12 +74,14 @@ class PaymentFactory(models.Model, AbstractMixin):
         Always change payment status via this method. Otherwise the signal
         will not be emitted.
         """
-        old_status = self.status
-        self.status = new_status
-        self.save()
-        signals.payment_status_changed.send(
-            sender=type(self), instance=self,
-            old_status=old_status, new_status=new_status
+        if self.status != new_status:
+            # do anything only when status is really changed
+            old_status = self.status
+            self.status = new_status
+            self.save()
+            signals.payment_status_changed.send(
+                sender=type(self), instance=self,
+                old_status=old_status, new_status=new_status
             )
 
     def on_success(self, amount=None):

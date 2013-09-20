@@ -14,7 +14,6 @@ def get_payment_status_task(payment_id, session_id):
     except Payment.DoesNotExist:
         logger.error('Payment does not exist pk=%d' % payment_id)
         return
-
     from getpaid.backends.payu import PaymentProcessor # Avoiding circular import
     processor = PaymentProcessor(payment)
     processor.get_payment_status(session_id)
@@ -30,6 +29,5 @@ def accept_payment(payment_id, session_id):
         return
 
     from getpaid.backends.payu import PaymentProcessor # Avoiding circular import
-
     processor = PaymentProcessor(payment)
     processor.accept_payment(session_id)
