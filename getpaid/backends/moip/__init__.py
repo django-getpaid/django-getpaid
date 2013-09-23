@@ -88,6 +88,7 @@ class PaymentProcessor(PaymentProcessorBase):
         pwd = PaymentProcessor.get_backend_setting('key')
         contents = etree.tostring(xml_body, encoding='utf-8')
 
+        logger.info(contents)
         response = requests.post(payment_full_url, auth=(user, pwd), data=contents).text
         moip_payment_token = etree.XML(response)[0][2].text
 
