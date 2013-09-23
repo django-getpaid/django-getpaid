@@ -5,6 +5,7 @@ from django.views.generic import DetailView
 from django.views.generic.base import View
 from getpaid.backends.pagseguro import PaymentProcessor
 from getpaid.models import Payment
+# from pagseguro import validar_dados
 
 logger = logging.getLogger('getpaid.backends.pagseguro')
 
@@ -23,6 +24,7 @@ class NotificationsView(View):
             request.encoding = 'ISO-8859-1'
             dados = dict((k, v.encode('ISO-8859-1')) for k, v in request.POST.items())
             
+            # valido = validar_dados(dados)
             logger.info('Retorno de pagamento por PagSeguro: ' + str({
                 'dados': dados,
             }))

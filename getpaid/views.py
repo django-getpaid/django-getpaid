@@ -32,6 +32,7 @@ class NewPaymentView(FormView):
         payment = Payment.create(form.cleaned_data['order'], form.cleaned_data['backend'])
         processor = payment.get_processor()(payment)
         gateway_url_tuple = processor.get_gateway_url(self.request)
+        print gateway_url_tuple
         payment.change_status('in_progress')
         redirecting_to_payment_gateway_signal.send(sender=None, request=self.request, order=form.cleaned_data['order'], payment=payment, backend=form.cleaned_data['backend'])
 
