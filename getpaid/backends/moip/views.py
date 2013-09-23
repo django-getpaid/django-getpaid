@@ -30,6 +30,7 @@ class NotificationsView(View):
             logger.warning('Got malformed POST request: %s' % str(request.POST))
             raise Http404
 
+        logger.info("moip notification: " + params["moip_id"])
         status = PaymentProcessor.process_notification(params)
         return HttpResponse(status)
 

@@ -117,7 +117,7 @@ class PaymentProcessor(PaymentProcessorBase):
         if not is_dev:
             logger.warning("xml response from pagseguro: "+str(response))
             dom = parseString(response)
-            print response
+            
             checkout = dom.getElementsByTagName("checkout")
             if checkout:
                 childNodes = checkout[0].childNodes
