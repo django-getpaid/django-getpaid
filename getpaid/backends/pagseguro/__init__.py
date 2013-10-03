@@ -14,6 +14,7 @@ from pagseguro import validar_dados
 import urllib2
 import urllib
 from xml.dom.minidom import parseString
+from plans.models import Order, UserPlan, Plan
 
 
 logger = logging.getLogger('getpaid.backends.pagseguro')
@@ -91,12 +92,17 @@ class PaymentProcessor(PaymentProcessorBase):
         reference = uuid.uuid4().hex
 
         product_description = self.get_order_description(self.payment, self.payment.order)
+        redirectURL = PaymentProcessor._get_view_full_url(request, 'getpaid-pagseguro-success', args=(self.payment.id,))
+        if not redirectURL:
+            redirectURL = "http://"
 
         self._PRODUCT_DATA.update(itemId1=self.payment.id,
                                   itemDescription1= product_description, 
                                   currency=self.payment.currency,
                                   itemAmount1=self.payment.amount,
-                                  reference=reference,)
+                                  reference=reference,
+                                  redirectURL=redirectURL,
+                                  )
 
         full_data = dict(self._ACOUNT_DATA, **self._PRODUCT_DATA)
 
@@ -163,7 +169,7 @@ class PaymentProcessor(PaymentProcessorBase):
         except Payment.DoesNotExist:
             logger.error('Payment does not exist with external_id=%s' % reference)
             return
-
+        
         if status_code in (PagseguroTransactionStatus.AVAILABLE, PagseguroTransactionStatus.PAID):
             logger.info("Updating payment" + str(payment.id))
             amount = dom.getElementsByTagName("grossAmount")[0].firstChild.nodeValue
