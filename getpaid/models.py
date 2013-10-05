@@ -108,6 +108,9 @@ class PaymentFactory(models.Model, AbstractMixin):
         """
         self.change_status('failed')
 
+    def backend_display(self):
+        return self.backend.split(".")[-1].capitalize()
+
 
 from django.db.models.loading import cache as app_cache, register_models
 #from utils import import_backend_modules
