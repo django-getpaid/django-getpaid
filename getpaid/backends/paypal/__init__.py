@@ -81,6 +81,7 @@ class PaymentProcessor(PaymentProcessorBase):
             gateway_url = "https://ws.paypal.uol.com.br/v2/"
             gateway_url2 = "https://paypal.uol.com.br/v2/"
 
+
         order = self.payment.order
 
         token = PaymentProcessor.get_backend_setting('token')

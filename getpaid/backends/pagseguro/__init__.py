@@ -151,7 +151,7 @@ class PaymentProcessor(PaymentProcessorBase):
         
         logger.info("pagseguro notification: " + resp.text)
 
-        dom = parseString(resp.text)
+        dom = parseString(resp.text.encode('utf-8'))
         transactionNode = dom.getElementsByTagName("transaction")
         code = dom.getElementsByTagName("code")[0].firstChild.nodeValue
         status_code = int(dom.getElementsByTagName("status")[0].firstChild.nodeValue)

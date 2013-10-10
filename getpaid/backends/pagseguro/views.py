@@ -19,7 +19,7 @@ class NotificationsView(View):
     """
     def post(self, request, *args, **kwargs):
         try:
-            
+
             request.encoding = 'ISO-8859-1'
             dados = dict((k, v.encode('ISO-8859-1')) for k, v in request.POST.items())
             
@@ -33,6 +33,9 @@ class NotificationsView(View):
 
         status = PaymentProcessor.process_notification(dados)
         return HttpResponse(status)
+
+    def get(self, request, *args, **kwargs):
+        return HttpResponse("ok")
 
 
 class SuccessView(DetailView):
