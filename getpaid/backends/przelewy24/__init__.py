@@ -126,8 +126,18 @@ class PaymentProcessor(PaymentProcessorBase):
         user_data = {
             'email': None,
             'lang': None,
+            'p24_klient': None,
+            'p24_adres': None,
+            'p24_kod': None,
+            'p24_miasto': None,
+            'p24_kraj': None,
         }
         signals.user_data_query.send(sender=None, order=self.payment.order, user_data=user_data)
+
+        for key in ('p24_klient', 'p24_adres', 'p24_kod', 'p24_miasto', 'p24_kraj'):
+            if user_data[key] is not None:
+                params[key] = user_data[key]
+
         if user_data['email']:
             params['p24_email'] = user_data['email']
 

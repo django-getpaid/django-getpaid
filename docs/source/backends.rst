@@ -388,6 +388,24 @@ Optional keys:
     set this option to ``True`` if a client should return to your site after payment using HTTP SSL; default ``False``
 
 
+Credit Card payments
+````````````````````
+
+To enable credit card payments you may want to provide some additional required information to getpaid via signal query::
+
+
+    def user_data_query_listener(sender, order=None, user_data=None, **kwargs):
+        """
+        Here we fill some static user data, just for test
+        """
+        user_data['p24_klient'] = u'Jan Nowak'
+        user_data['p24_adres'] = u'ul. Ulica 11'
+        user_data['p24_kod'] = u'00-000'
+        user_data['p24_miasto'] = u'Warszawa'
+        user_data['p24_kraj'] = u'PL'
+
+    signals.user_data_query.connect(user_data_query_listener)
+
 
 
 Additional info
