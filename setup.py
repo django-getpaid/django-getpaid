@@ -24,6 +24,9 @@ setup(
         'moip': [
             'requests',
         ],
+        'paymill': [
+            'pymill',
+        ]
     },
 
 )
