@@ -7,7 +7,7 @@ env:
 # command to install dependencies
 install: 
   - "pip install -q Django==$DJANGO_VERSION"
-  - "pip install -q -e .[przelewy24,payu,moip] --use-mirrors"
+  - "pip install -q -e .[przelewy24,payu,moip,paymill] --use-mirrors"
   - "pip install -q -r getpaid_test_project/pip.req --use-mirrors"
 # command to run tests
 script: "cd getpaid_test_project && python manage.py test orders getpaid --settings=getpaid_test_project.settings_test"
