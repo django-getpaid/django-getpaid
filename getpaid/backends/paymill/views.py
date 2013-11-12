@@ -1,7 +1,6 @@
 from django.core.urlresolvers import reverse
 from django.shortcuts import get_object_or_404
 from django.views.generic.edit import FormView
-from django.http import HttpResponseBadRequest
 from . import PaymentProcessor
 from .forms import PaymillForm
 from getpaid.models import Payment
@@ -14,7 +13,7 @@ class PaymillView(FormView):
 
     def get_context_data(self, **kwargs):
         context = super(PaymillView, self).get_context_data(**kwargs)
-        self.payment = get_object_or_404(Payment, pk=self.kwargs['pk'], status='in_progress',  backend='getpaid.backends.paymill')
+        self.payment = get_object_or_404(Payment, pk=self.kwargs['pk'], status='in_progress', backend='getpaid.backends.paymill')
         context['payment'] = self.payment
         context['amount_int'] = int(self.payment.amount * 100)
         context['order'] = self.payment.order
@@ -37,11 +36,12 @@ class PaymillView(FormView):
         pmill = pymill.Pymill(PaymentProcessor.get_backend_setting('PAYMILL_PRIVATE_KEY'))
 
         token = form.cleaned_data['token']
-        card = pmill.newcard(token)['data']
+        card = pmill.new_card(token)
 
         amount = int(self.payment.amount * 100)
+        currency = self.payment.currency
 
-        transaction = pmill.transact(amount, payment=card['id'])['data']
+        transaction = pmill.transact(amount, payment=card, currency=currency)
 
         if transaction:
             self.success = True
