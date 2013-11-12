@@ -44,10 +44,13 @@ From now on, everything works like standard South migrations, with the only diff
 Step 3. Migrate changes on deploy
 ---------------------------------
 
+Make sure to run migrate for your app containing your order model before running the getpaid migrate.
+
 ::
 
+    $ python migrate.py schemamigration --initial orders
+    $ python migrate.py migrate orders
     $ python migrate.py migrate getpaid
-
 
 
 Step 4. Upgrading to new a version of getpaid
