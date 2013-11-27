@@ -6,6 +6,7 @@ import sys
 from abstract_mixin import AbstractMixin
 import signals
 from utils import import_backend_modules
+from django.conf import settings
 
 PAYMENT_STATUS_CHOICES = (
         ('new', _("new")),
@@ -92,7 +93,10 @@ class PaymentFactory(models.Model, AbstractMixin):
 
         Returns boolean value if payment was fully paid
         """
-        self.paid_on = datetime.utcnow().replace(tzinfo=utc)
+        if getattr(settings, 'USE_TZ', False):
+            self.paid_on = datetime.utcnow().replace(tzinfo=utc)
+        else:
+            self.paid_on = datetime.now()
         if amount:
             self.amount_paid = amount
         else:
