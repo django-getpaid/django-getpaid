@@ -234,7 +234,7 @@ There are some additional options you can provide:
 
     .. note::
 
-        Setting empty list ``[]`` completely disables checking of IP address what **NOT recommended**.
+        Setting an empty list ``[]`` completely disables checking of IP address which is **NOT recommended**.
 
 **force_ssl_online**
     default: False; this option when turned to True, will force getpaid to return an HTTPS URL for Transferuj.pl to send
