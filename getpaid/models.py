@@ -6,6 +6,7 @@ import sys
 from abstract_mixin import AbstractMixin
 import signals
 from utils import import_backend_modules
+from django.conf import settings
 
 PAYMENT_STATUS_CHOICES = (
         ('new', _("new")),
@@ -75,12 +76,14 @@ class PaymentFactory(models.Model, AbstractMixin):
         Always change payment status via this method. Otherwise the signal
         will not be emitted.
         """
-        old_status = self.status
-        self.status = new_status
-        self.save()
-        signals.payment_status_changed.send(
-            sender=type(self), instance=self,
-            old_status=old_status, new_status=new_status
+        if self.status != new_status:
+            # do anything only when status is really changed
+            old_status = self.status
+            self.status = new_status
+            self.save()
+            signals.payment_status_changed.send(
+                sender=type(self), instance=self,
+                old_status=old_status, new_status=new_status
             )
 
     def on_success(self, amount=None):
@@ -91,7 +94,10 @@ class PaymentFactory(models.Model, AbstractMixin):
 
         Returns boolean value if payment was fully paid
         """
-        self.paid_on = datetime.utcnow().replace(tzinfo=utc)
+        if getattr(settings, 'USE_TZ', False):
+            self.paid_on = datetime.utcnow().replace(tzinfo=utc)
+        else:
+            self.paid_on = datetime.now()
         if amount:
             self.amount_paid = amount
         else:
