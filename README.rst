@@ -7,6 +7,9 @@ Welcome to django-getpaid!
    :target: https://crate.io/packages/django-getpaid   
 .. image:: https://travis-ci.org/cypreess/django-getpaid.png?branch=master
    :target: https://travis-ci.org/cypreess/django-getpaid
+
+.. image:: https://d2weczhvl823v0.cloudfront.net/cypreess/django-getpaid/trend.png
+   :target: https://bitdeli.com/free 
    
 Documentation: http://django-getpaid.readthedocs.org/en/latest/
 
