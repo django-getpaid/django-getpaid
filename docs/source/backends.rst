@@ -279,6 +279,10 @@ It will produce following example output::
     Please remember to set correct domain name in Sites framework.
 
 
+Payment rejection for Transferuj
+````````````````````````````````
+Transferuj allows to schedule chargeback of payment before it is added to the receiver’s account. To use that functionality, you should implement ``payment_should_be_accepted`` method on the order model. This method should take payment as the argument and return boolean value.
+
 
 Dotpay.eu backend ``getpaid.backends.dotpay``
 ---------------------------------------------
@@ -338,7 +342,7 @@ Optional keys:
 
 **tax**
     1% charity (refer to Dotpay manual); default: ``False``
-    
+
 
 
 
@@ -446,7 +450,7 @@ Required keys:
 
 **token**
     your seller's account token
-    
+
 **key**
     your secret key
 
@@ -464,8 +468,8 @@ You need to provide this information in ``GETPAID_BACKENDS_SETTINGS`` dictionary
                 'testing': True,
             },
     }
-    
-    
+
+
 Status changes
 `````````````
 Even though Moip has 9 different statuses, this only translates into 3 statuses in `django-getpaid`. Before the payment is made, the initial status is `in_progress`. Once it moves in Moip to the authorized, the getpaid state also changes on this backend to paid. If at any point Moip changes the transaction status to chargeback or refunded, the status on this backend will also enter the failed state. Beware that all others statuses in between are ignored. You will not be notified if a transaction moves from paid to available or if it enters dispute. This should however make no difference, as it only really matters if your transaction at Moip changes from in dispute to refunded or chargedback (and both are tracked).
@@ -487,7 +491,7 @@ Required keys:
 
 **PAYMILL_PUBLIC_KEY**
     your public key
-    
+
 **PAYMILL_PRIVATE_KEY**
     your private key
 
@@ -500,8 +504,8 @@ You need to provide this information in ``GETPAID_BACKENDS_SETTINGS`` dictionary
             'PAYMILL_PRIVATE_KEY': '1b9a36f6g6e2d52aab7858f5a5eb8k67',
         }
     }
-    
-    
+
+
 A word about security
 `````````````````````
 Though we have to display the form for the credit card data on our website, it will never be sent to the server to comply with the `Payment Card Industry Data Security Standard <http://en.wikipedia.org/wiki/Payment_Card_Industry_Data_Security_Standard>`_. Instead, Paymill's JavaScript API is used to generate a token that is sent to the server to process the payment.
