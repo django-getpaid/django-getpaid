@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from decimal import Decimal
 import hashlib
 import logging
@@ -68,19 +70,26 @@ class PaymentProcessor(PaymentProcessorBase):
         payment.external_id = tr_id
         payment.description = tr_email
 
-        if tr_status == 'TRUE':
-            # Due to Transferuj documentation, we need to check if amount is correct
-            payment.amount_paid = Decimal(tr_paid)
-            payment.paid_on = datetime.datetime.utcnow().replace(tzinfo=utc)
-            if payment.amount <= Decimal(tr_paid):
-                # Amount is correct or it is overpaid
-                payment.change_status('paid')
-            else:
-                payment.change_status('partially_paid')
-        elif payment.status != 'paid':
+        signals.payment_rejection_available.send(sender=None, payment=payment)
+        if getattr(payment, 'should_be_rejected', False):
+            # We probably should make a separate status for rejected payments,
+            # but we don’t want to do it only for one backend.
             payment.change_status('failed')
+            return 'FALSE'
+        else:
+            if tr_status == 'TRUE':
+                # Due to Transferuj documentation, we need to check if amount is correct
+                payment.amount_paid = Decimal(tr_paid)
+                payment.paid_on = datetime.datetime.utcnow().replace(tzinfo=utc)
+                if payment.amount <= Decimal(tr_paid):
+                    # Amount is correct or it is overpaid
+                    payment.change_status('paid')
+                else:
+                    payment.change_status('partially_paid')
+            elif payment.status != 'paid':
+                payment.change_status('failed')
 
-        return 'TRUE'
+            return 'TRUE'
 
     def get_gateway_url(self, request):
         """

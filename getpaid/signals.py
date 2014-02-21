@@ -32,3 +32,14 @@ redirecting_to_payment_gateway_signal = Signal(providing_args=['request', 'order
 redirecting_to_payment_gateway_signal.__doc__ = """
 Sent just a moment before redirecting. A hook for analytics tools.
 """
+
+payment_rejection_available = Signal(providing_args=['payment'])
+payment_rejection_available.__doc__ = """
+Sent when a decision is to be made whether payment should be rejected.
+
+For a payment to be rejected, the signal listener should set
+``should_be_rejected_attribute`` on payment to some value which evaluates to True.
+
+This is a feature specific to Transferuj backend.
+
+"""
