@@ -1,9 +1,4 @@
-"""
-This file demonstrates writing tests using the unittest module. These will pass
-when you run "manage.py test".
-
-Replace this with more appropriate tests for your application.
-"""
+# -*- coding: utf-8 -*-
 
 from decimal import Decimal
 from django.core.urlresolvers import reverse
@@ -15,6 +10,7 @@ import mock
 from getpaid.backends import przelewy24
 import getpaid.backends.payu
 import getpaid.backends.transferuj
+from getpaid import signals
 
 from getpaid_test_project.orders.models import Order
 
@@ -94,7 +90,7 @@ class TransferujBackendTestCase(TestCase):
         Payment = get_model('getpaid', 'Payment')
         order = Order(name='Test EUR order', total='123.45', currency='PLN')
         order.save()
-        payment = Payment(order=order, amount=order.total, currency=order.currency, backend='getpaid.backends.payu')
+        payment = Payment(order=order, amount=order.total, currency=order.currency, backend='getpaid.backends.transferuj')
         payment.save(force_insert=True)
         self.assertEqual('TRUE', getpaid.backends.transferuj.PaymentProcessor.online('195.149.229.109', '1234', '1', '',
                                                                                      payment.pk, '123.45', '123.45', '',
@@ -109,7 +105,7 @@ class TransferujBackendTestCase(TestCase):
         Payment = get_model('getpaid', 'Payment')
         order = Order(name='Test EUR order', total='123.45', currency='PLN')
         order.save()
-        payment = Payment(order=order, amount=order.total, currency=order.currency, backend='getpaid.backends.payu')
+        payment = Payment(order=order, amount=order.total, currency=order.currency, backend='getpaid.backends.transferuj')
         payment.save(force_insert=True)
         self.assertEqual('TRUE', getpaid.backends.transferuj.PaymentProcessor.online('195.149.229.109', '1234', '1', '',
                                                                                      payment.pk, '123.45', '223.45', '',
@@ -124,7 +120,7 @@ class TransferujBackendTestCase(TestCase):
         Payment = get_model('getpaid', 'Payment')
         order = Order(name='Test EUR order', total='123.45', currency='PLN')
         order.save()
-        payment = Payment(order=order, amount=order.total, currency=order.currency, backend='getpaid.backends.payu')
+        payment = Payment(order=order, amount=order.total, currency=order.currency, backend='getpaid.backends.transferuj')
         payment.save(force_insert=True)
         self.assertEqual('TRUE', getpaid.backends.transferuj.PaymentProcessor.online('195.149.229.109', '1234', '1', '',
                                                                                      payment.pk, '123.45', '23.45', '',
@@ -139,7 +135,7 @@ class TransferujBackendTestCase(TestCase):
         Payment = get_model('getpaid', 'Payment')
         order = Order(name='Test EUR order', total='123.45', currency='PLN')
         order.save()
-        payment = Payment(order=order, amount=order.total, currency=order.currency, backend='getpaid.backends.payu')
+        payment = Payment(order=order, amount=order.total, currency=order.currency, backend='getpaid.backends.transferuj')
         payment.save(force_insert=True)
         self.assertEqual('TRUE', getpaid.backends.transferuj.PaymentProcessor.online('195.149.229.109', '1234', '1', '',
                                                                                      payment.pk, '123.45', '23.45', '',
@@ -147,6 +143,43 @@ class TransferujBackendTestCase(TestCase):
                                                                                      '21b028c2dbdcb9ca272d1cc67ed0574e'))
         payment = Payment.objects.get(pk=payment.pk)
         self.assertEqual(payment.status, 'failed')
+
+    def test_online_payment_rejection(self):
+        """Ensure that order may reject the payment."""
+        Payment = get_model('getpaid', 'Payment')
+        order = Order(name='Test EUR order', total='123.45', currency='PLN')
+        order.save()
+        payment = Payment(order=order, amount=order.total, currency=order.currency, backend='getpaid.backends.transferuj')
+        payment.save(force_insert=True)
+
+        def reject_payment_listener(sender, payment, **kwargs):
+            payment.should_be_rejected = True
+        signals.payment_rejection_available.connect(reject_payment_listener)
+        try:
+            self.assertEqual(
+                'FALSE',
+                getpaid.backends.transferuj.PaymentProcessor.online(
+                    '195.149.229.109',
+                    '1234',
+                    '1',
+                    '',
+                    payment.pk,
+                    '123.45',
+                    '123.45',
+                    '',
+                    'TRUE',
+                    0,
+                    '',
+                    '21b028c2dbdcb9ca272d1cc67ed0574e',
+                )
+            )
+        finally:
+            signals.payment_rejection_available.disconnect(reject_payment_listener)
+
+        payment = Payment.objects.get(pk=payment.pk)
+        self.assertEqual(payment.status, 'failed')
+        self.assertEqual(payment.paid_on, None)
+        self.assertEqual(payment.amount_paid, 0)
 
 
 def fake_payment_get_response_success(request):
@@ -385,4 +418,3 @@ class Przelewy24PaymentProcessorTestCase(TestCase):
         self.assertEqual(payment.status, 'failed')
         self.assertEqual(payment.paid_on, None)
         self.assertEqual(payment.amount_paid, Decimal('0.0'))
-
