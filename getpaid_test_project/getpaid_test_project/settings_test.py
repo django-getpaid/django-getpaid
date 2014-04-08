@@ -2,6 +2,7 @@
 from settings import *
 
 GETPAID_BACKENDS = (
+    'getpaid.backends.dummy',
     'getpaid.backends.payu',
     'getpaid.backends.transferuj',
     'getpaid.backends.przelewy24',
