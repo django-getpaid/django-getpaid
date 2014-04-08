@@ -16,7 +16,7 @@ from getpaid.backends import przelewy24
 import getpaid.backends.payu
 import getpaid.backends.transferuj
 
-from getpaid_test_project.orders.models import Order
+from orders.models import Order
 
 
 class TransferujBackendTestCase(TestCase):
