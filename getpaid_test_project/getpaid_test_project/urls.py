@@ -1,5 +1,5 @@
 from django.conf.urls import patterns, include, url
-from getpaid_test_project.orders.views import OrderView, HomeView
+from orders.views import OrderView, HomeView
 from django.contrib import admin
 
 admin.autodiscover()
