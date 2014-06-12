@@ -6,7 +6,7 @@ class PaymentProcessor(PaymentProcessorBase):
     BACKEND = 'getpaid.backends.paymill'
     BACKEND_NAME = _('Paymill')
     BACKEND_ACCEPTED_CURRENCY = ('EUR', 'CZK', 'DKK', 'HUF', 'ISK', 'ILS', 'LVL',
-        'CHF', 'NOK', 'PLN', 'SEK', 'TRY', 'GBP', )
+        'CHF', 'NOK', 'PLN', 'SEK', 'TRY', 'GBP', 'USD', )
 
     def get_gateway_url(self, request):
         return reverse('getpaid-paymill-authorization', kwargs={'pk' : self.payment.pk}), "GET", {}
