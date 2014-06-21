@@ -10,7 +10,7 @@ from django.db.models.loading import get_model
 from django.test import TestCase
 from django.test.client import Client
 
-from getpaid_test_project.orders.models import Order
+from .models import Order
 
 
 class OrderTest(TestCase):

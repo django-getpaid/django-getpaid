@@ -2,8 +2,8 @@
 from django.views.generic import CreateView
 from django.views.generic.detail import DetailView
 from getpaid.forms import PaymentMethodForm
-from getpaid_test_project.orders.forms import OrderForm
-from getpaid_test_project.orders.models import Order
+from .forms import OrderForm
+from .models import Order
 
 class HomeView(CreateView):
     model=Order

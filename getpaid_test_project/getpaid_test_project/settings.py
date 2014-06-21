@@ -139,16 +139,10 @@ INSTALLED_APPS = (
     'django.contrib.admin',
     # Uncomment the next line to enable admin documentation:
     # 'django.contrib.admindocs',
-
     'djcelery',
     'djcelery.transport',
-
     'getpaid',
-
-
-
-
-    'getpaid_test_project.orders',
+    'orders',
 ) + GETPAID_BACKENDS
 
 # A sample logging configuration. The only tangible logging
