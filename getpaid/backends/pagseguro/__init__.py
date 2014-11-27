@@ -74,7 +74,7 @@ class PaymentProcessor(PaymentProcessorBase):
         import uuid
         is_dev = PaymentProcessor.get_backend_setting('testing', False)
         if is_dev:
-            gateway_url2 = gateway_url = "http://127.0.0.1/pagseguro/"
+            gateway_url2 = gateway_url = PaymentProcessor.get_backend_setting("gateway_test", "http://127.0.0.1/pagseguro/")
             self._TRANSACTION_INSTRUCTION_PAGE = ""
             self._CHECKOUT_INSTRUCTION_PAGE = "checkout.php/?"
         else:
@@ -139,7 +139,8 @@ class PaymentProcessor(PaymentProcessorBase):
 
         is_dev = PaymentProcessor.get_backend_setting('testing', False)
         if is_dev:
-            _TRANSACTION_CONSULT_URL = "http://127.0.0.1/pagseguro/notifications.php?notificationCode=%s&email=%s&token=%s"
+            _TRANSACTION_CONSULT_URL = PaymentProcessor.get_backend_setting("gateway_test", "http://127.0.0.1/pagseguro/") +\
+             "notifications.php?notificationCode=%s&email=%s&token=%s"
 
         Payment = get_model('getpaid', 'Payment')
         
