@@ -107,7 +107,7 @@ class PaymentProcessor(PaymentProcessorBase):
         
         payment_full_url = "%s%s%s" % (gateway_url, self._CHECKOUT_INSTRUCTION_PAGE , params)
         request.encoding = 'ISO-8859-1'
-        print payment_full_url
+        
         dados = {}
 
         logger.info(payment_full_url)
