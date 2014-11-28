@@ -74,10 +74,8 @@ class PaymentProcessor(PaymentProcessorBase):
         import uuid
         is_dev = PaymentProcessor.get_backend_setting('testing', False)
         if is_dev:
-            gateway_url = PaymentProcessor.get_backend_setting("gateway_test1", "http://127.0.0.1/pagseguro/")
-            gateway_url2 = PaymentProcessor.get_backend_setting("gateway_test2", "http://127.0.0.1/pagseguro/")
-            self._TRANSACTION_INSTRUCTION_PAGE = ""
-            self._CHECKOUT_INSTRUCTION_PAGE = "checkout.php/?"
+            gateway_url = "https://ws.sandbox.pagseguro.uol.com.br/"
+            gateway_url2 = "https://sandbox.pagseguro.uol.com.br/"
         else:
             gateway_url = "https://ws.pagseguro.uol.com.br/v2/"
             gateway_url2 = "https://pagseguro.uol.com.br/v2/"
@@ -131,7 +129,7 @@ class PaymentProcessor(PaymentProcessorBase):
         self.payment.external_id = reference
         self.payment.description = code
         self.payment.save();
-
+        print code
         return "%s%s" % (gateway_url2, self._TRANSACTION_INSTRUCTION_PAGE+code), 'GET', {}
 
     @staticmethod
