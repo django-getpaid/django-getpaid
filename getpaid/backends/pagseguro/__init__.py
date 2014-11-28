@@ -138,7 +138,7 @@ class PaymentProcessor(PaymentProcessorBase):
         is_dev = PaymentProcessor.get_backend_setting('testing', False)
         if is_dev:
             _TRANSACTION_CONSULT_URL = "https://ws.sandbox.pagseguro.uol.com.br/v2/transactions/"+\
-             "notifications.php?notificationCode=%s&email=%s&token=%s"
+             "notifications/%s?email=%s&token=%s"
 
         Payment = get_model('getpaid', 'Payment')
         
