@@ -147,13 +147,14 @@ class PaymentProcessor(PaymentProcessorBase):
 
         url_consult = _TRANSACTION_CONSULT_URL % (params["notificationCode"], email, token)
         resp = requests.get(url_consult)
-        
+        print resp.text
         logger.info("pagseguro notification: " + resp.text)
 
         dom = parseString(resp.text.encode('utf-8'))
         transactionNode = dom.getElementsByTagName("transaction")
         code = dom.getElementsByTagName("code")[0].firstChild.nodeValue
-        status_code = int(dom.getElementsByTagName("status")[0].firstChild.nodeValue)
+        if dom.getElementsByTagName("status"):
+            status_code = int(dom.getElementsByTagName("status")[0].firstChild.nodeValue)
         
         reference = ""
         reference_node = dom.getElementsByTagName("reference")
