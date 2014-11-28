@@ -74,8 +74,8 @@ class PaymentProcessor(PaymentProcessorBase):
         import uuid
         is_dev = PaymentProcessor.get_backend_setting('testing', False)
         if is_dev:
-            gateway_url = "https://ws.sandbox.pagseguro.uol.com.br/"
-            gateway_url2 = "https://sandbox.pagseguro.uol.com.br/"
+            gateway_url = "https://ws.sandbox.pagseguro.uol.com.br/v2/"
+            gateway_url2 = "https://sandbox.pagseguro.uol.com.br/v2/"
         else:
             gateway_url = "https://ws.pagseguro.uol.com.br/v2/"
             gateway_url2 = "https://pagseguro.uol.com.br/v2/"
@@ -107,7 +107,7 @@ class PaymentProcessor(PaymentProcessorBase):
         
         payment_full_url = "%s%s%s" % (gateway_url, self._CHECKOUT_INSTRUCTION_PAGE , params)
         request.encoding = 'ISO-8859-1'
-
+        print payment_full_url
         dados = {}
 
         logger.info(payment_full_url)
@@ -116,20 +116,19 @@ class PaymentProcessor(PaymentProcessorBase):
         response = requests.post(payment_full_url, headers=headers).text
         
         code = ""
-        if not is_dev:
-            logger.warning("xml response from pagseguro: "+str(response))
-            dom = parseString(response)
-            
-            checkout = dom.getElementsByTagName("checkout")
-            if checkout:
-                childNodes = checkout[0].childNodes
-                code = childNodes[0].firstChild.nodeValue
-                date = childNodes[1].firstChild.nodeValue
+        logger.warning("xml response from pagseguro: "+str(response))
+        dom = parseString(response)
+        
+        checkout = dom.getElementsByTagName("checkout")
+        if checkout:
+            childNodes = checkout[0].childNodes
+            code = childNodes[0].firstChild.nodeValue
+            date = childNodes[1].firstChild.nodeValue
 
         self.payment.external_id = reference
         self.payment.description = code
         self.payment.save();
-        print code
+        
         return "%s%s" % (gateway_url2, self._TRANSACTION_INSTRUCTION_PAGE+code), 'GET', {}
 
     @staticmethod
@@ -138,7 +137,7 @@ class PaymentProcessor(PaymentProcessorBase):
 
         is_dev = PaymentProcessor.get_backend_setting('testing', False)
         if is_dev:
-            _TRANSACTION_CONSULT_URL = PaymentProcessor.get_backend_setting("gateway_test1", "http://127.0.0.1/pagseguro/") +\
+            _TRANSACTION_CONSULT_URL = "https://ws.sandbox.pagseguro.uol.com.br/v2/transactions/"+\
              "notifications.php?notificationCode=%s&email=%s&token=%s"
 
         Payment = get_model('getpaid', 'Payment')
