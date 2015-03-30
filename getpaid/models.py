@@ -18,8 +18,8 @@ PAYMENT_STATUS_CHOICES = (
 
 
 class PaymentManager(models.Manager):
-    def get_query_set(self):
-        return super(PaymentManager, self).get_query_set().select_related('order')
+    def get_queryset(self):
+        return super(PaymentManager, self).get_queryset().select_related('order')
 
 
 class PaymentFactory(models.Model, AbstractMixin):

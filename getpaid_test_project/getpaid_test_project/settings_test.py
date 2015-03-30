@@ -8,8 +8,6 @@ GETPAID_BACKENDS = (
     'getpaid.backends.przelewy24',
 )
 
-INSTALLED_APPS += GETPAID_BACKENDS
-
 GETPAID_BACKENDS_SETTINGS = {
     # Please provide your settings for backends
     'getpaid.backends.payu': {

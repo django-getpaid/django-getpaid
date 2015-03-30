@@ -141,7 +141,8 @@ INSTALLED_APPS = (
     # 'django.contrib.admindocs',
 
     'djcelery',
-    'djcelery.transport',
+    # 'djcelery.transport',
+    'kombu.transport.django',
 
     'getpaid',
 
