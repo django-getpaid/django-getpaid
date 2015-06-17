@@ -1,5 +1,5 @@
 #noinspection PyUnresolvedReferences
-from settings import *
+from .settings import *
 
 GETPAID_BACKENDS = (
     'getpaid.backends.dummy',

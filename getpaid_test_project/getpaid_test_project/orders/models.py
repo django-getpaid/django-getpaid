@@ -26,4 +26,4 @@ class Order(models.Model):
 getpaid.register_to_payment(Order, unique=False, related_name='payments')
 
 #noinspection PyUnresolvedReferences
-import listeners
+from .listeners import *

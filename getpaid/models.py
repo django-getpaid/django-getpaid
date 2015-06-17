@@ -3,9 +3,9 @@ from django.utils.timezone import utc
 from django.utils.translation import ugettext_lazy as _
 from datetime import datetime
 import sys
-from abstract_mixin import AbstractMixin
-import signals
-from utils import import_backend_modules
+from .abstract_mixin import AbstractMixin
+from getpaid import signals
+from .utils import import_backend_modules
 from django.conf import settings
 
 PAYMENT_STATUS_CHOICES = (
