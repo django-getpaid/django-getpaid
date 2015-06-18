@@ -1,7 +1,10 @@
 from django.core.urlresolvers import reverse
 from django.db import models
+from django.utils.encoding import python_2_unicode_compatible
 import getpaid
 
+
+@python_2_unicode_compatible
 class Order(models.Model):
     """
     This is an example Order object. This one is very simple - is only one item,
@@ -16,7 +19,7 @@ class Order(models.Model):
     def get_absolute_url(self):
         return reverse('order_detail', kwargs={'pk': self.pk})
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
     def clean(self):

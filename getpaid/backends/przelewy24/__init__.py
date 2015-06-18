@@ -9,9 +9,10 @@ from decimal import Decimal
 import hashlib
 import logging
 import time
-import urllib
-import urllib2
 import datetime
+from django.utils import six
+from six.moves.urllib.request import Request, urlopen
+from six.moves.urllib.parse import urlencode
 
 from django.contrib.sites.models import Site
 from django.core.exceptions import ImproperlyConfigured
@@ -27,28 +28,28 @@ logger = logging.getLogger('getpaid.backends.przelewy24')
 
 
 class PaymentProcessor(PaymentProcessorBase):
-    BACKEND = 'getpaid.backends.przelewy24'
-    BACKEND_NAME = _('Przelewy24')
-    BACKEND_ACCEPTED_CURRENCY = ('PLN', )
-    BACKEND_LOGO_URL = 'getpaid/backends/przelewy24/przelewy24_logo.png'
+    BACKEND = u'getpaid.backends.przelewy24'
+    BACKEND_NAME = _(u'Przelewy24')
+    BACKEND_ACCEPTED_CURRENCY = (u'PLN', )
+    BACKEND_LOGO_URL = u'getpaid/backends/przelewy24/przelewy24_logo.png'
 
-    _GATEWAY_URL = 'https://secure.przelewy24.pl/index.php'
-    _SANDBOX_GATEWAY_URL = 'https://sandbox.przelewy24.pl/index.php'
+    _GATEWAY_URL = u'https://secure.przelewy24.pl/index.php'
+    _SANDBOX_GATEWAY_URL = u'https://sandbox.przelewy24.pl/index.php'
 
-    _GATEWAY_CONFIRM_URL = 'https://secure.przelewy24.pl/transakcja.php'
-    _SANDBOX_GATEWAY_CONFIRM_URL = 'https://sandbox.przelewy24.pl/transakcja.php'
+    _GATEWAY_CONFIRM_URL = u'https://secure.przelewy24.pl/transakcja.php'
+    _SANDBOX_GATEWAY_CONFIRM_URL = u'https://sandbox.przelewy24.pl/transakcja.php'
 
-    _ACCEPTED_LANGS = ('pl', 'en', 'es', 'de', 'it')
-    _REQUEST_SIG_FIELDS = ('p24_session_id', 'p24_id_sprzedawcy', 'p24_kwota', 'crc')
-    _SUCCESS_RETURN_SIG_FIELDS = ('p24_session_id', 'p24_order_id', 'p24_kwota', 'crc')
-    _STATUS_SIG_FIELDS = ('p24_session_id', 'p24_order_id', 'p24_kwota', 'crc')
+    _ACCEPTED_LANGS = (u'pl', u'en', u'es', u'de', u'it')
+    _REQUEST_SIG_FIELDS = (u'p24_session_id', u'p24_id_sprzedawcy', u'p24_kwota', u'crc')
+    _SUCCESS_RETURN_SIG_FIELDS = (u'p24_session_id', u'p24_order_id', u'p24_kwota', u'crc')
+    _STATUS_SIG_FIELDS = (u'p24_session_id', u'p24_order_id', u'p24_kwota', u'crc')
 
     @staticmethod
     def compute_sig(params, fields, crc):
         params = params.copy()
         params.update({'crc': crc})
-        text = "|".join(map(lambda field: unicode(params.get(field, '')).encode('utf-8'), fields))
-        return hashlib.md5(text).hexdigest()
+        text = u"|".join(map(lambda field: six.text_type(params.get(field, '')), fields))
+        return six.text_type(hashlib.md5(text.encode('utf-8')).hexdigest())
 
     @staticmethod
     def on_payment_status_change(p24_session_id, p24_order_id, p24_kwota, p24_order_id_full, p24_crc):
@@ -80,22 +81,24 @@ class PaymentProcessor(PaymentProcessorBase):
         params['p24_crc'] = PaymentProcessor.compute_sig(params, self._STATUS_SIG_FIELDS, crc)
 
         for key in params.keys():
-            params[key] = unicode(params[key]).encode('utf-8')
+            params[key] = six.text_type(params[key]).encode('utf-8')
 
-        data = urllib.urlencode(params)
-        url = self._SANDBOX_GATEWAY_CONFIRM_URL if PaymentProcessor.get_backend_setting('sandbox',
-                                                                                        False) else self._GATEWAY_CONFIRM_URL
+        data = urlencode(params)
 
-        self.payment.external_id = params['p24_order_id']
+        url = self._GATEWAY_CONFIRM_URL
+        if PaymentProcessor.get_backend_setting('sandbox', False):
+            url = self._SANDBOX_GATEWAY_CONFIRM_URL
 
-        request = urllib2.Request(url, data)
+        self.payment.external_id = p24_order_id
+
+        request = Request(url, data)
         try:
-            response = urllib2.urlopen(request).read()
+            response = urlopen(request).read().decode('utf8')
         except Exception:
             logger.exception('Error while getting payment status change %s data=%s' % (url, str(params)))
             return
 
-        response_list = filter(lambda ll: ll, map(lambda l: l.strip(), response.splitlines()))
+        response_list = list(filter(lambda ll: ll, map(lambda li: li.strip(), response.splitlines())))
 
         if len(response_list) >= 2 and response_list[0] == 'RESULT' and response_list[1] == 'TRUE':
             logger.info('Payment accepted %s' % str(params))

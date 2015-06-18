@@ -48,6 +48,7 @@ class OrderTest(TestCase):
         """
         order = Order(name='Test PLN order', total=100, currency='PLN')
         order.save()
+        from getpaid.utils import get_backend_choices
         response = self.client.post(reverse('getpaid-new-payment', kwargs={'currency': 'PLN'}),
                                     {'order': order.pk,
                                      'backend': 'getpaid.backends.payu'}
