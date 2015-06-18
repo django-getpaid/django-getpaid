@@ -32,3 +32,11 @@ GETPAID_BACKENDS_SETTINGS = {
 
 }
 
+TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
+NOSE_ARGS = [
+     '--verbosity=2',
+     '--with-yanc',
+     #'--stop',
+     #'--cover-branches',
+     #'--with-coverage',
+]

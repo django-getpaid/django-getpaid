@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import six
 from django.utils.timezone import utc
 from django.utils.translation import ugettext_lazy as _
 from datetime import datetime
@@ -22,6 +23,7 @@ class PaymentManager(models.Manager):
         return super(PaymentManager, self).get_queryset().select_related('order')
 
 
+@six.python_2_unicode_compatible
 class PaymentFactory(models.Model, AbstractMixin):
     """
     This is an abstract class that defines a structure of Payment model that will be
@@ -40,7 +42,7 @@ class PaymentFactory(models.Model, AbstractMixin):
     class Meta:
         abstract = True
 
-    def __unicode__(self):
+    def __str__(self):
         return _("Payment #%(id)d") % {'id': self.id}
 
     @classmethod
