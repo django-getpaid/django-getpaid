@@ -2,6 +2,7 @@ from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.template.base import Template
 from django.template.context import Context
+from django.utils import six
 from getpaid.utils import get_backend_settings
 
 
@@ -58,7 +59,7 @@ class PaymentProcessorBase(object):
         if template:
             return Template(template).render(Context({"payment": payment, "order": order}))
         else:
-            return unicode(order)
+            return six.text_type(order)
 
     def get_gateway_url(self, request):
         """
