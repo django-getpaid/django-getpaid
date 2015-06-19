@@ -1,7 +1,7 @@
 from decimal import Decimal
 import hashlib
 import logging
-import urllib
+from six.moves.urllib.parse import urlencode
 import datetime
 from django.utils import six
 from django.contrib.sites.models import Site
@@ -144,6 +144,6 @@ class PaymentProcessor(PaymentProcessorBase):
         elif PaymentProcessor.get_backend_setting('method', 'get').lower() == 'get':
             for key in params.keys():
                 params[key] = six.text_type(params[key]).encode('utf-8')
-            return self._GATEWAY_URL + '?' + urllib.urlencode(params), "GET", {}
+            return self._GATEWAY_URL + '?' + urlencode(params), "GET", {}
         else:
             raise ImproperlyConfigured('Transferuj.pl payment backend accepts only GET or POST')

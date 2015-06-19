@@ -3,7 +3,7 @@ from getpaid.views import NewPaymentView, FallbackView
 from getpaid.utils import import_backend_modules
 
 includes_list = []
-for backend_name, urls in import_backend_modules('urls').items():
+for backend_name, urls in list(import_backend_modules('urls').items()):
     includes_list.append(url(r'^%s/' % backend_name, include(urls)))
 
 urlpatterns = patterns('',
