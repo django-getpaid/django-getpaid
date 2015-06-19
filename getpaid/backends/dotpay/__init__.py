@@ -2,7 +2,8 @@ import datetime
 from decimal import Decimal
 import hashlib
 import logging
-import urllib
+from django.utils import six
+from six.moves.urllib.parse import urlencode
 from django.contrib.sites.models import Site
 from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse
@@ -36,7 +37,7 @@ class PaymentProcessor(PaymentProcessorBase):
     @staticmethod
     def compute_sig(params, fields, PIN):
         text = PIN + ":" + (u":".join(map(lambda field: params.get(field, ''), fields)))
-        return hashlib.md5(text).hexdigest()
+        return hashlib.md5(text.encode('utf8')).hexdigest()
 
     @staticmethod
     def online(params, ip):
@@ -51,27 +52,27 @@ class PaymentProcessor(PaymentProcessorBase):
 
         if params['md5'] != PaymentProcessor.compute_sig(params, PaymentProcessor._ONLINE_SIG_FIELDS, PIN):
             logger.warning('Got message with wrong sig, %s' % str(params))
-            return 'SIG ERR'
+            return u'SIG ERR'
 
         try:
             params['id'] = int(params['id'])
         except ValueError:
-            return 'ID ERR'
+            return u'ID ERR'
         if params['id'] != int(PaymentProcessor.get_backend_setting('id')):
-            return 'ID ERR'
+            return u'ID ERR'
 
         from getpaid.models import Payment
         try:
             payment = Payment.objects.get(pk=int(params['control']))
         except (ValueError, Payment.DoesNotExist):
             logger.error('Got message for non existing Payment, %s' % str(params))
-            return 'PAYMENT ERR'
+            return u'PAYMENT ERR'
 
         amount, currency = params.get('orginal_amount', params['amount'] + ' PLN').split(' ')
 
         if currency != payment.currency.upper():
             logger.error('Got message with wrong currency, %s' % str(params))
-            return 'CURRENCY ERR'
+            return u'CURRENCY ERR'
 
         payment.external_id = params.get('t_id', '')
         payment.description = params.get('email', '')
@@ -87,23 +88,23 @@ class PaymentProcessor(PaymentProcessorBase):
         elif int(params['t_status']) in [DotpayTransactionStatus.REJECTED, DotpayTransactionStatus.RECLAMATION, DotpayTransactionStatus.REFUNDED]:
             payment.change_status('failed')
 
-        return 'OK'
+        return u'OK'
 
     def get_URLC(self):
         urlc = reverse('getpaid-dotpay-online')
         current_site = Site.objects.get_current()
         if PaymentProcessor.get_backend_setting('force_ssl', False):
-            return 'https://%s%s' % (current_site.domain, urlc)
+            return u'https://%s%s' % (current_site.domain, urlc)
         else:
-            return 'http://%s%s' % (current_site.domain, urlc)
+            return u'http://%s%s' % (current_site.domain, urlc)
 
     def get_URL(self, pk):
         current_site = Site.objects.get_current()
         url = reverse('getpaid-dotpay-return', kwargs={'pk': pk})
         if PaymentProcessor.get_backend_setting('force_ssl', False):
-            return 'https://%s%s' % (current_site.domain, url)
+            return u'https://%s%s' % (current_site.domain, url)
         else:
-            return 'http://%s%s' % (current_site.domain, url)
+            return u'http://%s%s' % (current_site.domain, url)
 
     def get_gateway_url(self, request):
         """
@@ -148,7 +149,7 @@ class PaymentProcessor(PaymentProcessorBase):
             return self._GATEWAY_URL, 'POST', params
         elif PaymentProcessor.get_backend_setting('method', 'get').lower() == 'get':
             for key in params.keys():
-                params[key] = unicode(params[key]).encode('utf-8')
-            return self._GATEWAY_URL + '?' + urllib.urlencode(params), "GET", {}
+                params[key] = six.text_type(params[key]).encode('utf-8')
+            return self._GATEWAY_URL + '?' + urlencode(params), "GET", {}
         else:
             raise ImproperlyConfigured('Dotpay payment backend accepts only GET or POST')

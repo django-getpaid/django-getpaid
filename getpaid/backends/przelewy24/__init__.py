@@ -9,7 +9,6 @@ from decimal import Decimal
 import hashlib
 import logging
 import time
-import urllib
 import datetime
 from django.utils import six
 from six.moves.urllib.request import Request, urlopen

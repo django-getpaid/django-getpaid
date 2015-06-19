@@ -29,30 +29,30 @@ class MoipTransactionStatus:
 class PaymentProcessor(PaymentProcessorBase):
     BACKEND = 'getpaid.backends.moip'
     BACKEND_NAME = 'Moip'
-    BACKEND_ACCEPTED_CURRENCY = ('BRL', )
+    BACKEND_ACCEPTED_CURRENCY = (u'BRL', )
 
-    _SEND_INSTRUCTION_PAGE = '/ws/alpha/EnviarInstrucao/Unica'
-    _RUN_INSTRUCTION_PAGE = 'Instrucao.do?token='
-    _ITEM_DATA_REQUIRED_FIELDS = ('id', 'description', 'quantity', 'value')
+    _SEND_INSTRUCTION_PAGE = u'/ws/alpha/EnviarInstrucao/Unica'
+    _RUN_INSTRUCTION_PAGE = u'Instrucao.do?token='
+    _ITEM_DATA_REQUIRED_FIELDS = (u'id', u'description', u'quantity', u'value')
 
     _USER_DATA_TO_MOIP = {
-        'name': 'Nome',  # Nome completo do cliente.
-        'address': 'Logradouro',  # Logradouro do cliente (ex: Rua, Av, etc.)
-        'address_number': 'Numero',  # Nº do imóvel do cliente (ex: 12)
-        'address_complement': 'Complemento',  # Complemento (ex: Sala 109 ou Casa 1)
-        'address_zip_code': 'CEP',  # O CEP de 8 dígitos do cliente. Somente números (ex: 22345678)
-        'address_quarter': 'Bairro',  # Bairro do cliente
-        'address_city': 'Cidade',  # Cidade do cliente (ex: São Paulo)
-        'address_state': 'Estado',  # Estado do cliente (SP) no formato duas letras
-        'phone': 'TelefoneFixo',  # Telefone fixo do cliente
-        'email': 'Email',  # E-mail do cliente
+        u'name': u'Nome',  # Nome completo do cliente.
+        u'address': u'Logradouro',  # Logradouro do cliente (ex: Rua, Av, etc.)
+        u'address_number': u'Numero',  # Nº do imóvel do cliente (ex: 12)
+        u'address_complement': u'Complemento',  # Complemento (ex: Sala 109 ou Casa 1)
+        u'address_zip_code': u'CEP',  # O CEP de 8 dígitos do cliente. Somente números (ex: 22345678)
+        u'address_quarter': u'Bairro',  # Bairro do cliente
+        u'address_city': u'Cidade',  # Cidade do cliente (ex: São Paulo)
+        u'address_state': u'Estado',  # Estado do cliente (SP) no formato duas letras
+        u'phone': u'TelefoneFixo',  # Telefone fixo do cliente
+        u'email': u'Email',  # E-mail do cliente
     }
 
     def get_gateway_url(self, request):
         if PaymentProcessor.get_backend_setting('testing', False):
-            gateway_url = "https://desenvolvedor.moip.com.br/sandbox"
+            gateway_url = u"https://desenvolvedor.moip.com.br/sandbox"
         else:
-            gateway_url = "https://www.moip.com.br"
+            gateway_url = u"https://www.moip.com.br"
 
         xml_body = etree.Element("EnviarInstrucao")
         xml_instruction = etree.SubElement(xml_body, "InstrucaoUnica")
@@ -90,7 +90,7 @@ class PaymentProcessor(PaymentProcessorBase):
         response = requests.post(payment_full_url, auth=(user, pwd), data=contents).text
         moip_payment_token = etree.XML(response)[0][2].text
 
-        return "%s/%s%s " % (gateway_url, self._RUN_INSTRUCTION_PAGE, moip_payment_token), 'GET', {}
+        return u"%s/%s%s " % (gateway_url, self._RUN_INSTRUCTION_PAGE, moip_payment_token), 'GET', {}
 
     @staticmethod
     def process_notification(params):
@@ -115,4 +115,4 @@ class PaymentProcessor(PaymentProcessorBase):
     @staticmethod
     def _get_view_full_url(request, view_name, args=None):
         url = reverse(view_name, args=args)
-        return 'http://%s%s' % (request.get_host(), url)
+        return u'http://%s%s' % (request.get_host(), url)
