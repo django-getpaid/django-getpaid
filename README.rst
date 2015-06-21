@@ -83,7 +83,7 @@ Let's take an example from test project::
         def __unicode__(self):
             return self.name
 
-    getpaid.register_to_payment(Order, unique=False, related_name='payments')
+    Payment = getpaid.register_to_payment(Order, unique=False, related_name='payments')
 
 
 First of all, class name is not important at all. You register a model with ``register_to_payment`` method.
