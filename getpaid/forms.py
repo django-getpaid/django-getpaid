@@ -8,7 +8,7 @@ from django.utils.encoding import force_unicode
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
 from getpaid.models import Order
-from utils import get_backend_choices, import_name
+from .utils import get_backend_choices, import_name
 
 
 class PaymentRadioInput(RadioChoiceInput):
