@@ -184,7 +184,7 @@ So this is a little piece of logic that you need to provide to map your order to
 Most likely you would also like to give some sort of information about your customer to your payment processor. The signal ``getpaid.signals.user_data_query`` fills this gap. Here is the declaration::
 
     user_data_query = Signal(providing_args=['order', 'user_data'])
-    new_payment_query.__doc__ = """
+    user_data_query.__doc__ = """
     Sent to ask for filling user additional data:
     	user_data['email']:		user email
     	user_data['lang']:      lang code in ISO 2-char format
@@ -214,13 +214,13 @@ example code that handles status changes::
         E.g. lets change an order status.
         """
         if old_status != 'paid' and new_status == 'paid':
-            # Ensures that we process order only one
+            # Ensures that we process order only once
             instance.order.status = 'P'
             instance.order.save()
 
     signals.payment_status_changed.connect(payment_status_changed_listener)
 
-For example, when the payment status changes from any non 'paid' to 'paid' status, this means that all necessary amount was verified by your payment broker. You have access to the order object at ``payment.order``.
+For example, when the payment status changes to 'paid' status, this means that all necessary amount was verified by your payment broker. You have access to the order object at ``payment.order``.
 
 Handling new payment creation
 -----------------------------
