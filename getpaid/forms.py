@@ -4,12 +4,11 @@ from django.forms import forms
 from django.forms.fields import ChoiceField, CharField
 from django.forms.models import ModelChoiceField
 from django.forms.widgets import HiddenInput, RadioSelect, RadioFieldRenderer, RadioChoiceInput
-
 from django.utils.encoding import force_text
 
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
-from getpaid.models import Order
+from .models import Order
 from .utils import get_backend_choices, import_name
 
 
@@ -44,18 +43,18 @@ class PaymentMethodForm(forms.Form):
     """
     Displays all available payments backends as choice list.
     """
+    order = ModelChoiceField(widget=HiddenInput, queryset=Order.objects.all())
 
     def __init__(self, currency, *args, **kwargs):
         super(PaymentMethodForm, self).__init__(*args, **kwargs)
         backends = get_backend_choices(currency)
+
         self.fields['backend'] = ChoiceField(
             choices=backends,
             initial=backends[0][0] if len(backends) else '',
             label=_("Payment method"),
             widget=PaymentRadioSelect,
         )
-
-    order = ModelChoiceField(widget=HiddenInput, queryset=Order.objects.all())
 
     def clean_order(self):
         if hasattr(self.cleaned_data['order'], 'is_ready_for_payment'):

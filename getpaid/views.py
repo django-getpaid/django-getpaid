@@ -1,4 +1,6 @@
 # getpaid views
+import logging
+
 from django.conf import settings
 from django.core.exceptions import PermissionDenied, ImproperlyConfigured
 from django.core.urlresolvers import reverse
@@ -10,6 +12,9 @@ from django.views.generic.edit import FormView
 from getpaid.forms import PaymentMethodForm, ValidationError
 from getpaid.signals import (redirecting_to_payment_gateway_signal,
                              order_additional_validation)
+
+
+logger = logging.getLogger(__name__)
 
 
 class NewPaymentView(FormView):

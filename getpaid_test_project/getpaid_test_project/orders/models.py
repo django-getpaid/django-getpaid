@@ -2,6 +2,7 @@ from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils.encoding import python_2_unicode_compatible
 import getpaid
+from django.utils.encoding import python_2_unicode_compatible
 
 
 @python_2_unicode_compatible
@@ -26,7 +27,9 @@ class Order(models.Model):
         self.currency = self.currency.upper()
 
 
-getpaid.register_to_payment(Order, unique=False, related_name='payments')
+Payment = getpaid.register_to_payment(Order,
+                                      unique=False,
+                                      related_name='payments')
 
 #noinspection PyUnresolvedReferences
 from .listeners import *

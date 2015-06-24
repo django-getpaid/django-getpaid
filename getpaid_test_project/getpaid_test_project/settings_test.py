@@ -6,6 +6,7 @@ GETPAID_BACKENDS = (
     'getpaid.backends.payu',
     'getpaid.backends.transferuj',
     'getpaid.backends.przelewy24',
+    'getpaid.backends.epaydk',
 )
 
 GETPAID_BACKENDS_SETTINGS = {
@@ -28,6 +29,11 @@ GETPAID_BACKENDS_SETTINGS = {
     'getpaid.backends.przelewy24': {
         'id': 1234,
         'crc': '1111111111111111',
+    },
+
+    'getpaid.backends.epaydk': {
+        'merchantnumber': 'xxxxxxxx',
+        'secret': '4e89ea552f492d6711a6c13f99a2a1d4',
     },
 
 }

@@ -9,9 +9,10 @@ Replace this with more appropriate tests for your application.
 from decimal import Decimal
 from django.core.urlresolvers import reverse
 from django.db.models.loading import get_model
-from django.utils import six
 from django.test import TestCase
 from django.test.client import Client
+from django.utils.six.moves.urllib.parse import urlparse, parse_qs
+from django.http import HttpRequest
 import mock
 from getpaid.backends import przelewy24
 import getpaid.backends.payu
@@ -404,3 +405,59 @@ class Przelewy24PaymentProcessorTestCase(TestCase):
         self.assertEqual(payment.paid_on, None)
         self.assertEqual(payment.amount_paid, Decimal('0.0'))
 
+
+class EpaydkBackendTestCase(TestCase):
+    def setUp(self):
+        self.client = Client()
+        Payment = get_model('getpaid', 'Payment')
+        order = Order(name='Test DKK order', total='123.45', currency='DKK')
+        order.save()
+
+        payment = Payment(order=order,
+                          amount=order.total,
+                          currency=order.currency,
+                          backend='getpaid.backends.epaydk')
+        payment.save()
+        self.test_payment = Payment.objects.get(pk=payment.id)
+
+    def test_format_ammount(self):
+        payproc = getpaid.backends.epaydk.PaymentProcessor(self.test_payment)
+        self.assertEqual(payproc._format_amount(123), "123.00")
+        self.assertEqual(payproc._format_amount("123.0"), "123.00")
+        self.assertEqual(payproc._format_amount(123.321), "123.33")
+
+    def test_get_gateway_url(self):
+        payproc = getpaid.backends.epaydk.PaymentProcessor(self.test_payment)
+        fake_req = mock.MagicMock(HttpRequest)
+        actual = payproc.get_gateway_url(fake_req)
+        actual = list(urlparse(actual))
+
+        self.assertEqual(actual[0], 'https')
+        self.assertEqual(actual[1], 'ssl.ditonlinebetalingssystem.dk')
+        self.assertEqual(actual[2], '/integration/ewindow/Default.aspx')
+        self.assertEqual(actual[3], '')
+
+        expected = {
+            'amount': ['123.45'],
+            'currency': ['DKK'],
+            'hash': ['fe062bc6b5a968de175afbe4cdcac45c'],
+            'merchantnumber': ['xxxxxxxx'],
+            'mobile': ['1'],
+            'orderid': ['1'],
+            'submit': ['Go to payment'],
+            'windowstate': ['3']
+        }
+        self.assertEqual(parse_qs(actual[4]), expected)
+        self.assertEqual(actual[5], '')
+
+    def test_online_invalid(self):
+        response = self.client.get(reverse('getpaid-epaydk-online'))
+        self.assertEqual(response.content, b'400 Bad Request')
+        self.assertEqual(response.status_code, 400)
+
+    def test_online_post(self):
+        data = {'test': 'data'}
+        response = self.client.post(reverse('getpaid-epaydk-online'),
+                                    data=data)
+        self.assertEqual(response.content, b'405 Method Not Allowed')
+        self.assertEqual(response.status_code, 405)

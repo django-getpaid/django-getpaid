@@ -1,14 +1,18 @@
+import sys
+from datetime import datetime
 from django.db import models
 from django.utils import six
 from django.utils.timezone import utc
 from django.utils.translation import ugettext_lazy as _
 from django.utils.encoding import python_2_unicode_compatible
-from datetime import datetime
-import sys
 from .abstract_mixin import AbstractMixin
 from getpaid import signals
 from .utils import import_backend_modules
 from django.conf import settings
+
+if six.PY3:
+    unicode = str
+
 
 PAYMENT_STATUS_CHOICES = (
         ('new', _("new")),

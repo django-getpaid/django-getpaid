@@ -1,5 +1,7 @@
-from django.conf import settings
+# coding: utf8
 import sys
+from django.conf import settings
+from django.core.urlresolvers import reverse
 
 
 def import_name(name):
@@ -60,3 +62,9 @@ def get_backend_settings(backend):
         return backends_settings[backend]
     except KeyError:
         return {}
+
+
+def build_absolute_uri_for_site(site, view_name, scheme='https'):
+    domain = site.domain
+    path = reverse(view_name)
+    return u"{0}://{1}{2}".format(scheme, domain, path)
