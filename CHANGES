@@ -5,6 +5,13 @@ django-getpaid changes
 -------------------------------------
 * none yet
 
+Version 1.7.0
+-------------
+* Refactoring to support for py3 (3.4)
+* Change imports to be relative - fixes #43
+* Add USD to supported currencies in Paymill backend (thanks lauris)
+* Fix a few typos
+
 Version 1.6.0
 -------------
 * Adding paymill backend
