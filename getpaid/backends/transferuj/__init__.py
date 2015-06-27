@@ -1,8 +1,9 @@
 from decimal import Decimal
 import hashlib
 import logging
-import urllib
+from six.moves.urllib.parse import urlencode
 import datetime
+from django.utils import six
 from django.contrib.sites.models import Site
 from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse
@@ -16,59 +17,62 @@ logger = logging.getLogger('getpaid.backends.transferuj')
 
 
 class PaymentProcessor(PaymentProcessorBase):
-    BACKEND = 'getpaid.backends.transferuj'
-    BACKEND_NAME = _('Transferuj.pl')
-    BACKEND_ACCEPTED_CURRENCY = ('PLN', )
-    BACKEND_LOGO_URL = 'getpaid/backends/transferuj/transferuj_logo.png'
+    BACKEND = u'getpaid.backends.transferuj'
+    BACKEND_NAME = _(u'Transferuj.pl')
+    BACKEND_ACCEPTED_CURRENCY = (u'PLN', )
+    BACKEND_LOGO_URL = u'getpaid/backends/transferuj/transferuj_logo.png'
 
-    _GATEWAY_URL = 'https://secure.transferuj.pl'
-    _REQUEST_SIG_FIELDS = ('id', 'kwota', 'crc',)
-    _ALLOWED_IP = ('195.149.229.109', )
+    _GATEWAY_URL = u'https://secure.transferuj.pl'
+    _REQUEST_SIG_FIELDS = (u'id', u'kwota', u'crc',)
+    _ALLOWED_IP = (u'195.149.229.109', )
 
-    _ONLINE_SIG_FIELDS = ('id', 'tr_id', 'tr_amount', 'tr_crc', )
-    _ACCEPTED_LANGS = ('pl', 'en', 'de')
+    _ONLINE_SIG_FIELDS = (u'id', u'tr_id', u'tr_amount', u'tr_crc', )
+    _ACCEPTED_LANGS = (u'pl', u'en', u'de')
 
     @staticmethod
     def compute_sig(params, fields, key):
-        text = ''
+        text = u''
         for field in fields:
-            text += unicode(params.get(field, '')).encode('utf-8')
+            text += six.text_type(params.get(field, ''))
         text += key
-        return hashlib.md5(text).hexdigest()
+        text_encoded = text.encode('utf-8')
+        return six.text_type(hashlib.md5(text_encoded).hexdigest())
 
     @staticmethod
-    def online(ip, id, tr_id, tr_date, tr_crc, tr_amount, tr_paid, tr_desc, tr_status, tr_error, tr_email, md5sum):
+    def online(ip, id, tr_id, tr_date, tr_crc, tr_amount, tr_paid, tr_desc,
+               tr_status, tr_error, tr_email, md5sum):
 
-        allowed_ip = PaymentProcessor.get_backend_setting('allowed_ip', PaymentProcessor._ALLOWED_IP)
+        allowed_ip = PaymentProcessor.get_backend_setting('allowed_ip',
+            PaymentProcessor._ALLOWED_IP)
 
         if len(allowed_ip) != 0 and ip not in allowed_ip:
             logger.warning('Got message from not allowed IP %s' % str(allowed_ip))
-            return 'IP ERR'
+            return u'IP ERR'
 
         params = {'id': id, 'tr_id': tr_id, 'tr_amount': tr_amount, 'tr_crc': tr_crc}
         key = PaymentProcessor.get_backend_setting('key')
 
         if md5sum != PaymentProcessor.compute_sig(params, PaymentProcessor._ONLINE_SIG_FIELDS, key):
             logger.warning('Got message with wrong sig, %s' % str(params))
-            return 'SIG ERR'
+            return u'SIG ERR'
 
         if int(id) != int(PaymentProcessor.get_backend_setting('id')):
             logger.warning('Got message with wrong id, %s' % str(params))
-            return 'ID ERR'
+            return u'ID ERR'
 
         Payment = get_model('getpaid', 'Payment')
         try:
             payment = Payment.objects.select_related('order').get(pk=int(tr_crc))
         except (Payment.DoesNotExist, ValueError):
             logger.error('Got message with CRC set to non existing Payment, %s' % str(params))
-            return 'CRC ERR'
+            return u'CRC ERR'
 
         logger.info('Incoming payment: id=%s, tr_id=%s, tr_date=%s, tr_crc=%s, tr_amount=%s, tr_paid=%s, tr_desc=%s, tr_status=%s, tr_error=%s, tr_email=%s' % (id, tr_id, tr_date, tr_crc, tr_amount, tr_paid, tr_desc, tr_status, tr_error, tr_email))
 
         payment.external_id = tr_id
         payment.description = tr_email
 
-        if tr_status == 'TRUE':
+        if tr_status == u'TRUE':
             # Due to Transferuj documentation, we need to check if amount is correct
             payment.amount_paid = Decimal(tr_paid)
             payment.paid_on = datetime.datetime.utcnow().replace(tzinfo=utc)
@@ -80,7 +84,7 @@ class PaymentProcessor(PaymentProcessorBase):
         elif payment.status != 'paid':
             payment.change_status('failed')
 
-        return 'TRUE'
+        return u'TRUE'
 
     def get_gateway_url(self, request):
         """
@@ -116,7 +120,7 @@ class PaymentProcessor(PaymentProcessorBase):
         params['crc'] = self.payment.pk
 
         # amount is  in format XXX.YY PLN
-        params['kwota'] = str(self.payment.amount)
+        params['kwota'] = six.text_type(self.payment.amount)
 
         if signing:
             params['md5sum'] = PaymentProcessor.compute_sig(params, self._REQUEST_SIG_FIELDS, key)
@@ -124,22 +128,22 @@ class PaymentProcessor(PaymentProcessorBase):
         current_site = Site.objects.get_current()
 
         if PaymentProcessor.get_backend_setting('force_ssl_online', False):
-            params['wyn_url'] = 'https://' + current_site.domain + reverse('getpaid-transferuj-online')
+            params['wyn_url'] = u'https://' + current_site.domain + reverse('getpaid-transferuj-online')
         else:
-            params['wyn_url'] = 'http://' + current_site.domain + reverse('getpaid-transferuj-online')
+            params['wyn_url'] = u'http://' + current_site.domain + reverse('getpaid-transferuj-online')
 
         if PaymentProcessor.get_backend_setting('force_ssl_return', False):
-            params['pow_url'] = 'https://' + current_site.domain + reverse('getpaid-transferuj-success', kwargs={'pk': self.payment.pk})
-            params['pow_url_blad'] = 'https://' + current_site.domain + reverse('getpaid-transferuj-failure', kwargs={'pk': self.payment.pk})
+            params['pow_url'] = u'https://' + current_site.domain + reverse('getpaid-transferuj-success', kwargs={'pk': self.payment.pk})
+            params['pow_url_blad'] = u'https://' + current_site.domain + reverse('getpaid-transferuj-failure', kwargs={'pk': self.payment.pk})
         else:
-            params['pow_url'] = 'http://' + current_site.domain + reverse('getpaid-transferuj-success', kwargs={'pk': self.payment.pk})
-            params['pow_url_blad'] = 'http://' + current_site.domain + reverse('getpaid-transferuj-failure', kwargs={'pk': self.payment.pk})
+            params['pow_url'] = u'http://' + current_site.domain + reverse('getpaid-transferuj-success', kwargs={'pk': self.payment.pk})
+            params['pow_url_blad'] = u'http://' + current_site.domain + reverse('getpaid-transferuj-failure', kwargs={'pk': self.payment.pk})
 
         if PaymentProcessor.get_backend_setting('method', 'get').lower() == 'post':
             return self._GATEWAY_URL, 'POST', params
         elif PaymentProcessor.get_backend_setting('method', 'get').lower() == 'get':
             for key in params.keys():
-                params[key] = unicode(params[key]).encode('utf-8')
-            return self._GATEWAY_URL + '?' + urllib.urlencode(params), "GET", {}
+                params[key] = six.text_type(params[key]).encode('utf-8')
+            return self._GATEWAY_URL + '?' + urlencode(params), "GET", {}
         else:
             raise ImproperlyConfigured('Transferuj.pl payment backend accepts only GET or POST')
