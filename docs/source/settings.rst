@@ -77,3 +77,19 @@ Example::
     Setting this value has sense only if you are going to make ``Order.__unicode__()`` very custom, not suitable for
     presenting to user. Usually you should just define ``__unicode__`` method on your ``Order`` object
     and use it everywhere in the system.
+
+
+``GETPAID_ORDER_MODEL``
+-----------------------
+
+**Optional**
+String describing model name.
+
+Example::
+
+    GETPAID_ORDER_MODEL = 'my_super_app.Order'
+
+
+.. note::
+
+    Required for django 1.8
