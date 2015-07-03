@@ -92,4 +92,4 @@ Example::
 
 .. note::
 
-    Required for django 1.8
+    Required for django >=1.7

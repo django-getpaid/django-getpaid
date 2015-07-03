@@ -86,7 +86,7 @@ Let's take an example from test project::
     Payment = getpaid.register_to_payment(Order, unique=False, related_name='payments')
     
 
-For django 1.8 please add the following line to your settings:
+For django >=1.7 please add the following line to your settings:
 
     GETPAID_ORDER_MODEL = 'my_super_app.Order'
 

@@ -1,5 +1,6 @@
 # Django settings for getpaid_test_project project.
 
+GETPAID_ORDER_MODEL = 'orders.Order'
 
 GETPAID_BACKENDS = (
     'getpaid.backends.dummy',
