@@ -84,6 +84,11 @@ Let's take an example from test project::
             return self.name
 
     Payment = getpaid.register_to_payment(Order, unique=False, related_name='payments')
+    
+
+For django >=1.7 please add the following line to your settings:
+
+    GETPAID_ORDER_MODEL = 'my_super_app.Order'
 
 
 First of all, class name is not important at all. You register a model with ``register_to_payment`` method.

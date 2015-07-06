@@ -42,6 +42,11 @@ First of all you need a model that will represent an order in you application. I
     getpaid.register_to_payment(Order, unique=False, related_name='payments')
 
 
+For django 1.8 please add the following line to your settings:
+
+    GETPAID_ORDER_MODEL = 'my_super_app.Order'
+
+
 The class name is not important at all. Important is that you register your model using the ``register_to_payment`` method.
 
 .. autofunction:: getpaid.register_to_payment
