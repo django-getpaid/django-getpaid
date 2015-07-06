@@ -6,10 +6,11 @@ Replace this with more appropriate tests for your application.
 """
 from django.core.urlresolvers import reverse
 from django.db.models.loading import get_model
-
+from django.forms import ValidationError
 from django.test import TestCase
 from django.test.client import Client
 
+from getpaid import signals
 from getpaid_test_project.orders.models import Order
 
 
@@ -71,9 +72,32 @@ class OrderTest(TestCase):
         """
         order = Order(name='Test EUR order', total=100, currency='EUR')
         order.save()
-        response = self.client.post(reverse('getpaid-new-payment', kwargs={'currency': 'EUR'}),
+        response = self.client.post(reverse('getpaid-new-payment',
+                                            kwargs={'currency': 'EUR'}),
                                     {'order': order.pk,
-                                     'backend': 'getpaid.backends.payu'}
-        )
+                                     'backend': 'getpaid.backends.payu'})
         self.assertEqual(response.status_code, 403)
 
+    def test_failure_order_additional_validation(self):
+        """
+        Tests if HTTP304 when order additional validation signal raises
+        ValidationError exception.
+        """
+        def custom_validation_listener(sender=None, request=None, order=None,
+                                       backend=None, **kwargs):
+            raise ValidationError("BOOM!")
+        suid = 'test-order_additional_validation'
+        signals.order_additional_validation.connect(custom_validation_listener,
+                                                    dispatch_uid=suid)
+
+        order = Order(name='Test order custom validation',
+                      total=100,
+                      currency='PLN')
+        order.save()
+        try:
+            url = reverse('getpaid-new-payment', kwargs={'currency': 'PLN'})
+            data = {'order': order.pk, 'backend': 'getpaid.backends.payu'}
+            response = self.client.post(url, data)
+            self.assertEqual(response.status_code, 403)
+        finally:
+            signals.order_additional_validation.disconnect(dispatch_uid=suid)

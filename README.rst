@@ -213,7 +213,22 @@ Step 5. Handling new payment creation
 
 **Optional**
 
-For some reasons (e.g. for KPI benchmarking) it can be important to you how many and which payments were made.
+For some reasons you may want to make some additiona checks before a new
+Payment is created or add some extra validation before the user is redirected
+to gateway url. You can handle this with
+``getpaid.signals.order_additional_validation`` signal defined as::
+
+	order_additional_validation = Signal(providing_args=['request',
+                                                         'order',
+                                                         'backend'])
+	order_additional_validation.__doc__ = """
+	A hook for additional validation of an order.
+	Sent after PaymentMethodForm is submitted but before
+	Payment is created and before user is redirected to payment gateway.
+	"""
+
+It may also (e.g. for KPI benchmarking) be important for you to how many
+and which payments were made.
 You can handle ``getpaid.signals.new_payment`` signal defined as::
 
     new_payment = Signal(providing_args=['order', 'payment'])

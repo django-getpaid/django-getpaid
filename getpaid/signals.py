@@ -11,7 +11,7 @@ agnostic. After filling values just do return.
 """
 
 user_data_query = Signal(providing_args=['order', 'user_data'])
-new_payment_query.__doc__ = """
+user_data_query.__doc__ = """
 Sent to ask for filling user additional data:
     user_data['email']:		user email
     user_data['lang']:      lang code in ISO 2-char format
@@ -26,6 +26,16 @@ new_payment.__doc__ = """Sent after creating new payment."""
 
 payment_status_changed = Signal(providing_args=['old_status', 'new_status'])
 payment_status_changed.__doc__ = """Sent when Payment status changes."""
+
+
+order_additional_validation = Signal(providing_args=['request',
+                                                     'order',
+                                                     'backend'])
+order_additional_validation.__doc__ = """
+A hook for additional validation of an order.
+Sent after PaymentMethodForm is submitted but before
+Payment is created and before user is redirected to payment gateway.
+"""
 
 
 redirecting_to_payment_gateway_signal = Signal(providing_args=['request', 'order', 'payment', 'backend'])
