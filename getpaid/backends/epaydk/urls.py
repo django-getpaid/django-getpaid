@@ -1,16 +1,16 @@
 from django.conf.urls import patterns, url
 from django.views.decorators.csrf import csrf_exempt
-from getpaid.backends.epaydk.views import OnlineView, SuccessView, FailureView
+from getpaid.backends.epaydk.views import CallbackView, AcceptView, CancelView
 
 urlpatterns = patterns('',
     url(r'^online/$',
-        csrf_exempt(OnlineView.as_view()),
+        csrf_exempt(CallbackView.as_view()),
         name='getpaid-epaydk-online'),
-    url(r'^success/(?P<pk>\d+)/',
-        csrf_exempt(SuccessView.as_view()),
+    url(r'^success/',
+        csrf_exempt(AcceptView.as_view()),
         name='getpaid-epaydk-success'),
-    url(r'^failure/(?P<pk>\d+)/(?P<error>\d+)/',
-        csrf_exempt(FailureView.as_view()),
+    url(r'^failure/',
+        csrf_exempt(CancelView.as_view()),
         name='getpaid-epaydk-failure'),
 
 )

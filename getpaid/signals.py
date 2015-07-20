@@ -35,6 +35,8 @@ order_additional_validation.__doc__ = """
 A hook for additional validation of an order.
 Sent after PaymentMethodForm is submitted but before
 Payment is created and before user is redirected to payment gateway.
+Backend views can also sent it.
+It is expected for this signal to raise ValidationError.
 """
 
 

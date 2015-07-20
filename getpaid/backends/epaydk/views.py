@@ -1,20 +1,32 @@
 import logging
+from collections import OrderedDict
+
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseRedirect,\
     HttpResponseNotAllowed, HttpResponseBadRequest
 from django.views.generic.base import View
+from django.utils import six
 from django.utils.six.moves.urllib.parse import parse_qsl
-from django.views.generic.detail import DetailView
+from getpaid.backends.epaydk import PaymentProcessor
+from django.views.generic import View
+from django.shortcuts import redirect, get_object_or_404
+from django.forms import ValidationError
 from django.db.models.loading import get_model
 from getpaid.backends.epaydk import PaymentProcessor
-from .forms import EpaydkOnlineForm
-from collections import OrderedDict
+from django.conf import settings
+
+from .forms import EpaydkOnlineForm, EpaydkCancellForm
+from getpaid.signals import order_additional_validation
+
+if six.PY3:
+    unicode = str
+logger = logging.getLogger(__name__)
 
 
 logger = logging.getLogger(__name__)
 
 
-class OnlineView(View):
+class CallbackView(View):
     """
     This View answers on Epay.dk online request that is acknowledge of payment
     status change.
@@ -34,40 +46,79 @@ class OnlineView(View):
             for field, _ in params_list:
                 params[field] = form.cleaned_data[field]
             if PaymentProcessor.is_received_request_valid(params):
-                status = PaymentProcessor.online(params)
-                return HttpResponse(status)
-            logger.warning("Received invalid request - wrong md5 hash!")
-        logger.warning('Received invalid request from Epay.dk: %s',
-                       request.GET)
-        logger.debug("errors: %s", form.errors)
+                PaymentProcessor.confirmed(form.cleaned_data)
+                return HttpResponse('OK')
+            logger.error("MD5 hash check failed")
+        logger.error('CallbackView received invalid request')
+        logger.debug("GET: %s", request.GET)
+        logger.debug("form errors: %s", form.errors)
         return HttpResponseBadRequest('400 Bad Request')
 
 
-class SuccessView(DetailView):
-    """
-    This view just redirects to standard backend success link.
-    """
+class AcceptView(View):
+    def get(self, request):
+        Payment = get_model('getpaid', 'Payment')
+        form = EpaydkOnlineForm(request.GET)
+        if not form.is_valid():
+            logger.debug("EpaydkOnlineForm not valid")
+            logger.debug("form errors: %s", form.errors)
+            return HttpResponseBadRequest("Bad request")
 
-    def get_queryset(self):
-        self.model = get_model('getpaid', 'Payment')
-        return self.model._default_manager.all()
+        params = qs_to_ordered_params(request.META['QUERY_STRING'])
+        if not PaymentProcessor.is_received_request_valid(params):
+            logger.error("MD5 hash check failed")
+            return HttpResponseBadRequest("Bad request")
+
+        payment = get_object_or_404(Payment,
+                                    id=form.cleaned_data['orderid'])
+        try:
+            order_additional_validation\
+                .send(sender=self, request=self.request,
+                      order=payment.order,
+                      backend='getpaid.backends.epaydk')
+        except ValidationError:
+            logger.debug("order_additional_validation raised ValidationError")
+            return HttpResponseBadRequest("Bad request")
+
+        PaymentProcessor.accepted_in_progress(payment_id=payment.id)
+        url_name = getattr(settings, 'GETPAID_SUCCESS_URL_NAME', None)
+        if url_name:
+            return redirect(url_name, pk=payment.order.pk)
+        return redirect('getpaid-success-fallback', pk=payment.pk)
 
     def render_to_response(self, context, **response_kwargs):
         return HttpResponseRedirect(reverse('getpaid-success-fallback',
                                             kwargs={'pk': self.object.pk}))
 
 
-class FailureView(DetailView):
-    """
-    This view just redirects to standard backend failure link.
-    """
+class CancelView(View):
 
-    def get_queryset(self):
-        self.model = get_model('getpaid', 'Payment')
-        return self.model._default_manager.all()
+    def get(self, request):
+        """
+        Receives params: orderid as int payment id and error as negative int.
+        @warning: epay.dk doesn't send hash param!
+        """
+        Payment = get_model('getpaid', 'Payment')
+        form = EpaydkCancellForm(request.GET)
+        if not form.is_valid():
+            logger.debug("EpaydkCancellForm not valid")
+            logger.debug("form errors: %s", form.errors)
+            return HttpResponseBadRequest("Bad request")
 
-    def render_to_response(self, context, **response_kwargs):
-        logger.error("Payment %s failed on backend error %s" % \
-                     (self.kwargs['pk'], self.kwargs['error']))
-        return HttpResponseRedirect(reverse('getpaid-failure-fallback',
-                                            kwargs={'pk': self.object.pk}))
+        payment = get_object_or_404(Payment, id=form.cleaned_data['orderid'])
+
+        try:
+            order_additional_validation\
+                .send(sender=self, request=self.request,
+                      order=payment.order,
+                      backend='getpaid.backends.epaydk')
+        except ValidationError:
+            logger.debug("order_additional_validation raised ValidationError")
+            return HttpResponseBadRequest("Bad request")
+
+        PaymentProcessor.cancelled(payment_id=payment.id)
+
+        url_name = getattr(settings, 'GETPAID_FAILURE_URL_NAME', None)
+        if url_name:
+            return redirect(url_name, pk=payment.order.pk)
+        return redirect('getpaid-failure-fallback', pk=payment.pk)

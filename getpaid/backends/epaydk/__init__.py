@@ -9,11 +9,18 @@ from django.utils.translation import ugettext_lazy as _
 from django.contrib.sites.models import Site
 from django.db.models.loading import get_model
 from django.core.exceptions import ImproperlyConfigured
-from getpaid.backends import PaymentProcessorBase
-from django.utils.six.moves.urllib.parse import urlparse, urlunparse,\
-    parse_qsl, urlencode
-
 from django.utils import six
+from django.utils.six.moves.urllib.parse import urlparse, urlunparse,\
+    parse_qsl, urlencode, quote
+
+# FIXME: commit_on_success is not exactly what I would want here...
+try:
+    from django.db.transaction import commit_on_success_or_atomic
+except ImportError:
+    from django.db.transaction import atomic as commit_on_success_or_atomic
+
+from getpaid.backends import PaymentProcessorBase
+
 if six.PY3:
     unicode = str
 
@@ -23,7 +30,16 @@ logger = logging.getLogger(__name__)
 class PaymentProcessor(PaymentProcessorBase):
     BACKEND = 'getpaid.backends.epaydk'
     BACKEND_NAME = _('Epay.dk backend')
-    BACKEND_ACCEPTED_CURRENCY = (u'DKK', )
+
+    # @see also http://tech.epay.dk/en/currency-codes
+    BACKEND_ACCEPTED_CURRENCY_DICT = {
+        985: u'PLN',
+        978: u'EUR',
+        208: u'DKK',
+        826: u'GBP',
+        840: u'USD',
+    }
+    BACKEND_ACCEPTED_CURRENCY = (u'PLN', u'EUR', u'DKK', u'GBP', u'USD')
     BACKEND_LOGO_URL = u'https://d25dqh6gpkyuw6.cloudfront.net/company/226' +\
         '/logo/301.jpg?21-06-2015-16'
     BACKEND_GATEWAY_BASE_URL = u'https://ssl.ditonlinebetalingssystem.dk' +\
@@ -34,6 +50,24 @@ class PaymentProcessor(PaymentProcessorBase):
                                               rounding=ROUND_UP)
         with_decimal = u"{0:.2f}".format(amount_dec)
         return u''.join(with_decimal.split('.'))
+
+    @staticmethod
+    def get_currency_by_number(currency_id):
+        """
+        @see: http://tech.epay.dk/en/currency-codes
+        """
+        cur_dict = PaymentProcessor.BACKEND_ACCEPTED_CURRENCY_DICT
+        return cur_dict.get(int(currency_id))
+
+    @staticmethod
+    def get_number_for_currency(currency_code):
+        """
+        @see: http://tech.epay.dk/en/currency-codes
+        """
+        for cid, cval in \
+                PaymentProcessor.BACKEND_ACCEPTED_CURRENCY_DICT.items():
+            if cval == currency_code:
+                return cid
 
     @staticmethod
     def amount_to_python(amount_str):
@@ -52,7 +86,7 @@ class PaymentProcessor(PaymentProcessorBase):
         assert isinstance(params, OrderedDict)
         secret = unicode(PaymentProcessor.get_backend_setting('secret', ''))
         if not secret:
-            raise ImproperlyConfigured("epay.dk requires `secret` md5 hash"
+            raise ImproperlyConfigured("epaydk requires `secret` md5 hash"
                                        " setting")
 
         values = u''
@@ -99,23 +133,36 @@ class PaymentProcessor(PaymentProcessorBase):
             self.get_backend_setting('merchantnumber', ''))
         if not merchantnumber:
             raise ImproperlyConfigured("epay.dk requires merchantnumber")
-        orderid = unicode(self.payment.order.id)  # a-Z 0-9. Max. 9 characters.
-        print(self.payment.amount)
-        print(self._format_amount(self.payment.amount))
+
+        # According to docs order ID should be a-Z 0-9. Max. 9 characters.
+        # We use payment id here as we will have access to order from it.
+        payment_id = unicode(self.payment.id)
+
+        currency = unicode(PaymentProcessor.get_number_for_currency(
+                               self.payment.currency))
+
+        # timeout in minutes
+        timeout = unicode(self.get_backend_setting('timeout', '3'))
+        instantcallback = unicode(self.get_backend_setting('instantcallback',
+                                                           '0'))
+
         params = OrderedDict([
             (u'merchantnumber', merchantnumber),
-            (u'orderid', orderid),
-           (u'currency', self.payment.currency),
+            (u'orderid', payment_id),
+            (u'currency', currency),
             (u'amount', self._format_amount(self.payment.amount)),
             (u'windowstate', u'3'),  # 3 = Full screen
             (u'submit', u'Go to payment'),
             (u'mobile', u'1'),  # 1 = autodetect
-            # (u'callbackurl', reverse('getpaid-epaydk-online')),
+            (u'timeout', timeout),
+            (u'instantcallback', instantcallback),
         ])
 
-        accepturl_name = getattr(settings, 'GETPAID_SUCCESS_URL_NAME', '')
-        if accepturl_name:
-            params['accepturl'] = reverse(accepturl_name)
+
+        user_data = {
+            u'email': None,
+            u'lang': None,
+        }
 
         cancelurl_name = getattr(settings, 'GETPAID_FAILURE_URL_NAME', '')
         if cancelurl_name:
@@ -124,21 +171,44 @@ class PaymentProcessor(PaymentProcessorBase):
         params['hash'] = PaymentProcessor.compute_hash(params)
 
         url = u"{}?{}".format(self.BACKEND_GATEWAY_BASE_URL, urlencode(params))
-        return url
+        return (url, 'GET', {})
 
     def get_logo_url(self):
         return self.BACKEND_LOGO_URL
 
     @staticmethod
-    def online(params):
+    def confirmed(params):
+        """
+        Payment was confirmed.
+        """
         Payment = get_model('getpaid', 'Payment')
-        payment = Payment.objects.get(id=params['orderid'])
-        current_site = Site.objects.get_current()
-        use_ssl = PaymentProcessor.get_backend_setting('ssl_return', False)
-        return u'OK'
+        with commit_on_success_or_atomic():
+            payment = Payment.objects.get(id=params['orderid'])
+            if payment.status == 'in_progress':
+                payment.external_id = params['txnid']
+                #payment_datetime = datetime.datetime.combine(params['date'],
+                #                                            params['time'])
+                amount = PaymentProcessor.amount_to_python(params['amount'])
+                #txnfee = PaymentProcessor.amount_to_python(params['txnfee'])
+                payment.amount_paid = amount
+                return payment.on_success()
 
-    def payment_success(self):
-        pass
+    @staticmethod
+    def accepted_in_progress(payment_id=None):
+        """
+        Payment was accepted into the queue for processing.
+        """
+        Payment = get_model('getpaid', 'Payment')
+        with commit_on_success_or_atomic():
+            payment = Payment.objects.get(id=payment_id)
+            payment.change_status('in_progress')
 
-    def payment_failure(self):
-        pass
+    @staticmethod
+    def cancelled(payment_id=None):
+        """
+        Payment was cancelled.
+        """
+        Payment = get_model('getpaid', 'Payment')
+        with commit_on_success_or_atomic():
+            payment = Payment.objects.get(id=payment_id)
+            payment.change_status('cancelled')

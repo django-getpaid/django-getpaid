@@ -7,17 +7,23 @@ Replace this with more appropriate tests for your application.
 """
 
 from decimal import Decimal
+
 from django.core.urlresolvers import reverse
 from django.db.models.loading import get_model
 from django.test import TestCase
 from django.test.client import Client
-from django.utils.six.moves.urllib.parse import urlparse, parse_qs
+from django.test.utils import override_settings
+from django.utils.six.moves.urllib.parse import urlparse, parse_qs, \
+    parse_qsl, urlencode
 from django.http import HttpRequest
+from django.shortcuts import redirect
+from django.utils import six
+from django.contrib.sites.models import Site
 import mock
+
 from getpaid.backends import przelewy24
 import getpaid.backends.payu
 import getpaid.backends.transferuj
-
 from getpaid_test_project.orders.models import Order
 
 
@@ -437,23 +443,109 @@ class EpaydkBackendTestCase(TestCase):
         self.assertEqual(actual[2], '/integration/ewindow/Default.aspx')
         self.assertEqual(actual[3], '')
 
-        expected = {
-            'amount': ['123.45'],
-            'currency': ['DKK'],
-            'hash': ['fe062bc6b5a968de175afbe4cdcac45c'],
-            'merchantnumber': ['xxxxxxxx'],
-            'mobile': ['1'],
-            'orderid': ['1'],
-            'submit': ['Go to payment'],
-            'windowstate': ['3']
-        }
-        self.assertEqual(parse_qs(actual[4]), expected)
+        domain = Site.objects.get_current().domain
+        accepturl = u'https://'+ domain +'/getpaid.backends.epaydk/success/'
+        callbackurl = u'https://'+ domain +'/getpaid.backends.epaydk/online/'
+        cancelurl = u'https://'+ domain +'/getpaid.backends.epaydk/failure/'
+        expected = [
+            (u'merchantnumber', u'xxxxxxxx'),
+            (u'orderid', u'1'),
+            (u'currency', u'208'),
+            (u'amount', u'12345'),
+            (u'windowstate', u'3'),
+            (u'mobile', u'1'),
+            (u'timeout', u'3'),
+            (u'instantcallback', u'0'),
+            (u'language', u'2'),
+            (u'accepturl', accepturl),
+            (u'callbackurl', callbackurl),
+            (u'cancelurl', cancelurl),
+        ]
+        md5hash = payproc.compute_hash(OrderedDict(expected))
+        expected.append(('hash', md5hash))
+        self.assertListEqual(expected, parse_qsl(actual[4]))
         self.assertEqual(actual[5], '')
 
     def test_online_invalid(self):
         response = self.client.get(reverse('getpaid-epaydk-online'))
         self.assertEqual(response.content, b'400 Bad Request')
         self.assertEqual(response.status_code, 400)
+
+    @override_settings(GETPAID_SUCCESS_URL_NAME=None)
+    def test_accept_ok(self):
+        payproc = getpaid.backends.epaydk.PaymentProcessor(self.test_payment)
+        params = [
+            (u'txnid', u'48384464'),
+            (u'orderid', unicode(self.test_payment.id)),
+            (u'amount', payproc.format_amount(self.test_payment.amount)),
+            (u'currency', u'208'),
+            (u'date', u'20150716'),
+            (u'time', u'1638'),
+            (u'txnfee', u'0'),
+            (u'paymenttype', u'1'),
+            (u'cardno', u'444444XXXXXX4000'),
+        ]
+        md5hash = payproc.compute_hash(OrderedDict(params))
+        params.append(('hash', md5hash))
+        query = urlencode(params)
+        url = reverse('getpaid-epaydk-success') + '?' + query
+        response = self.client.get(url, data=params)
+        expected_url = reverse('getpaid-success-fallback',
+                               kwargs=dict(pk=self.test_payment.pk))
+        self.assertRedirects(response, expected_url, 302, 302,
+                             fetch_redirect_response=True)
+        Payment = get_model('getpaid', 'Payment')
+        actual = Payment.objects.get(id=self.test_payment.id)
+        self.assertEqual(actual.status, 'in_progress')
+
+    def test_online_ok(self):
+        self.test_payment.status = 'in_progress'
+        self.test_payment.save()
+        payproc = getpaid.backends.epaydk.PaymentProcessor(self.test_payment)
+        params = [
+            (u'txnid', u'48384464'),
+            (u'orderid', unicode(self.test_payment.id)),
+            (u'amount', payproc.format_amount(self.test_payment.amount)),
+            (u'currency', u'208'),
+            (u'date', u'20150716'),
+            (u'time', u'1638'),
+            (u'txnfee', u'0'),
+            (u'paymenttype', u'1'),
+            (u'cardno', u'444444XXXXXX4000'),
+        ]
+        md5hash = payproc.compute_hash(OrderedDict(params))
+        params.append(('hash', md5hash))
+        query = urlencode(params)
+        url = reverse('getpaid-epaydk-online') + '?' + query
+        response = self.client.get(url, data=params)
+        self.assertEqual(response.content, b'OK')
+        self.assertEqual(response.status_code, 200)
+        Payment = get_model('getpaid', 'Payment')
+        actual = Payment.objects.get(id=self.test_payment.id)
+        self.assertEqual(actual.status, 'paid')
+
+    def test_online_wrong_hash(self):
+        payproc = getpaid.backends.epaydk.PaymentProcessor(self.test_payment)
+        params = [
+            (u'txnid', u'48384464'),
+            (u'orderid', unicode(self.test_payment.id)),
+            (u'amount', payproc.format_amount(self.test_payment.amount)),
+            (u'currency', u'208'),
+            (u'date', u'20150716'),
+            (u'time', u'1638'),
+            (u'txnfee', u'0'),
+            (u'paymenttype', u'1'),
+            (u'cardno', u'444444XXXXXX4000'),
+        ]
+        params.append(('hash', '1234567'))
+        query = urlencode(params)
+        url = reverse('getpaid-epaydk-online') + '?' + query
+        response = self.client.get(url, data=params)
+        self.assertEqual(response.content, b'400 Bad Request')
+        self.assertEqual(response.status_code, 400)
+        Payment = get_model('getpaid', 'Payment')
+        actual = Payment.objects.get(id=self.test_payment.id)
+        self.assertEqual(actual.status, 'new')
 
     def test_online_post(self):
         data = {'test': 'data'}

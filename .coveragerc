@@ -14,4 +14,6 @@ exclude_lines =
     raise NotImplementedError
     if six.PY3
     raise ImproperlyConfigured
+    logger.debug
+    log.debug
 

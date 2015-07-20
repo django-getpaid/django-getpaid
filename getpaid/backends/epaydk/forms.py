@@ -1,4 +1,46 @@
+# encoding: utf8
 from django import forms
+from django.utils import six
+
+from . import PaymentProcessor
+
+
+if six.PY3:
+    unicode = str
+
+
+class CurrencyField(forms.Field):
+
+    def to_python(self, value):
+        try:
+            val_int = int(value)
+            currency = PaymentProcessor.get_currency_by_number(val_int)
+            if currency:
+                return currency
+        except (ValueError, TypeError):
+            pass
+
+        val = unicode(value).upper()
+        if PaymentProcessor.get_number_for_currency(val):
+            return val
+
+    def validate(self, value):
+
+        try:
+            val_int = int(value)
+            if PaymentProcessor.get_currency_by_number(val_int):
+                return
+        except (ValueError, TypeError):
+            pass
+
+        try:
+            val = unicode(value).upper()
+            if PaymentProcessor.get_number_for_currency(val):
+                return
+        except:
+            pass
+
+        raise forms.ValidationError("currency not found")
 
 
 class EpaydkOnlineForm(forms.Form):
@@ -40,9 +82,9 @@ class EpaydkOnlineForm(forms.Form):
     txnid = forms.IntegerField(required=True)
     orderid = forms.CharField(required=True)
     amount = forms.IntegerField(required=True)
-    currency = forms.IntegerField(required=True)
-    date = forms.DateField(required=True)
-    time = forms.IntegerField(required=True)
+    currency = CurrencyField(required=True)
+    date = forms.DateField(required=True, input_formats=['%Y-%m-%d', '%Y%m%d'])
+    time = forms.TimeField(required=True, input_formats=['%H%M', '%H%M%S'])
     hash = forms.CharField(required=True, max_length=32)
     fraud = forms.IntegerField(required=False)
     payercountry = forms.CharField(required=False, max_length=2)
