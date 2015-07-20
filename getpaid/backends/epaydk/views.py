@@ -35,10 +35,21 @@ class CallbackView(View):
     to ``PaymentProcessor.online()`` method.
 
     """
-    def post(self, request):
-        return HttpResponseNotAllowed('GET', '405 Method Not Allowed')
+    http_method_names = ['get', ]
 
     def get(self, request, *args, **kwargs):
+
+        cb_secret_path = PaymentProcessor\
+            .get_backend_setting('callback_secret_path', '')
+        if cb_secret_path:
+            if not kwargs.get('secret_path', ''):
+                logger.debug("empty secret path")
+                return HttpResponseBadRequest('400 Bad Request')
+
+            if cb_secret_path != kwargs.get('secret_path', ''):
+                logger.debug("invalid secret path")
+                return HttpResponseBadRequest('400 Bad Request')
+
         form = EpaydkOnlineForm(request.GET)
         if form.is_valid():
             params_list = parse_qsl(request.META['QUERY_STRING'])
@@ -46,9 +57,13 @@ class CallbackView(View):
             for field, _ in params_list:
                 params[field] = form.cleaned_data[field]
             if PaymentProcessor.is_received_request_valid(params):
-                PaymentProcessor.confirmed(form.cleaned_data)
-                return HttpResponse('OK')
-            logger.error("MD5 hash check failed")
+                try:
+                    PaymentProcessor.confirmed(form.cleaned_data)
+                    return HttpResponse('OK')
+                except AssertionError:
+                    pass
+            else:
+                logger.error("MD5 hash check failed")
         logger.error('CallbackView received invalid request')
         logger.debug("GET: %s", request.GET)
         logger.debug("form errors: %s", form.errors)
@@ -56,6 +71,14 @@ class CallbackView(View):
 
 
 class AcceptView(View):
+    """
+    This view is called after the payment is submitted for processing.
+    Redirects to GETPAID_SUCCESS_URL_NAME if it's defined
+    otherwise to getpaid-success-fallback.
+    """
+
+    http_method_names = ['get', ]
+
     def get(self, request):
         Payment = get_model('getpaid', 'Payment')
         form = EpaydkOnlineForm(request.GET)
@@ -75,12 +98,18 @@ class AcceptView(View):
             order_additional_validation\
                 .send(sender=self, request=self.request,
                       order=payment.order,
-                      backend='getpaid.backends.epaydk')
+                      backend=PaymentProcessor.BACKEND)
         except ValidationError:
             logger.debug("order_additional_validation raised ValidationError")
             return HttpResponseBadRequest("Bad request")
 
-        PaymentProcessor.accepted_in_progress(payment_id=payment.id)
+        try:
+            PaymentProcessor.accepted_for_processing(payment_id=payment.id)
+        except AssertionError as exc:
+            logger.debug("PaymentProcessor.accepted_for_processing"
+                         " raised AssertionError %s", exc, exc_info=1)
+            return HttpResponseBadRequest("Bad request")
+
         url_name = getattr(settings, 'GETPAID_SUCCESS_URL_NAME', None)
         if url_name:
             return redirect(url_name, pk=payment.order.pk)
@@ -92,6 +121,12 @@ class AcceptView(View):
 
 
 class CancelView(View):
+    """
+    This view is called after the payment is submitted for processing.
+    Redirects to GETPAID_FAILURE_URL_NAME if it's defined
+    otherwise to getpaid-failure-fallback.
+    """
+    http_method_names = ['get', ]
 
     def get(self, request):
         """
@@ -111,7 +146,7 @@ class CancelView(View):
             order_additional_validation\
                 .send(sender=self, request=self.request,
                       order=payment.order,
-                      backend='getpaid.backends.epaydk')
+                      backend=PaymentProcessor.BACKEND)
         except ValidationError:
             logger.debug("order_additional_validation raised ValidationError")
             return HttpResponseBadRequest("Bad request")

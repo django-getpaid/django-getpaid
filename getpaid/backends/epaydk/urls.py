@@ -3,6 +3,9 @@ from django.views.decorators.csrf import csrf_exempt
 from getpaid.backends.epaydk.views import CallbackView, AcceptView, CancelView
 
 urlpatterns = patterns('',
+    url(r'^online/(?P<secret_path>[a-zA-Z0-9]{32,96})/$',
+        csrf_exempt(CallbackView.as_view()),
+        name='getpaid-epaydk-online'),
     url(r'^online/$',
         csrf_exempt(CallbackView.as_view()),
         name='getpaid-epaydk-online'),

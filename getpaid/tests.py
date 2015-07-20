@@ -473,6 +473,9 @@ class EpaydkBackendTestCase(TestCase):
 
     @override_settings(GETPAID_SUCCESS_URL_NAME=None)
     def test_accept_ok(self):
+        self.test_payment.status = 'in_progress'
+        self.test_payment.save()
+
         payproc = getpaid.backends.epaydk.PaymentProcessor(self.test_payment)
         params = [
             (u'txnid', u'48384464'),
@@ -496,10 +499,10 @@ class EpaydkBackendTestCase(TestCase):
                              fetch_redirect_response=True)
         Payment = get_model('getpaid', 'Payment')
         actual = Payment.objects.get(id=self.test_payment.id)
-        self.assertEqual(actual.status, 'in_progress')
+        self.assertEqual(actual.status, 'accepted_for_proc')
 
     def test_online_ok(self):
-        self.test_payment.status = 'in_progress'
+        self.test_payment.status = 'accepted_for_proc'
         self.test_payment.save()
         payproc = getpaid.backends.epaydk.PaymentProcessor(self.test_payment)
         params = [
@@ -551,5 +554,5 @@ class EpaydkBackendTestCase(TestCase):
         data = {'test': 'data'}
         response = self.client.post(reverse('getpaid-epaydk-online'),
                                     data=data)
-        self.assertEqual(response.content, b'405 Method Not Allowed')
+        self.assertEqual(response.content, b'')
         self.assertEqual(response.status_code, 405)

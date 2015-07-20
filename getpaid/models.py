@@ -17,6 +17,7 @@ if six.PY3:
 PAYMENT_STATUS_CHOICES = (
         ('new', _("new")),
         ('in_progress', _("in progress")),
+        ('accepted_for_proc', _("accepted for processing")),
         ('partially_paid', _("partially paid")),
         ('paid', _("paid")),
         ('failed', _("failed")),

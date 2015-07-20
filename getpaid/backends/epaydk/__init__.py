@@ -164,9 +164,31 @@ class PaymentProcessor(PaymentProcessorBase):
             u'lang': None,
         }
 
-        cancelurl_name = getattr(settings, 'GETPAID_FAILURE_URL_NAME', '')
-        if cancelurl_name:
-            params['cancelurl'] = reverse(cancelurl_name)
+        signals.user_data_query.send(
+            sender=None, order=self.payment.order, user_data=user_data)
+
+        prefered = user_data['lang'] or 'en'
+        params['language'] = self._get_language_id(request, prefered=prefered)
+
+        current_site = Site.objects.get_current(request=request)
+
+        accepturl = build_absolute_uri_for_site(current_site,
+                                                'getpaid-epaydk-success',
+                                                scheme=request.scheme)
+        params['accepturl'] = accepturl
+
+        cb_secret_path = PaymentProcessor\
+            .get_backend_setting('callback_secret_path', '')
+        if not cb_secret_path:
+            cb_url = build_absolute_uri_for_site(current_site,
+                                                 'getpaid-epaydk-online',
+                                                 scheme=request.scheme)
+            params['callbackurl'] = cb_url
+
+        cancelurl = build_absolute_uri_for_site(current_site,
+                                                'getpaid-epaydk-failure',
+                                                scheme=request.scheme)
+        params['cancelurl'] = cancelurl
 
         params['hash'] = PaymentProcessor.compute_hash(params)
 
@@ -184,24 +206,27 @@ class PaymentProcessor(PaymentProcessorBase):
         Payment = get_model('getpaid', 'Payment')
         with commit_on_success_or_atomic():
             payment = Payment.objects.get(id=params['orderid'])
-            if payment.status == 'in_progress':
-                payment.external_id = params['txnid']
-                #payment_datetime = datetime.datetime.combine(params['date'],
-                #                                            params['time'])
-                amount = PaymentProcessor.amount_to_python(params['amount'])
-                #txnfee = PaymentProcessor.amount_to_python(params['txnfee'])
-                payment.amount_paid = amount
-                return payment.on_success()
+            assert payment.status == 'accepted_for_proc',\
+                "Can not confirm payment that was not accepted for processing"
+            payment.external_id = params['txnid']
+            #payment_datetime = datetime.datetime.combine(params['date'],
+            #                                            params['time'])
+            amount = PaymentProcessor.amount_to_python(params['amount'])
+            #txnfee = PaymentProcessor.amount_to_python(params['txnfee'])
+            payment.amount_paid = amount
+            return payment.on_success()
 
     @staticmethod
-    def accepted_in_progress(payment_id=None):
+    def accepted_for_processing(payment_id=None):
         """
         Payment was accepted into the queue for processing.
         """
         Payment = get_model('getpaid', 'Payment')
         with commit_on_success_or_atomic():
             payment = Payment.objects.get(id=payment_id)
-            payment.change_status('in_progress')
+            assert payment.status == 'in_progress',\
+                "Can not accept payment that is not in progress"
+            payment.change_status('accepted_for_proc')
 
     @staticmethod
     def cancelled(payment_id=None):
