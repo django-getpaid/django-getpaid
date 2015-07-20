@@ -1,0 +1,17 @@
+
+[run]
+omit = *mock*
+    *migrations*
+    *test*
+    *settings/*
+    */urls*
+
+[report]
+exclude_lines =
+    import
+    pragma: no cover
+    @staticmethod
+    raise NotImplementedError
+    if six.PY3
+    raise ImproperlyConfigured
+
