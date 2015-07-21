@@ -2,14 +2,17 @@ Welcome to django-getpaid!
 ============================
 
 .. image:: https://pypip.in/v/django-getpaid/badge.png
-   :target: https://crate.io/packages/django-getpaid
+    :target: https://pypi.python.org/pypi/django-getpaid
+    :alt: Latest PyPI version
 .. image:: https://pypip.in/d/django-getpaid/badge.png
-   :target: https://crate.io/packages/django-getpaid   
+    :target: https://pypi.python.org/pypi/django-getpaid
+    :alt: Number of PyPI downloads
 .. image:: https://travis-ci.org/cypreess/django-getpaid.png?branch=master
-   :target: https://travis-ci.org/cypreess/django-getpaid
-
+    :target: https://travis-ci.org/cypreess/django-getpaid
+.. image:: https://coveralls.io/repos/cypreess/django-getpaid/badge.svg?branch=master&service=github
+    :target: https://coveralls.io/github/cypreess/django-getpaid?branch=master
 .. image:: https://d2weczhvl823v0.cloudfront.net/cypreess/django-getpaid/trend.png
-   :target: https://bitdeli.com/free 
+    :target: https://bitdeli.com/free 
    
 Documentation: http://django-getpaid.readthedocs.org/en/latest/
 
