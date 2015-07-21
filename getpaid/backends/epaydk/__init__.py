@@ -6,6 +6,7 @@ import datetime
 from decimal import Decimal, ROUND_UP
 from collections import OrderedDict
 
+from django import VERSION
 from django.conf import settings
 from django.utils import six
 from django.core.urlresolvers import reverse
@@ -201,7 +202,10 @@ class PaymentProcessor(PaymentProcessorBase):
         prefered = user_data['lang'] or 'en'
         params['language'] = self._get_language_id(request, prefered=prefered)
 
-        current_site = Site.objects.get_current(request=request)
+        if VERSION[:2] >= (1, 8):
+            current_site = Site.objects.get_current(request=request)
+        else:
+            current_site = Site.objects.get_current()
 
         accepturl = build_absolute_uri_for_site(current_site,
                                                 'getpaid-epaydk-success',

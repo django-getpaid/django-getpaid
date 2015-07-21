@@ -506,8 +506,7 @@ class EpaydkBackendTestCase(TestCase):
         response = self.client.get(url, data=params)
         expected_url = reverse('getpaid-success-fallback',
                                kwargs=dict(pk=self.test_payment.pk))
-        self.assertRedirects(response, expected_url, 302, 302,
-                             fetch_redirect_response=True)
+        self.assertRedirects(response, expected_url, 302, 302)
         Payment = get_model('getpaid', 'Payment')
         actual = Payment.objects.get(id=self.test_payment.id)
         self.assertEqual(actual.status, 'accepted_for_proc')
@@ -574,10 +573,7 @@ class EpaydkBackendTestCase(TestCase):
         response = self.client.get(url)
         expected = reverse('getpaid-failure-fallback',
                            kwargs=dict(pk=self.test_payment.pk))
-        self.assertRedirects(response, expected,
-                             302,
-                             302, host='', msg_prefix='',
-                             fetch_redirect_response=True)
+        self.assertRedirects(response, expected, 302, 302)
         Payment = get_model('getpaid', 'Payment')
         actual = Payment.objects.get(id=self.test_payment.id)
         self.assertEqual(actual.status, 'cancelled')
