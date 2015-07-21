@@ -24,6 +24,7 @@ setup(
         ],
         'moip': [
             'requests',
+            'lxml'
         ],
         'paymill': [
             'pymill',
