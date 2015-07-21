@@ -13,3 +13,5 @@ install:
   - "pip install -q -r getpaid_test_project/pip.req --use-mirrors"
 # command to run tests
 script: "cd getpaid_test_project && python manage.py test getpaid_test_project getpaid --settings=getpaid_test_project.settings_test"
+after_success:
+  - coveralls
