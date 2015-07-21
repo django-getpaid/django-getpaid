@@ -20,6 +20,7 @@ PAYMENT_STATUS_CHOICES = (
         ('accepted_for_proc', _("accepted for processing")),
         ('partially_paid', _("partially paid")),
         ('paid', _("paid")),
+        ('cancelled', _("cancelled")),
         ('failed', _("failed")),
         )
 
