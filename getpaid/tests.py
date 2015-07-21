@@ -7,6 +7,7 @@ Replace this with more appropriate tests for your application.
 """
 
 from decimal import Decimal
+from collections import OrderedDict
 
 from django.core.urlresolvers import reverse
 from django.db.models.loading import get_model
@@ -20,12 +21,15 @@ from django.shortcuts import redirect
 from django.utils import six
 from django.contrib.sites.models import Site
 import mock
-
 from getpaid.backends import przelewy24
 import getpaid.backends.payu
 import getpaid.backends.transferuj
+
 from getpaid_test_project.orders.models import Order
 
+
+if six.PY3:
+    unicode = str
 
 class TransferujBackendTestCase(TestCase):
     def test_online_not_allowed_ip(self):
@@ -413,6 +417,8 @@ class Przelewy24PaymentProcessorTestCase(TestCase):
 
 
 class EpaydkBackendTestCase(TestCase):
+    maxDiff = None
+
     def setUp(self):
         self.client = Client()
         Payment = get_model('getpaid', 'Payment')
@@ -428,16 +434,21 @@ class EpaydkBackendTestCase(TestCase):
 
     def test_format_ammount(self):
         payproc = getpaid.backends.epaydk.PaymentProcessor(self.test_payment)
-        self.assertEqual(payproc._format_amount(123), "123.00")
-        self.assertEqual(payproc._format_amount("123.0"), "123.00")
-        self.assertEqual(payproc._format_amount(123.321), "123.33")
+        self.assertEqual(payproc.format_amount(123), "12300")
+        self.assertEqual(payproc.format_amount("123.0"), "12300")
+        self.assertEqual(payproc.format_amount(123.321), "12333")
 
     def test_get_gateway_url(self):
         payproc = getpaid.backends.epaydk.PaymentProcessor(self.test_payment)
-        fake_req = mock.MagicMock(HttpRequest)
+        fake_req = mock.MagicMock(spec=HttpRequest)
+        fake_req.scheme = 'https'
+        fake_req.COOKIES = {}
+        fake_req.META = {}
         actual = payproc.get_gateway_url(fake_req)
-        actual = list(urlparse(actual))
+        self.assertEqual(actual[1], "GET")
+        self.assertEqual(actual[2], {})
 
+        actual = list(urlparse(actual[0]))
         self.assertEqual(actual[0], 'https')
         self.assertEqual(actual[1], 'ssl.ditonlinebetalingssystem.dk')
         self.assertEqual(actual[2], '/integration/ewindow/Default.aspx')
@@ -556,3 +567,17 @@ class EpaydkBackendTestCase(TestCase):
                                     data=data)
         self.assertEqual(response.content, b'')
         self.assertEqual(response.status_code, 405)
+
+    def test_cancelled(self):
+        query = '?orderid=%s&error=-5543' % self.test_payment.id
+        url = reverse('getpaid-epaydk-failure') + query
+        response = self.client.get(url)
+        expected = reverse('getpaid-failure-fallback',
+                           kwargs=dict(pk=self.test_payment.pk))
+        self.assertRedirects(response, expected,
+                             302,
+                             302, host='', msg_prefix='',
+                             fetch_redirect_response=True)
+        Payment = get_model('getpaid', 'Payment')
+        actual = Payment.objects.get(id=self.test_payment.id)
+        self.assertEqual(actual.status, 'cancelled')

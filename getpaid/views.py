@@ -1,6 +1,5 @@
 # getpaid views
 import logging
-
 from django.conf import settings
 from django.core.exceptions import PermissionDenied, ImproperlyConfigured
 from django.core.urlresolvers import reverse
@@ -27,7 +26,8 @@ class NewPaymentView(FormView):
 
     def get(self, request, *args, **kwargs):
         """
-        This view operates only on POST requests from order view where you select payment method
+        This view operates only on POST requests from order view where
+        you select payment method
         """
         raise Http404
 
@@ -46,13 +46,16 @@ class NewPaymentView(FormView):
         processor = payment.get_processor()(payment)
         gateway_url_tuple = processor.get_gateway_url(self.request)
         payment.change_status('in_progress')
-        redirecting_to_payment_gateway_signal.send(sender=None, request=self.request, order=form.cleaned_data['order'], payment=payment, backend=form.cleaned_data['backend'])
+        redirecting_to_payment_gateway_signal.send(sender=None,
+            request=self.request, order=form.cleaned_data['order'],
+            payment=payment, backend=form.cleaned_data['backend'])
 
         if gateway_url_tuple[1].upper() == 'GET':
             return HttpResponseRedirect(gateway_url_tuple[0])
         elif gateway_url_tuple[1].upper() == 'POST':
             context = self.get_context_data()
-            context['gateway_url'] = processor.get_gateway_url(self.request)[0]
+            context['gateway_url'] = \
+                processor.get_gateway_url(self.request)[0]
             context['form'] = processor.get_form(gateway_url_tuple[2])
 
             return TemplateResponse(request=self.request,

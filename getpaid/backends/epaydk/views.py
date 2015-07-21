@@ -1,28 +1,22 @@
+# coding: utf8
 import logging
-from collections import OrderedDict
 
-from django.core.urlresolvers import reverse
-from django.http import HttpResponse, HttpResponseRedirect,\
-    HttpResponseNotAllowed, HttpResponseBadRequest
-from django.views.generic.base import View
+from django.conf import settings
 from django.utils import six
-from django.utils.six.moves.urllib.parse import parse_qsl
-from getpaid.backends.epaydk import PaymentProcessor
+from django.http import HttpResponse, HttpResponseBadRequest
 from django.views.generic import View
 from django.shortcuts import redirect, get_object_or_404
 from django.forms import ValidationError
 from django.db.models.loading import get_model
-from getpaid.backends.epaydk import PaymentProcessor
-from django.conf import settings
 
-from .forms import EpaydkOnlineForm, EpaydkCancellForm
+
+from getpaid.backends.epaydk import PaymentProcessor
 from getpaid.signals import order_additional_validation
+from getpaid.utils import qs_to_ordered_params
+from .forms import EpaydkOnlineForm, EpaydkCancellForm
 
 if six.PY3:
     unicode = str
-logger = logging.getLogger(__name__)
-
-
 logger = logging.getLogger(__name__)
 
 
@@ -52,10 +46,7 @@ class CallbackView(View):
 
         form = EpaydkOnlineForm(request.GET)
         if form.is_valid():
-            params_list = parse_qsl(request.META['QUERY_STRING'])
-            params = OrderedDict()
-            for field, _ in params_list:
-                params[field] = form.cleaned_data[field]
+            params = qs_to_ordered_params(request.META['QUERY_STRING'])
             if PaymentProcessor.is_received_request_valid(params):
                 try:
                     PaymentProcessor.confirmed(form.cleaned_data)
@@ -114,10 +105,6 @@ class AcceptView(View):
         if url_name:
             return redirect(url_name, pk=payment.order.pk)
         return redirect('getpaid-success-fallback', pk=payment.pk)
-
-    def render_to_response(self, context, **response_kwargs):
-        return HttpResponseRedirect(reverse('getpaid-success-fallback',
-                                            kwargs={'pk': self.object.pk}))
 
 
 class CancelView(View):

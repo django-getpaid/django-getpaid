@@ -1,15 +1,19 @@
+from copy import deepcopy
 import logging
 import hashlib
-from collections import OrderedDict
+import uuid
+import datetime
 from decimal import Decimal, ROUND_UP
+from collections import OrderedDict
 
 from django.conf import settings
+from django.utils import six
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import get_language_from_request
 from django.contrib.sites.models import Site
 from django.db.models.loading import get_model
 from django.core.exceptions import ImproperlyConfigured
-from django.utils import six
 from django.utils.six.moves.urllib.parse import urlparse, urlunparse,\
     parse_qsl, urlencode, quote
 
@@ -20,10 +24,12 @@ except ImportError:
     from django.db.transaction import atomic as commit_on_success_or_atomic
 
 from getpaid.backends import PaymentProcessorBase
+from getpaid.utils import build_absolute_uri_for_site
+from getpaid import signals
+
 
 if six.PY3:
     unicode = str
-
 logger = logging.getLogger(__name__)
 
 
@@ -45,8 +51,32 @@ class PaymentProcessor(PaymentProcessorBase):
     BACKEND_GATEWAY_BASE_URL = u'https://ssl.ditonlinebetalingssystem.dk' +\
         '/integration/ewindow/Default.aspx'
 
-    def _format_amount(self, amount):
-        amount_dec = Decimal(amount).quantize(Decimal('1.00'),
+    EPAYDK_LANGUAGE_IDS = {
+        'da': 1,
+        'en': 2,
+        'sv': 3,
+        'no': 4,
+        'kl': 5,
+        'is': 6,
+        'de': 7,
+        'fi': 8,
+        'es': 9,
+        'fr': 10,
+        'pl': 11,
+        'it': 12,
+        'nl': 13,
+    }
+
+    @staticmethod
+    def format_amount(amount):
+        """Return formated amount as number of "pennies".
+
+        Currently only currencies with 2 minor units are supported.
+
+        @see http://tech.epay.dk/en/specification
+        @see http://tech.epay.dk/en/currency-codes
+        """
+        amount_dec = Decimal(amount).quantize(Decimal('.00'),
                                               rounding=ROUND_UP)
         with_decimal = u"{0:.2f}".format(amount_dec)
         return u''.join(with_decimal.split('.'))
@@ -84,11 +114,11 @@ class PaymentProcessor(PaymentProcessorBase):
         @see http://tech.epay.dk/en/hash-md5-check
         """
         assert isinstance(params, OrderedDict)
+        params = deepcopy(params)
         secret = unicode(PaymentProcessor.get_backend_setting('secret', ''))
         if not secret:
             raise ImproperlyConfigured("epaydk requires `secret` md5 hash"
                                        " setting")
-
         values = u''
         for key, val in params.items():
             assert isinstance(val, six.text_type),\
@@ -116,18 +146,20 @@ class PaymentProcessor(PaymentProcessorBase):
                 return True
         return False
 
+    def _get_language_id(self, request, prefered='en'):
+        req_lang = get_language_from_request(request) or prefered
+        return unicode(self.EPAYDK_LANGUAGE_IDS.get(req_lang, 2))  # 2=en
+
     def get_gateway_url(self, request):
         """
         @see http://tech.epay.dk/en/payment-window-parameters
+        @see http://tech.epay.dk/en/specification
         @see http://tech.epay.dk/en/payment-window-how-to-get-started
 
         `accepturl` - payment accepted for processing.
         `cancelurl` - user closed window before the payment is completed.
         `callbackurl` - is called instantly from the ePay server when
                         the payment is completed.
-                        For security reasons `callbackurl` is removed from
-                        the request params, please use epay admin interface
-                        to configure it.
         """
         merchantnumber = unicode(
             self.get_backend_setting('merchantnumber', ''))
@@ -150,9 +182,8 @@ class PaymentProcessor(PaymentProcessorBase):
             (u'merchantnumber', merchantnumber),
             (u'orderid', payment_id),
             (u'currency', currency),
-            (u'amount', self._format_amount(self.payment.amount)),
+            (u'amount', PaymentProcessor.format_amount(self.payment.amount)),
             (u'windowstate', u'3'),  # 3 = Full screen
-            (u'submit', u'Go to payment'),
             (u'mobile', u'1'),  # 1 = autodetect
             (u'timeout', timeout),
             (u'instantcallback', instantcallback),

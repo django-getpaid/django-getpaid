@@ -77,6 +77,9 @@ class EpaydkOnlineForm(forms.Form):
         paymenttype    Integer    The payment type of the payment.    Yes
         cardno    String    Truncated card number formatted like
             444444XXXXXX4444.    No
+
+        @see http://tech.epay.dk/en/specification
+        @see http://tech.epay.dk/en/accept-callback-parameters
     """
 
     txnid = forms.IntegerField(required=True)
@@ -93,3 +96,8 @@ class EpaydkOnlineForm(forms.Form):
     subscriptionid = forms.IntegerField(required=False)
     paymenttype = forms.IntegerField(required=True)
     cardno = forms.CharField(required=False)
+
+
+class EpaydkCancellForm(forms.Form):
+    orderid = forms.IntegerField(required=True)
+    error = forms.IntegerField(required=False)

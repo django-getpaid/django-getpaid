@@ -1,7 +1,15 @@
 # coding: utf8
 import sys
+from collections import OrderedDict
+
 from django.conf import settings
+from django.utils import six
 from django.core.urlresolvers import reverse
+from django.utils.six.moves.urllib.parse import parse_qsl
+
+
+if six.PY3:
+    unicode = str
 
 
 def import_name(name):
@@ -73,3 +81,17 @@ def build_absolute_uri_for_site(site, view_name, scheme='https',
         reverse_kwargs = {}
     path = reverse(view_name, args=reverse_args, kwargs=reverse_kwargs)
     return u"{0}://{1}{2}".format(scheme, domain, path)
+
+
+def qs_to_ordered_params(query_string):
+    params_list = parse_qsl(unicode(query_string))
+    params = OrderedDict()
+    for field, value in params_list:
+        if isinstance(value, (list, tuple)):
+            value = value[0]
+        if isinstance(value, six.binary_type):
+            value = value.decode('utf8')
+        if isinstance(field, six.binary_type):
+            field = field.decode('utf8')
+        params[field] = value
+    return params
