@@ -1,4 +1,5 @@
 #noinspection PyUnresolvedReferences
+import sys
 from .settings import *
 
 GETPAID_BACKENDS = (
@@ -6,6 +7,7 @@ GETPAID_BACKENDS = (
     'getpaid.backends.payu',
     'getpaid.backends.transferuj',
     'getpaid.backends.przelewy24',
+    'getpaid.backends.epaydk',
 )
 
 GETPAID_BACKENDS_SETTINGS = {
@@ -30,5 +32,32 @@ GETPAID_BACKENDS_SETTINGS = {
         'crc': '1111111111111111',
     },
 
+    'getpaid.backends.epaydk': {
+        'merchantnumber': 'xxxxxxxx',
+        'secret': '4e89ea552f492d6711a6c13f99a2a1d4',
+    },
+
 }
 
+TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
+NOSE_ARGS = [
+     '--verbosity=2',
+     '--with-yanc',
+     #'--stop',
+     '--cover-branches',
+     '--with-coverage',
+     '--cover-erase',
+     '--cover-package=getpaid',
+     '--cover-package=getpaid_test_project.orders',
+     'getpaid',
+     'getpaid_test_project.orders'
+]
+
+for arg in sys.argv:
+    if arg.startswith('--tests='):
+        NOSE_ARGS = [
+            '--verbosity=2',
+            '--stop',
+            '--with-yanc',
+        ]
+        break
