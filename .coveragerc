@@ -1,6 +1,9 @@
 
 [run]
-omit = *mock*
+omit =
+    */python?.?/*
+    */site-packages/nose/*
+    *mock*
     *migrations*
     *test*
     *settings/*
@@ -11,9 +14,17 @@ exclude_lines =
     import
     pragma: no cover
     @staticmethod
-    raise NotImplementedError
     if six.PY3
+    raise AssertionError
+    raise NotImplementedError
     raise ImproperlyConfigured
     logger.debug
     log.debug
-
+omit =
+    */python?.?/*
+    */site-packages/nose/*
+    *mock*
+    *migrations*
+    *test*
+    *settings/*
+    */urls*
