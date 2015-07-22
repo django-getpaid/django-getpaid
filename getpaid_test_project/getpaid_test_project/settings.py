@@ -147,10 +147,8 @@ INSTALLED_APPS = (
 
     'getpaid',
 
-
-
-
     'getpaid_test_project.orders',
+
 ) + GETPAID_BACKENDS
 
 # A sample logging configuration. The only tangible logging

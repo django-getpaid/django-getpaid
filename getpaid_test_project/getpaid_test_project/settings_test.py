@@ -43,10 +43,8 @@ TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
 NOSE_ARGS = [
      '--verbosity=2',
      '--with-yanc',
-     #'--stop',
      '--cover-branches',
      '--with-coverage',
-     '--cover-erase',
      '--cover-package=getpaid',
      '--cover-package=getpaid_test_project.orders',
      'getpaid',
@@ -58,6 +56,7 @@ for arg in sys.argv:
         NOSE_ARGS = [
             '--verbosity=2',
             '--stop',
+#            '--cover-erase',
             '--with-yanc',
         ]
         break
