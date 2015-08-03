@@ -51,8 +51,9 @@ class CallbackView(View):
                 try:
                     PaymentProcessor.confirmed(form.cleaned_data)
                     return HttpResponse('OK')
-                except AssertionError:
-                    pass
+                except AssertionError as exc:
+                    logger.error("PaymentProcessor.confirmed raised"
+                                 " AssertionError: %s", exc, exc_info=1)
             else:
                 logger.error("MD5 hash check failed")
         logger.error('CallbackView received invalid request')
@@ -97,7 +98,7 @@ class AcceptView(View):
         try:
             PaymentProcessor.accepted_for_processing(payment_id=payment.id)
         except AssertionError as exc:
-            logger.debug("PaymentProcessor.accepted_for_processing"
+            logger.error("PaymentProcessor.accepted_for_processing"
                          " raised AssertionError %s", exc, exc_info=1)
             return HttpResponseBadRequest("Bad request")
 
