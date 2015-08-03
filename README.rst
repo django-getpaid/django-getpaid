@@ -31,6 +31,7 @@ Supported backends:
 In alphabetical order:
 
 * `Dotpay.pl/Dotpay.eu <http://dotpay.eu>`_
+* `Epay.dk <http://www.epay.dk>`_
 * `Moip.com.br <http://moip.com.br>`_
 * `PayU.pl <http://payu.pl>`_
 * `Paymill.com <http://paymill.com>`_
