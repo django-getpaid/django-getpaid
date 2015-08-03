@@ -1,3 +1,4 @@
+
 Welcome to django-getpaid!
 ============================
 
@@ -222,7 +223,7 @@ For example: when payment changes status to 'paid', it means that the necessary 
 by your payment broker. You can now access ``payment.order`` object and do some stuff here.
 
 Step 5. Handling new payment creation
------------------------------
+-------------------------------------
 
 **Optional**
 
@@ -254,7 +255,7 @@ You can handle ``getpaid.signals.new_payment`` signal defined as::
     the database for Payment model.
 
 Step 6. Setup your payment backends
----------------------------
+-----------------------------------
 
 **Required**
 
