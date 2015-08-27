@@ -338,6 +338,9 @@ Optional keys:
 
 **tax**
     1% charity (refer to Dotpay manual); default: ``False``
+
+**gateway_url**
+    You may want to change this to use dotpay testing account; default: ``https://ssl.dotpay.eu/``
     
 
 
