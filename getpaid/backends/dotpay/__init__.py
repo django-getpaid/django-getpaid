@@ -29,7 +29,7 @@ class PaymentProcessor(PaymentProcessorBase):
     BACKEND_ACCEPTED_CURRENCY = ('PLN', 'EUR', 'USD', 'GBP', 'JPY', 'CZK', 'SEK')
     BACKEND_LOGO_URL = 'getpaid/backends/dotpay/dotpay_logo.png'
 
-    _ALLOWED_IP = ('195.150.9.37', )
+    _ALLOWED_IP = ('195.150.9.37',)
     _ACCEPTED_LANGS = ('pl', 'en', 'de', 'it', 'fr', 'es', 'cz', 'ru', 'bg')
     _GATEWAY_URL = 'https://ssl.dotpay.eu/'
     _ONLINE_SIG_FIELDS = ('id', 'control', 't_id', 'amount', 'email', 'service', 'code', 'username', 'password', 't_status')
@@ -145,11 +145,13 @@ class PaymentProcessor(PaymentProcessorBase):
         if PaymentProcessor.get_backend_setting('tax', False):
             params['tax'] = 1
 
+        gateway_url = PaymentProcessor.get_backend_setting('gateway_url', self._GATEWAY_URL)
+
         if PaymentProcessor.get_backend_setting('method', 'get').lower() == 'post':
-            return self._GATEWAY_URL, 'POST', params
+            return gateway_url, 'POST', params
         elif PaymentProcessor.get_backend_setting('method', 'get').lower() == 'get':
             for key in params.keys():
                 params[key] = six.text_type(params[key]).encode('utf-8')
-            return self._GATEWAY_URL + '?' + urlencode(params), "GET", {}
+            return gateway_url + '?' + urlencode(params), "GET", {}
         else:
             raise ImproperlyConfigured('Dotpay payment backend accepts only GET or POST')
