@@ -341,6 +341,7 @@ Optional keys:
 
 **gateway_url**
     You may want to change this to use dotpay testing account; default: ``https://ssl.dotpay.eu/``
+    if Your id is 5 digits long, You can leave it as it is. New id's are working with gateway ``https://ssl.dotpay.pl/``
     
 
 
