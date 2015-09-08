@@ -341,7 +341,11 @@ Optional keys:
 
 **gateway_url**
     You may want to change this to use dotpay testing account; default: ``https://ssl.dotpay.eu/``
-    
+
+        .. warning::
+            Dotpay has strange policy regarding to gateway urls. It appears, that new accounts use ``https://ssl.dotpay.pl/``,
+            but old accounts, that have 5-digit long id's, should still use old gateway ``https://ssl.dotpay.eu/``. For reasons
+            of this behaviour You need to contact dotpay support.
 
 
 
