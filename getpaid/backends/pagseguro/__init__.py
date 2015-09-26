@@ -10,7 +10,6 @@ import time
 from django.utils.translation import ugettext_lazy as _
 from getpaid.signals import user_data_query
 from getpaid.backends import PaymentProcessorBase
-import urllib2
 import urllib
 from xml.dom.minidom import parseString
 
