@@ -27,3 +27,6 @@ pip-log.txt
 .mr.developer.cfg
 
 .idea/*
+
+#Sqlite DB
+*.db
