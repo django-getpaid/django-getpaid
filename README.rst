@@ -1,12 +1,23 @@
+
 Welcome to django-getpaid!
 ============================
 
-.. image:: https://pypip.in/v/django-getpaid/badge.png
-   :target: https://crate.io/packages/django-getpaid
-.. image:: https://pypip.in/d/django-getpaid/badge.png
-   :target: https://crate.io/packages/django-getpaid   
+.. image:: https://img.shields.io/pypi/v/django-getpaid.svg
+    :target: https://pypi.python.org/pypi/django-getpaid
+    :alt: Latest PyPI version
+.. image:: https://img.shields.io/pypi/dm/django-getpaid.svg
+    :target: https://pypi.python.org/pypi/django-getpaid
+    :alt: Number of PyPI downloads
 .. image:: https://travis-ci.org/cypreess/django-getpaid.png?branch=master
-   :target: https://travis-ci.org/cypreess/django-getpaid
+    :target: https://travis-ci.org/cypreess/django-getpaid
+.. image:: https://coveralls.io/repos/cypreess/django-getpaid/badge.svg?branch=master&service=github
+    :target: https://coveralls.io/github/cypreess/django-getpaid?branch=master
+.. image:: https://img.shields.io/badge/wheel-yes-green.svg
+    :target: https://pypi.python.org/pypi/django-getpaid
+.. image:: https://img.shields.io/pypi/l/django-getpaid.svg
+    :target: https://pypi.python.org/pypi/django-getpaid
+.. image:: https://d2weczhvl823v0.cloudfront.net/cypreess/django-getpaid/trend.png
+    :target: https://bitdeli.com/free
    
 Documentation: http://django-getpaid.readthedocs.org/en/latest/
 
@@ -25,6 +36,7 @@ Supported backends:
 In alphabetical order:
 
 * `Dotpay.pl/Dotpay.eu <http://dotpay.eu>`_
+* `Epay.dk <http://www.epay.dk>`_
 * `Moip.com.br <http://moip.com.br>`_
 * `PagSeguro.com.br <http://pagseguro.com.br>`_
 * `PayU.pl <http://payu.pl>`_
@@ -81,7 +93,12 @@ Let's take an example from test project::
         def __unicode__(self):
             return self.name
 
-    getpaid.register_to_payment(Order, unique=False, related_name='payments')
+    Payment = getpaid.register_to_payment(Order, unique=False, related_name='payments')
+    
+
+For django >=1.7 please add the following line to your settings:
+
+    GETPAID_ORDER_MODEL = 'my_super_app.Order'
 
 
 First of all, class name is not important at all. You register a model with ``register_to_payment`` method.
@@ -207,11 +224,26 @@ For example: when payment changes status to 'paid', it means that the necessary 
 by your payment broker. You can now access ``payment.order`` object and do some stuff here.
 
 Step 5. Handling new payment creation
------------------------------
+-------------------------------------
 
 **Optional**
 
-For some reasons (e.g. for KPI benchmarking) it can be important to you how many and which payments were made.
+For some reasons you may want to make some additiona checks before a new
+Payment is created or add some extra validation before the user is redirected
+to gateway url. You can handle this with
+``getpaid.signals.order_additional_validation`` signal defined as::
+
+	order_additional_validation = Signal(providing_args=['request',
+                                                         'order',
+                                                         'backend'])
+	order_additional_validation.__doc__ = """
+	A hook for additional validation of an order.
+	Sent after PaymentMethodForm is submitted but before
+	Payment is created and before user is redirected to payment gateway.
+	"""
+
+It may also (e.g. for KPI benchmarking) be important for you to how many
+and which payments were made.
 You can handle ``getpaid.signals.new_payment`` signal defined as::
 
     new_payment = Signal(providing_args=['order', 'payment'])
@@ -224,7 +256,7 @@ You can handle ``getpaid.signals.new_payment`` signal defined as::
     the database for Payment model.
 
 Step 6. Setup your payment backends
----------------------------
+-----------------------------------
 
 **Required**
 

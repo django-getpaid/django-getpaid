@@ -1,0 +1,30 @@
+
+[run]
+omit =
+    */python?.?/*
+    */site-packages/nose/*
+    *mock*
+    *migrations*
+    *test*
+    *settings/*
+    */urls*
+
+[report]
+exclude_lines =
+    import
+    pragma: no cover
+    @staticmethod
+    if six.PY3
+    raise AssertionError
+    raise NotImplementedError
+    raise ImproperlyConfigured
+    logger.debug
+    log.debug
+omit =
+    */python?.?/*
+    */site-packages/nose/*
+    *mock*
+    *migrations*
+    *test*
+    *settings/*
+    */urls*

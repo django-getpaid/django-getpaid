@@ -3,15 +3,17 @@ from django.core.exceptions import ValidationError
 from django.forms import forms
 from django.forms.fields import ChoiceField, CharField
 from django.forms.models import ModelChoiceField
-from django.forms.widgets import HiddenInput, RadioSelect, RadioFieldRenderer, RadioInput
-from django.utils.encoding import force_unicode
+from django.forms.widgets import HiddenInput, RadioSelect, RadioFieldRenderer, RadioChoiceInput
+
+from django.utils.encoding import force_text
+
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
 from getpaid.models import Order
-from utils import get_backend_choices, import_name
+from .utils import get_backend_choices, import_name
 
 
-class PaymentRadioInput(RadioInput):
+class PaymentRadioInput(RadioChoiceInput):
     def __init__(self, name, value, attrs, choice, index):
         super(PaymentRadioInput, self).__init__(name, value, attrs, choice, index)
         logo_url = import_name(choice[0]).PaymentProcessor.get_logo_url()
@@ -19,7 +21,7 @@ class PaymentRadioInput(RadioInput):
             self.choice_label = mark_safe('<img src="%s%s" alt="%s">' % (
                 getattr(settings, 'STATIC_URL', ''),
                 logo_url,
-                force_unicode(choice[1]),
+                force_text(choice[1]),
                 )
             )
 

@@ -1,5 +1,6 @@
 # Django settings for getpaid_test_project project.
 
+GETPAID_ORDER_MODEL = 'orders.Order'
 
 GETPAID_BACKENDS = (
     'getpaid.backends.dummy',
@@ -141,14 +142,13 @@ INSTALLED_APPS = (
     # 'django.contrib.admindocs',
 
     'djcelery',
-    'djcelery.transport',
+    # 'djcelery.transport',
+    'kombu.transport.django',
 
     'getpaid',
 
-
-
-
     'getpaid_test_project.orders',
+
 ) + GETPAID_BACKENDS
 
 # A sample logging configuration. The only tangible logging

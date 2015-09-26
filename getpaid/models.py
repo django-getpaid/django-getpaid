@@ -1,26 +1,36 @@
+import sys
+from datetime import datetime
 from django.db import models
+from django.utils import six
 from django.utils.timezone import utc
 from django.utils.translation import ugettext_lazy as _
-from datetime import datetime
-import sys
-from abstract_mixin import AbstractMixin
-import signals
-from utils import import_backend_modules
+from django.utils.encoding import python_2_unicode_compatible
+from .abstract_mixin import AbstractMixin
+from getpaid import signals
+from .utils import import_backend_modules
+from django.conf import settings
+
+if six.PY3:
+    unicode = str
+
 
 PAYMENT_STATUS_CHOICES = (
         ('new', _("new")),
         ('in_progress', _("in progress")),
+        ('accepted_for_proc', _("accepted for processing")),
         ('partially_paid', _("partially paid")),
         ('paid', _("paid")),
+        ('cancelled', _("cancelled")),
         ('failed', _("failed")),
         )
 
 
 class PaymentManager(models.Manager):
-    def get_query_set(self):
-        return super(PaymentManager, self).get_query_set().select_related('order')
+    def get_queryset(self):
+        return super(PaymentManager, self).get_queryset().select_related('order')
 
 
+@python_2_unicode_compatible
 class PaymentFactory(models.Model, AbstractMixin):
     """
     This is an abstract class that defines a structure of Payment model that will be
@@ -39,7 +49,7 @@ class PaymentFactory(models.Model, AbstractMixin):
     class Meta:
         abstract = True
 
-    def __unicode__(self):
+    def __str__(self):
         return _("Payment #%(id)d") % {'id': self.id}
 
     @classmethod
@@ -74,12 +84,14 @@ class PaymentFactory(models.Model, AbstractMixin):
         Always change payment status via this method. Otherwise the signal
         will not be emitted.
         """
-        old_status = self.status
-        self.status = new_status
-        self.save()
-        signals.payment_status_changed.send(
-            sender=type(self), instance=self,
-            old_status=old_status, new_status=new_status
+        if self.status != new_status:
+            # do anything only when status is really changed
+            old_status = self.status
+            self.status = new_status
+            self.save()
+            signals.payment_status_changed.send(
+                sender=type(self), instance=self,
+                old_status=old_status, new_status=new_status
             )
 
     def on_success(self, amount=None):
@@ -90,7 +102,10 @@ class PaymentFactory(models.Model, AbstractMixin):
 
         Returns boolean value if payment was fully paid
         """
-        self.paid_on = datetime.utcnow().replace(tzinfo=utc)
+        if getattr(settings, 'USE_TZ', False):
+            self.paid_on = datetime.utcnow().replace(tzinfo=utc)
+        else:
+            self.paid_on = datetime.now()
         if amount:
             self.amount_paid = amount
         else:

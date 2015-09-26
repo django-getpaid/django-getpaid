@@ -1,9 +1,9 @@
 Payment backends
 ================
 
-Payment backends are plug-and-play django applications that will make all necessary work to handle payment process via different money brokers. In this way you can handle multiple payment providers (not only multiple payment methods!) what is wise considering e.g. breakdown or downtime of a single payment broker.
+Payment backends are plug-and-play django applications that will make all necessary work to handle payment process via different money brokers. This way you can handle multiple payment providers (not only multiple payment methods!) what is wise taking into account possible problems like. breakdown or downtime of a single payment broker.
 
-Each payment backend delivers a payment channel for a defined list of currencies. When using ``PaymentMethodForm`` for displaying available payment methods for order it will automatically filter payment methods based on the provided payment currency. This is important as the system is designed to handle payments in multiple currencies. If you need to support currency conversions, you will need to do it before calling the payment method form in your part of application.
+Each payment backend delivers a payment channel for a defined list of currencies. When using a ``PaymentMethodForm`` for displaying available payment methods for order it will automatically filter payment methods based on the provided payment currency. This is important as the system is designed to handle payments in multiple currencies. If you need to support currency conversions, you will need to do it before calling the payment method form in your part of application.
 
 Just to have an overview, a payment backend has a very flexible architecture, allowing you to introduce your own logic, urls and even models.
 
@@ -12,9 +12,9 @@ Just to have an overview, a payment backend has a very flexible architecture, al
 
     **Getting real client IP address from HTTP request meta**
 
-    Many payment brokers for security reason requires checking or providing real clint IP address. For that reason the getpaid backend commonly uses ``REMOTE_ADDR`` HTTP meta. In most common production deployments your django app will stand after a number of proxy servers like Web server, caches, load balancers, you name it. This will cause that ``REMOTE_ADDR`` will **always** be set for your application as an IP of your Web proxy server (e.g. 127.0.0.0 if everything is set up on local machine).
+    Many payment brokers for security reason require you to verify or provide real client IP address. For that reason the getpaid backend commonly uses ``REMOTE_ADDR`` HTTP meta. In most common production deployments your django app will stand after a number of proxy servers like Web server, caches, load balancers, you name it. This will cause that ``REMOTE_ADDR`` will almost **always** reflect the IP of your Web proxy server (e.g. 127.0.0.1 if everything is set up on local machine).
 
-    For that reason you need to take care by yourself of having correctly set ``REMOTE_ADDR`` that actually points on **real** client IP. A good way to do that is to use commonly used HTTP header called ``X-Forwarded-For``. This is a header that is set by most common Web proxy servers  to the **real** client IP address. Using simple django middleware you can rewrite your request data to assure that **real** client IP address overwrites any address  in ``REMOTE_ADDR``. One of solution taken from `The Django Book <http://www.djangobook.com/en/2.0/chapter17/>`_ is to use following middleware class::
+    For that reason you need to take care by yourself of having set ``REMOTE_ADDR`` correctly so that it actually points to **real** client IP. A good way to do that is to use commonly used HTTP header called ``X-Forwarded-For``. This header is set by most common Web proxy servers to the **real** client IP address. Using simple django middleware you can rewrite your request data to assure that **real** client IP address overwrites any address in ``REMOTE_ADDR``. One of the solutions taken from `The Django Book <http://www.djangobook.com/en/2.0/chapter17/>`_ is to use following middleware class::
 
         class SetRemoteAddrFromForwardedFor(object):
             def process_request(self, request):
@@ -29,7 +29,7 @@ Just to have an overview, a payment backend has a very flexible architecture, al
                     request.META['REMOTE_ADDR'] = real_ip
 
 
-    Enabling this middleware in your ``settings.py`` will fix the issue. Just make sure that your Web proxy server is actually setting ``X-Forwarded-For`` HTTP header.
+    Enabling this middleware in your ``settings.py`` should fix the issue. Just make sure that your Web proxy server is actually setting ``X-Forwarded-For`` HTTP header.
 
 
 
@@ -37,7 +37,7 @@ Just to have an overview, a payment backend has a very flexible architecture, al
 
     **Set Sites domain name**
 
-    This module requires Sites framework to be enabled. All backends base on Sites domain configuration (to generate fully qualified URL for payment broker service). Please be sure that you set a correct domain for your deployment before running ``getpaid``.
+    This module requires Sites framework to be enabled. All backends are based on Sites domain configuration (to generate a fully qualified URL for a payment broker service). Please be sure that you set a correct domain for your deployment before running ``getpaid``.
 
 
 
@@ -45,7 +45,7 @@ Dummy backend ``getpaid.backends.dummy``
 ----------------------------------------
 This is a mock of payment backend that can be used only for testing/demonstrating purposes.
 
-Dummy backend is accepting only ``USD``, ``EUR`` or ``PLN`` currency transactions. After redirecting to payment page it will display a dummy form where you can accept or decline a payment.
+Dummy backend is accepting only ``USD``, ``EUR`` or ``PLN`` currency transactions. After redirecting to a payment page it will display a dummy form where you can accept or decline a payment.
 
 Enable backend
 ``````````````
@@ -54,20 +54,20 @@ Add backend full path to ``GETPAID_BACKENDS`` setting::
     GETPAID_BACKENDS += ('getpaid.backends.dummy', )
 
 
-Don't forget to add backend path also to ``INSTALLED_APPS``::
+Don't forget to add backend path to ``INSTALLED_APPS`` as well::
 
     INSTALLED_APPS += ('getpaid.backends.dummy', )
 
 Setup backend
 `````````````
-No additional setup is needed for dummy backend.
+No additional setup is needed for the dummy backend.
 
 
 
 
 PayU.pl backend ``getpaid.backends.payu``
 -----------------------------------------
-This backend can handle payment processing via Polish money broker `PayU <http://payu.pl>`_ which is currently a part of the biggest on Polish market e-commerce provider - Allegro Group.
+This backend can handle payment processing via Polish money broker `PayU <http://payu.pl>`_ which is currently a part of the biggest e-commerce providers on Polish market - Allegro Group.
 
 PayU accepts only payments in ``PLN``.
 
@@ -78,26 +78,26 @@ Add backend full path to ``GETPAID_BACKENDS`` setting::
     GETPAID_BACKENDS += ('getpaid.backends.payu', )
 
 
-Don't forget to add backend path also to ``INSTALLED_APPS``::
+Don't forget to add backend path to ``INSTALLED_APPS`` also::
 
     INSTALLED_APPS += ('getpaid.backends.payu', )
 
 
-There is no need to adding any urls definitions to main ``urls.py`` file, as they will be loaded automatically itself by ``getpaid`` application.
+There is no need to add any url definitions to the main ``urls.py`` file, as they will be loaded automatically by ``getpaid`` application.
 
 Setup backend
 `````````````
-In order to start working with PayU you will need to have an activated account in PayU service. In this service you will need to define a new Shop with new Point of Sale (POS). After that you will have an access to following configuration variables.
+In order to start working with PayU you will need to have an activated account in PayU service. There you will need to define a new Shop with new Point of Sale (POS). This will give you access to following configuration variables:
 
 
 **pos_id**
-    identificator of POS,
+    POS identificator,
 
 **key1**
-    according to PayU documentation this is a string that is used to compute md5 signature send by Shop,
+    according to PayU documentation this is a string that is used to compute md5 signature sent by Shop,
 
 **key2**
-    according to PayU documentation this is a string that is used to compute md5 signature send from Shop,
+    according to PayU documentation this is a string that is used to compute md5 signature sent from Shop,
 
 **pos_auth_key**
     just a kind of secret password for POS.
@@ -125,10 +125,10 @@ There are some additional options you can provide:
     for security reasons PayU can check a signature of all data that is sent from your service while redirecting to payment gateway; unless you really know what you are doing, this should be always on; default is True;
 
 **method**
-    the HTTP method how to connect with broker system on new payment; default is 'GET';
+    the HTTP method used to connect with broker system on new payment; default is 'GET';
 
 **testing**
-    when you test your service you can enable this option, all payments for PayU will have predefined "Test Payment" method which is provided by PayU service (need to be enabled); default is False;
+    when you test your service you can enable this option, all payments for PayU will have a predefined "Test Payment" method which is provided by PayU service (needs to be enabled); default is False;
 
 `getpaid_configuration` management command
 ``````````````````````````````````````````
@@ -136,7 +136,7 @@ After setting up django application it is also important to remember that some m
 
 ``getpaid.backends.payu`` comes with ``getpaid_configuration`` management script that simplifies getting those links in your particular django environment. This is because you can customize path prefix when including urls from ``getpaid``.
 
-It will produce following example output::
+It will produce the following example output::
 
     $. /manage.py  payu_configuration
     Login to PayU configuration page and setup following links:
@@ -150,7 +150,7 @@ It will produce following example output::
      * Online  URL: http://example.com/getpaid.backends.payu/online/
                     https://example.com/getpaid.backends.payu/online/
 
-    To change domain name please edit Sites settings. Don't forget to setup your web server to accept https connection in order to use secure links.
+    To change the domain name please edit Sites settings. Don't forget to setup your web server to accept https connection in order to use secure links.
 
     Request signing is ON
      * Please be sure that you enabled signing payments in PayU configuration page.
@@ -166,7 +166,7 @@ Running celery for asynchronus tasks
 
 This backend is asynchronous (as PayU requires an asynchronous architecture - they send a "ping" message that a payment change a status, and you need to asynchronously request theirs service for details of what has changed). That means that this backend requires django-celery application. Please refer to django-celery documentation for any additional information.
 
-If you just want to make a quick start with using django-getpaid and django-celery please remember that after successful installation and enabling django-celery in your project you will need to run celery workers in order to process asynchronous task that this application requires. You do that for example in this way::
+If you just want to make a quick start with using django-getpaid and django-celery please remember that after successful installation and enabling django-celery in your project you will need to run celery workers in order to process asynchronous task that this application requires. You can do that for example this way::
 
     $ python manage.py celery worker --loglevel=info
 
@@ -195,18 +195,18 @@ Don't forget to add backend path also to ``INSTALLED_APPS``::
     INSTALLED_APPS += ('getpaid.backends.transferuj', )
 
 
-There is no need to adding any urls definitions to main ``urls.py`` file, as they will be loaded automatically itself by ``getpaid`` application.
+There is no need to add any urls definitions to main ``urls.py`` file, as they will be loaded automatically by ``getpaid`` application.
 
 Setup backend
 `````````````
-In order to start working with Transferuj.pl you will need to have an activated account in Transferuj.pl service. The following setup information need to be provided in the ``GETPAID_BACKENDS_SETTINGS`` configuration dict:
+In order to start working with Transferuj.pl you will need to have an activated account in Transferuj.pl service. The following setup information is needed to be provided in the ``GETPAID_BACKENDS_SETTINGS`` configuration dict:
 
 
 **id**
     Transferuj.pl client identificator,
 
 **key**
-    random (max. 16 characters long) string, that will be used in security signing of requests,
+    random (max. 16 characters long) string, that will be used for request security signing,
 
 
 You need to provide this information in ``GETPAID_BACKENDS_SETTINGS`` dictionary::
@@ -234,7 +234,7 @@ There are some additional options you can provide:
 
     .. note::
 
-        Setting empty list ``[]`` completely disables checking of IP address what **NOT recommended**.
+        Setting an empty list ``[]`` completely disables checking of IP address which is **NOT recommended**.
 
 **force_ssl_online**
     default: False; this option when turned to True, will force getpaid to return an HTTPS URL for Transferuj.pl to send
@@ -338,7 +338,14 @@ Optional keys:
 
 **tax**
     1% charity (refer to Dotpay manual); default: ``False``
-    
+
+**gateway_url**
+    You may want to change this to use dotpay testing account; default: ``https://ssl.dotpay.eu/``
+
+        .. warning::
+            Dotpay has strange policy regarding to gateway urls. It appears, that new accounts use ``https://ssl.dotpay.pl/``,
+            but old accounts, that have 5-digit long id's, should still use old gateway ``https://ssl.dotpay.eu/``. For reasons
+            of this behaviour You need to contact dotpay support.
 
 
 
@@ -387,6 +394,24 @@ Optional keys:
 **ssl_return**
     set this option to ``True`` if a client should return to your site after payment using HTTP SSL; default ``False``
 
+
+Credit Card payments
+````````````````````
+
+To enable credit card payments you may want to provide some additional required information to getpaid via signal query::
+
+
+    def user_data_query_listener(sender, order=None, user_data=None, **kwargs):
+        """
+        Here we fill some static user data, just for test
+        """
+        user_data['p24_klient'] = u'Jan Nowak'
+        user_data['p24_adres'] = u'ul. Ulica 11'
+        user_data['p24_kod'] = u'00-000'
+        user_data['p24_miasto'] = u'Warszawa'
+        user_data['p24_kraj'] = u'PL'
+
+    signals.user_data_query.connect(user_data_query_listener)
 
 
 
