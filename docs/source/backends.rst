@@ -516,3 +516,46 @@ Though we have to display the form for the credit card data on our website, it w
 Integration into your website
 `````````````````````````````
 You can (and should) overwrite the ``getpaid_paymill_backend/paymill.html`` file, but be sure to both include the form as well as the ``getpaid_paymill_backend/paymill_form.html`` file that shows the actual form and handles the JavaScript.
+
+
+PagSeguro backend ``getpaid.backends.pagseguro``
+------------------------------------------------
+
+This backend can handle payment processing via brazilian money broker `PagSeguro.com.br <http://pagseguro.com.br>`_.
+
+PagSeguro accepts payments exclusively in ``BRL``.
+
+
+Setup backend
+`````````````
+In order to start working with PagSeguro you will need to have an activated account with PagSeguro.
+
+Required keys:
+
+**email**
+    your email account of PagSeguro
+
+**token**
+    your seller's account token
+    
+Optional keys:
+
+**testing**
+    if set to true it will use sandox URL. Default value is false.  
+Check the site of PagSeguro to more info about sandbox enviroment.  
+
+You need to provide this information in ``GETPAID_BACKENDS_SETTINGS`` dictionary::
+
+    GETPAID_BACKENDS_SETTINGS = {
+        'getpaid.backends.pagseguro' : {
+                'key': 'AB310XDOPQO13LXPAO',
+                'token': "AB310XDOPQO13LXPAO",
+                'testing': True,
+            },
+    }
+    
+    
+Status changes
+`````````````
+Even though Moip has 9 different statuses, this only translates into 3 statuses in `django-getpaid`. Before the payment is made, the initial status is `in_progress`. Once it moves in Moip to the authorized, the getpaid state also changes on this backend to paid. If at any point Moip changes the transaction status to chargeback or refunded, the status on this backend will also enter the failed state. Beware that all others statuses in between are ignored. You will not be notified if a transaction moves from paid to available or if it enters dispute. This should however make no difference, as it only really matters if your transaction at Moip changes from in dispute to refunded or chargedback (and both are tracked).
+
