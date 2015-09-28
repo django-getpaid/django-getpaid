@@ -31,7 +31,7 @@ class PaymentProcessor(PaymentProcessorBase):
     BACKEND = 'getpaid.backends.pagseguro'
     BACKEND_NAME = _('PagSeguro')
     BACKEND_ACCEPTED_CURRENCY = ('BRL', )
-    BACKEND_LOGO_URL = 'getpaid/backends/pagseguro/pagseguro_logo.png'
+    BACKEND_LOGO_URL = 'getpaid/backends/pagseguro/pag-seguro-logo.png'
 
     _SEND_INSTRUCTION_PAGE = '/checkout.php?'
     _CHECKOUT_INSTRUCTION_PAGE = "checkout/?"
