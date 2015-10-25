@@ -10,7 +10,7 @@ from decimal import Decimal
 from collections import OrderedDict
 
 from django.core.urlresolvers import reverse
-from django.db.models.loading import get_model
+from django.apps import apps
 from django.test import TestCase
 from django.test.client import Client
 from django.test.utils import override_settings
@@ -103,7 +103,7 @@ class TransferujBackendTestCase(TestCase):
                                                                              '6a9e045010c27dfed24774b0afa37d0b'))
 
     def test_online_payment_ok(self):
-        Payment = get_model('getpaid', 'Payment')
+        Payment = apps.get_model('getpaid', 'Payment')
         order = Order(name='Test EUR order', total='123.45', currency='PLN')
         order.save()
         payment = Payment(order=order, amount=order.total, currency=order.currency, backend='getpaid.backends.payu')
@@ -118,7 +118,7 @@ class TransferujBackendTestCase(TestCase):
         self.assertEqual(payment.amount_paid, Decimal('123.45'))
 
     def test_online_payment_ok_over(self):
-        Payment = get_model('getpaid', 'Payment')
+        Payment = apps.get_model('getpaid', 'Payment')
         order = Order(name='Test EUR order', total='123.45', currency='PLN')
         order.save()
         payment = Payment(order=order, amount=order.total, currency=order.currency, backend='getpaid.backends.payu')
@@ -133,7 +133,7 @@ class TransferujBackendTestCase(TestCase):
         self.assertEqual(payment.amount_paid, Decimal('223.45'))
 
     def test_online_payment_partial(self):
-        Payment = get_model('getpaid', 'Payment')
+        Payment = apps.get_model('getpaid', 'Payment')
         order = Order(name='Test EUR order', total='123.45', currency='PLN')
         order.save()
         payment = Payment(order=order, amount=order.total, currency=order.currency, backend='getpaid.backends.payu')
@@ -148,7 +148,7 @@ class TransferujBackendTestCase(TestCase):
         self.assertEqual(payment.amount_paid, Decimal('23.45'))
 
     def test_online_payment_failure(self):
-        Payment = get_model('getpaid', 'Payment')
+        Payment = apps.get_model('getpaid', 'Payment')
         order = Order(name='Test EUR order', total='123.45', currency='PLN')
         order.save()
         payment = Payment(order=order, amount=order.total, currency=order.currency, backend='getpaid.backends.payu')
@@ -291,7 +291,7 @@ trans_sig:e4e981bfa780fa78fb077ca1f9295f2a
 
     @mock.patch("getpaid.backends.payu.urlopen", fake_payment_get_response_success)
     def test_payment_get_paid(self):
-        Payment = get_model('getpaid', 'Payment')
+        Payment = apps.get_model('getpaid', 'Payment')
         order = Order(name='Test EUR order', total='123.45', currency='PLN')
         order.save()
         payment = Payment(pk=99, order=order, amount=order.total, currency=order.currency,
@@ -307,7 +307,7 @@ trans_sig:e4e981bfa780fa78fb077ca1f9295f2a
 
     @mock.patch("getpaid.backends.payu.urlopen", fake_payment_get_response_failure)
     def test_payment_get_failed(self):
-        Payment = get_model('getpaid', 'Payment')
+        Payment = apps.get_model('getpaid', 'Payment')
         order = Order(name='Test EUR order', total='123.45', currency='PLN')
         order.save()
         payment = Payment(pk=98, order=order, amount=order.total, currency=order.currency,
@@ -362,7 +362,7 @@ class Przelewy24PaymentProcessorTestCase(TestCase):
 
     @mock.patch("getpaid.backends.przelewy24.urlopen", fake_przelewy24_payment_get_response_success)
     def test_get_payment_status_success(self):
-        Payment = get_model('getpaid', 'Payment')
+        Payment = apps.get_model('getpaid', 'Payment')
         order = Order(name='Test PLN order', total='123.45', currency='PLN')
         order.save()
         payment = Payment(pk=191, order=order, amount=order.total, currency=order.currency,
@@ -380,7 +380,7 @@ class Przelewy24PaymentProcessorTestCase(TestCase):
     @mock.patch("getpaid.backends.przelewy24.urlopen",
                 fake_przelewy24_payment_get_response_success)
     def test_get_payment_status_success_partial(self):
-        Payment = get_model('getpaid', 'Payment')
+        Payment = apps.get_model('getpaid', 'Payment')
         order = Order(name='Test PLN order', total='123.45', currency='PLN')
         order.save()
 
@@ -399,7 +399,7 @@ class Przelewy24PaymentProcessorTestCase(TestCase):
 
     @mock.patch("getpaid.backends.przelewy24.urlopen", fake_przelewy24_payment_get_response_failed)
     def test_get_payment_status_failed(self):
-        Payment = get_model('getpaid', 'Payment')
+        Payment = apps.get_model('getpaid', 'Payment')
         order = Order(name='Test PLN order', total='123.45', currency='PLN')
         order.save()
 
@@ -421,7 +421,7 @@ class EpaydkBackendTestCase(TestCase):
 
     def setUp(self):
         self.client = Client()
-        Payment = get_model('getpaid', 'Payment')
+        Payment = apps.get_model('getpaid', 'Payment')
         order = Order(name='Test DKK order', total='123.45', currency='DKK')
         order.save()
 
@@ -507,7 +507,7 @@ class EpaydkBackendTestCase(TestCase):
         expected_url = reverse('getpaid-success-fallback',
                                kwargs=dict(pk=self.test_payment.pk))
         self.assertRedirects(response, expected_url, 302, 302)
-        Payment = get_model('getpaid', 'Payment')
+        Payment = apps.get_model('getpaid', 'Payment')
         actual = Payment.objects.get(id=self.test_payment.id)
         self.assertEqual(actual.status, 'accepted_for_proc')
 
@@ -533,7 +533,7 @@ class EpaydkBackendTestCase(TestCase):
         response = self.client.get(url, data=params)
         self.assertEqual(response.content, b'OK')
         self.assertEqual(response.status_code, 200)
-        Payment = get_model('getpaid', 'Payment')
+        Payment = apps.get_model('getpaid', 'Payment')
         actual = Payment.objects.get(id=self.test_payment.id)
         self.assertEqual(actual.status, 'paid')
 
@@ -556,7 +556,7 @@ class EpaydkBackendTestCase(TestCase):
         response = self.client.get(url, data=params)
         self.assertEqual(response.content, b'400 Bad Request')
         self.assertEqual(response.status_code, 400)
-        Payment = get_model('getpaid', 'Payment')
+        Payment = apps.get_model('getpaid', 'Payment')
         actual = Payment.objects.get(id=self.test_payment.id)
         self.assertEqual(actual.status, 'new')
 
@@ -574,6 +574,6 @@ class EpaydkBackendTestCase(TestCase):
         expected = reverse('getpaid-failure-fallback',
                            kwargs=dict(pk=self.test_payment.pk))
         self.assertRedirects(response, expected, 302, 302)
-        Payment = get_model('getpaid', 'Payment')
+        Payment = apps.get_model('getpaid', 'Payment')
         actual = Payment.objects.get(id=self.test_payment.id)
         self.assertEqual(actual.status, 'cancelled')

@@ -32,7 +32,7 @@ class NewPaymentView(FormView):
         raise Http404
 
     def form_valid(self, form):
-        from getpaid.models import Payment
+        from getpaid.utils import Payment
         try:
             order_additional_validation\
                 .send(sender=None, request=self.request,
@@ -73,7 +73,7 @@ class FallbackView(RedirectView):
     permanent = False
 
     def get_redirect_url(self, **kwargs):
-        from getpaid.models import Payment
+        from getpaid.utils import Payment
         self.payment = get_object_or_404(Payment, pk=self.kwargs['pk'])
 
         if self.success:

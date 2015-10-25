@@ -7,7 +7,6 @@ from django.utils.translation import ugettext_lazy as _
 from django.utils.encoding import python_2_unicode_compatible
 from .abstract_mixin import AbstractMixin
 from getpaid import signals
-from .utils import import_backend_modules
 from django.conf import settings
 
 if six.PY3:
@@ -61,6 +60,7 @@ class PaymentFactory(models.Model, AbstractMixin):
         """
             Builds Payment object based on given Order instance
         """
+        from .utils import Payment
         payment = Payment()
         payment.order = order
         payment.backend = backend
@@ -123,35 +123,3 @@ class PaymentFactory(models.Model, AbstractMixin):
         """
         self.change_status('failed')
 
-
-from django.db.models.loading import cache as app_cache, register_models
-#from utils import import_backend_modules
-
-
-def register_to_payment(order_class, **kwargs):
-    """
-    A function for registering unaware order class to ``getpaid``. This will
-    generate a ``Payment`` model class that will store payments with
-    ForeignKey to original order class
-
-    This also will build a model class for every enabled backend.
-    """
-    global Payment
-    global Order
-
-    class Payment(PaymentFactory.construct(order=order_class, **kwargs)):
-        objects = PaymentManager()
-
-        class Meta:
-            ordering = ('-created_on',)
-            verbose_name = _("Payment")
-            verbose_name_plural = _("Payments")
-
-    Order = order_class
-
-    # Now build models for backends
-
-    backend_models_modules = import_backend_modules('models')
-    for backend_name, models in backend_models_modules.items():
-        app_cache.register_models(backend_name, *models.build_models(Payment))
-    return Payment

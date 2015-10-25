@@ -4,7 +4,7 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.views.generic.base import View
 from django.views.generic.detail import DetailView
 from getpaid.backends.payu import PaymentProcessor
-from getpaid.models import Payment
+from getpaid.utils import Payment
 
 logger = logging.getLogger('getpaid.backends.payu')
 
