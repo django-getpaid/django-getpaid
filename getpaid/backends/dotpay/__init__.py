@@ -61,7 +61,7 @@ class PaymentProcessor(PaymentProcessorBase):
         if params['id'] != int(PaymentProcessor.get_backend_setting('id')):
             return u'ID ERR'
 
-        from getpaid.models import Payment
+        from getpaid.utils import Payment
         try:
             payment = Payment.objects.get(pk=int(params['control']))
         except (ValueError, Payment.DoesNotExist):

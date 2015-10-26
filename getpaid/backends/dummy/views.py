@@ -3,7 +3,7 @@ from django.shortcuts import get_object_or_404
 from django.views.generic.edit import FormView
 from getpaid.backends.dummy import PaymentProcessor
 from getpaid.backends.dummy.forms import DummyQuestionForm
-from getpaid.models import Payment
+from getpaid.utils import Payment
 
 
 class DummyAuthorizationView(FormView):

@@ -4,7 +4,7 @@ from django.http import HttpResponse, Http404, HttpResponseRedirect
 from django.views.generic import DetailView
 from django.views.generic.base import View
 from getpaid.backends.moip import PaymentProcessor
-from getpaid.models import Payment
+from getpaid.utils import Payment
 
 logger = logging.getLogger('getpaid.backends.moip')
 

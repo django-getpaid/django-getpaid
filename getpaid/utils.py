@@ -95,3 +95,37 @@ def qs_to_ordered_params(query_string):
             field = field.decode('utf8')
         params[field] = value
     return params
+
+
+def register_to_payment(order_class, **kwargs):
+    """
+    A function for registering unaware order class to ``getpaid``. This will
+    generate a ``Payment`` model class that will store payments with
+    ForeignKey to original order class
+
+    This also will build a model class for every enabled backend.
+    """
+    from .models import PaymentFactory, PaymentManager
+    from django.utils.translation import ugettext_lazy as _
+
+    global Payment
+    global Order
+
+    class Payment(PaymentFactory.construct(order=order_class, **kwargs)):
+        objects = PaymentManager()
+
+        class Meta:
+            ordering = ('-created_on',)
+            verbose_name = _("Payment")
+            verbose_name_plural = _("Payments")
+
+    Order = order_class
+
+    # Now build models for backends
+    from django.apps import apps
+
+    backend_models_modules = import_backend_modules('models')
+    for backend_name, models in backend_models_modules.items():
+        for model in models.build_models(Payment):
+            apps.register_model(backend_name, model)
+    return Payment
