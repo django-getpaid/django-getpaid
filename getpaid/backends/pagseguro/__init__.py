@@ -2,16 +2,17 @@
 from decimal import Decimal
 import logging
 import datetime
+import uuid
+import requests
+import time
+import urllib2
+import urllib
 from django.core.urlresolvers import reverse
 from django.db.models import get_model
 from django.utils.timezone import utc
-import requests
-import time
 from django.utils.translation import ugettext_lazy as _
 from getpaid.signals import user_data_query
 from getpaid.backends import PaymentProcessorBase
-import urllib2
-import urllib
 from xml.dom.minidom import parseString
 
 
@@ -29,15 +30,26 @@ class PagseguroTransactionStatus:
 
 
 class PaymentProcessor(PaymentProcessorBase):
+    """
+
+    Backend Settings:
+
+    gateway_url_start_transac: url to init the transatcion with
+    pagseguro payment service. This url is used only to send client
+    data such phone, name, email, product...
+
+    gateway_url_payment: url to redirect the client to pay the bill.
+    """
+
     BACKEND = 'getpaid.backends.pagseguro'
     BACKEND_NAME = _('PagSeguro')
     BACKEND_ACCEPTED_CURRENCY = ('BRL', )
     BACKEND_LOGO_URL = 'getpaid/backends/pagseguro/pagseguro_logo.png'
 
-    _SEND_INSTRUCTION_PAGE = '/checkout.php?'
-    _CHECKOUT_INSTRUCTION_PAGE = "checkout/?"
-    _TRANSACTION_INSTRUCTION_PAGE = "checkout/payment.html?code="
-    _ITEM_DATA_REQUIRED_FIELDS = ('id', 'description', 'quantity', 'value')
+    _GATEWAY_URL_START_TRANSAC = "https://ws.pagseguro.uol.com.br/v2/checkout/?"
+    _GATEWAY_URL_PAYMENT = "https://pagseguro.uol.com.br/v2/checkout/payment.html?code="
+    _DEV_GATEWAY_URL_START_TRANSAC = "https://ws.sandbox.pagseguro.uol.com.br/v2/checkout/?"
+    _DEV_GATEWAY_URL_PAYMENT = "https://sandbox.pagseguro.uol.com.br/v2/checkout/payment.html?code="
 
     _USER_DATA_TO_PAGSEGURO = {
         'name': 'Nome',  # Nome completo do cliente.
@@ -69,15 +81,18 @@ class PaymentProcessor(PaymentProcessorBase):
 
     def get_gateway_url(self, request):
         """  """
-        # To active the pagseguro sandbox, will be need run the pagseguro server
-        import uuid
-        is_dev = PaymentProcessor.get_backend_setting('testing', False)
+        PayP = PaymentProcessor
+        is_dev = PayP.get_backend_setting('testing', False)
         if is_dev:
-            gateway_url = "https://ws.sandbox.pagseguro.uol.com.br/v2/"
-            gateway_url2 = "https://sandbox.pagseguro.uol.com.br/v2/"
+            gateway_url = PayP.get_backend_setting('dev_gateway_url_start_transac',
+                                            self._DEV_GATEWAY_URL_START_TRANSAC)
+            gateway_url2 = PayP.get_backend_setting('dev_gateway_url_payment', 
+                                                self._DEV_GATEWAY_URL_PAYMENT)
         else:
-            gateway_url = "https://ws.pagseguro.uol.com.br/v2/"
-            gateway_url2 = "https://pagseguro.uol.com.br/v2/"
+            gateway_url = PayP.get_backend_setting('gateway_url_start_transac',
+                                            self._GATEWAY_URL_START_TRANSAC)
+            gateway_url2 = PayP.get_backend_setting('gateway_url_payment', 
+                                                self._GATEWAY_URL_PAYMENT)
 
         order = self.payment.order
 
@@ -90,7 +105,7 @@ class PaymentProcessor(PaymentProcessorBase):
 
         product_description = self.get_order_description(self.payment, self.payment.order)
         redirectURL = PaymentProcessor._get_view_full_url(request, 'getpaid-pagseguro-success', args=(self.payment.id,))
-
+        # remove
         self._PRODUCT_DATA.update(itemId1=self.payment.id,
                                   itemDescription1= product_description.encode("latin1", "ignore"), 
                                   currency=self.payment.currency,
@@ -100,13 +115,11 @@ class PaymentProcessor(PaymentProcessorBase):
                                   )
 
         full_data = dict(self._ACOUNT_DATA, **self._PRODUCT_DATA)
-
         params = urllib.urlencode(full_data)
 
         
-        payment_full_url = "%s%s%s" % (gateway_url, self._CHECKOUT_INSTRUCTION_PAGE , params)
+        payment_full_url = "%s%s" % (gateway_url, params)
         request.encoding = 'ISO-8859-1'
-        
         dados = {}
 
         logger.info(payment_full_url)
@@ -115,7 +128,7 @@ class PaymentProcessor(PaymentProcessorBase):
         response = requests.post(payment_full_url, headers=headers).text
         
         code = ""
-        logger.warning("xml response from pagseguro: "+str(response))
+        # logger.warning("xml response from pagseguro: "+response.encode("utf-8"))
         dom = parseString(response)
         
         checkout = dom.getElementsByTagName("checkout")
@@ -128,7 +141,7 @@ class PaymentProcessor(PaymentProcessorBase):
         self.payment.description = code
         self.payment.save();
         
-        return "%s%s" % (gateway_url2, self._TRANSACTION_INSTRUCTION_PAGE+code), 'GET', {}
+        return "%s%s" % (gateway_url2, code), 'GET', {}
 
     @staticmethod
     def process_notification(params):
