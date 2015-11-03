@@ -18,21 +18,30 @@ class NotificationsView(View):
     ``PaymentProcessor.processNotification()`` method
     """
     def post(self, request, *args, **kwargs):
-        try:
 
-            request.encoding = 'ISO-8859-1'
-            dados = dict((k, v.encode('ISO-8859-1')) for k, v in request.POST.items())
-            
-            logger.info('Retorno de pagamento por PagSeguro: ' + str({
-                'dados': dados,
-            }))
+        request.encoding = 'ISO-8859-1'
+        
+        notification_code = request.POST.get('notificationCode','')[:]
+        notification_type = request.POST.get('notificationType','')[:]
+        
+        dados = {
+            'notificationCode': notification_code,
+            'notificationType': notification_type,
+        }
 
-        except KeyError:
+        logger.info('PagSeguro notificationCode: ' + str({
+            'post': request.POST,
+        }))
+
+        if not notification_code:
             logger.warning('Got malformed POST request: %s' % str(request.POST))
             raise Http404
-
-        status = PaymentProcessor.process_notification(dados)
-        return HttpResponse(status)
+        
+        try:
+            status = PaymentProcessor.process_notification(dados)
+            return HttpResponse("OK")
+        except Exception as e:
+            return HttpResponse("Unathorized", status=404)
 
     def get(self, request, *args, **kwargs):
         return HttpResponse("ok")

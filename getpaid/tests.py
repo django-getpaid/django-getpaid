@@ -577,3 +577,150 @@ class EpaydkBackendTestCase(TestCase):
         Payment = get_model('getpaid', 'Payment')
         actual = Payment.objects.get(id=self.test_payment.id)
         self.assertEqual(actual.status, 'cancelled')
+
+
+
+def fake_pagseguro_payment_get_response_success(url, headers=None):
+    ''' Mock method for post method from responses library.
+        It replaces the responses.post calls in Api class.
+    '''
+    mock_response = mock.Mock()
+    mock_response.text = \
+    '<!--?xml version="1.0" encoding="ISO-8859-1" standalone="yes"?--> '+\
+    '<checkout><code>1EC2CBBD9D9DDBC88482EFA54AC6CE24</code><date>'+\
+    '2015-11-02T21:26:38.000-02:00</date></checkout>'
+
+    return mock_response
+
+def fake_pagseguro_payment_get_transaction_success(url, headers=None):
+    mock_response = mock.Mock()
+    text_response = \
+    u"""<!--?xml version="1.0" encoding="ISO-8859-1" standalone="yes"?-->   
+    <transaction>  
+        <date>2011-02-10T16:13:41.000-03:00</date>  
+        <code>9E884542-81B3-4419-9A75-BCC6FB495EF1</code>
+        <reference>REF1234</reference>  
+        <type>1</type>  
+        <status>3</status>
+        <grossAmount>123.45</grossAmount>  
+        <discountAmount>0.00</discountAmount>   
+        <netAmount>123.45</netAmount>  
+        <extraAmount>0.00</extraAmount>  
+        <installmentCount>1</installmentCount>  
+        <itemcount>1</itemcount>  
+        <items>  
+            <item>  
+                <id>0001</id>  
+                <description>Test DKK order</description>  
+                <quantity>1</quantity>  
+                <amount>123.45</amount>  
+            </item>  
+        </items>  
+        <sender>  
+            <name>Jose Comprador</name>  
+            <email>comprador@uol.com.br</email>  
+        </sender> 
+    </transaction>"""
+
+    mock_response.text = text_response.replace(" ", "").replace("\n", "")
+    
+    return mock_response
+
+def fake_pagseguro_payment_get_transaction_cancelled(url, headers=None):
+    mock_response = fake_pagseguro_payment_get_transaction_success("")
+    mock_response.text = mock_response.text.replace("<status>3</status>", 
+                                                    "<status>7</status>")
+    return mock_response
+
+def fake_pagseguro_payment_get_transaction_wrong_ref(url, headers=None):
+    mock_resp = fake_pagseguro_payment_get_transaction_success("")
+    mock_resp.text = mock_resp.text.replace("<reference>REF1234</reference>", 
+                                            "<reference>REF9999</reference>")
+    return mock_resp
+
+class PagSeguroBackendTestCase(TestCase):
+    maxDiff = None
+
+    def setUp(self):
+        self.client = Client()
+        Payment = get_model('getpaid', 'Payment')
+        order = Order(name='Test DKK order', total='123.45', currency='BRL')
+        order.save()
+        payment = Payment(
+                          external_id="REF1234",
+                          order=order,
+                          amount=order.total,
+                          currency=order.currency,
+                          backend='getpaid.backends.pagseguro')
+        payment.save()
+        self.test_payment = Payment.objects.get(pk=payment.id)
+    
+    @mock.patch("requests.post", fake_pagseguro_payment_get_response_success)
+    def test_get_gateway_url(self):
+        payproc = getpaid.backends.pagseguro.PaymentProcessor(self.test_payment)
+        fake_req = mock.MagicMock(spec=HttpRequest)
+        fake_req.scheme = 'https'
+        fake_req.COOKIES = {}
+        fake_req.META = {}
+        actual = payproc.get_gateway_url(fake_req)
+        self.assertEqual(actual[1], "GET")
+        self.assertEqual(actual[2], {})
+        actual = list(urlparse(actual[0]))
+        self.assertEqual(actual[0], 'https')
+        self.assertEqual(actual[1], 'pagseguro.uol.com.br')
+        self.assertEqual(actual[2], '/v2/checkout/payment.html')
+        self.assertEqual(actual[3], '')
+
+    @mock.patch("requests.get", fake_pagseguro_payment_get_transaction_success)
+    def test_online_ok(self):
+        self.test_payment.status = 'accepted_for_proc'
+        self.test_payment.save()
+        payproc = getpaid.backends.pagseguro.PaymentProcessor(self.test_payment)
+        params = {
+            u'notificationCode': u'9E884542-81B3-4419-9A75-BCC6FB495EF1',
+            u'notificationType': u"transaction",
+        }
+        query = urlencode(params)
+        url = reverse('getpaid-pagseguro-notifications')
+
+        response = self.client.post(url, data=query, content_type='application/x-www-form-urlencoded')
+        self.assertEqual(response.content, b'OK')
+        self.assertEqual(response.status_code, 200)
+        Payment = get_model('getpaid', 'Payment')
+        actual = Payment.objects.get(id=self.test_payment.id)
+        self.assertEqual(actual.status, 'paid')
+
+    @mock.patch("requests.get", fake_pagseguro_payment_get_transaction_cancelled)
+    def test_cancelled(self):
+        self.test_payment.status = 'accepted_for_proc'
+        self.test_payment.save()
+        payproc = getpaid.backends.pagseguro.PaymentProcessor(self.test_payment)
+        params = {
+            u'notificationCode': u'9E884542-81B3-4419-9A75-BCC6FB495EF1',
+            u'notificationType': u"transaction",
+        }
+        query = urlencode(params)
+        url = reverse('getpaid-pagseguro-notifications')
+
+        response = self.client.post(url, data=query, content_type='application/x-www-form-urlencoded')
+
+        self.assertEqual(response.content, b'OK')
+        self.assertEqual(response.status_code, 200)
+        Payment = get_model('getpaid', 'Payment')
+        actual = Payment.objects.get(id=self.test_payment.id)
+        self.assertEqual(actual.status, 'failed')
+
+    @mock.patch("requests.get", fake_pagseguro_payment_get_transaction_wrong_ref)
+    def test_online_wrong_id(self):
+        self.test_payment.status = 'accepted_for_proc'
+        self.test_payment.save()
+        payproc = getpaid.backends.pagseguro.PaymentProcessor(self.test_payment)
+        params = {
+            u'notificationCode': u'9E884542-81B3-4419-9A75-BCC6FB495EF1',
+            u'notificationType': u"transaction",
+        }
+        query = urlencode(params)
+        url = reverse('getpaid-pagseguro-notifications')
+
+        response = self.client.post(url, data=query, content_type='application/x-www-form-urlencoded')
+        self.assertEqual(response.status_code, 404)

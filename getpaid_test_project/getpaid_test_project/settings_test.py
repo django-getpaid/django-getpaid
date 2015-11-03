@@ -8,6 +8,7 @@ GETPAID_BACKENDS = (
     'getpaid.backends.transferuj',
     'getpaid.backends.przelewy24',
     'getpaid.backends.epaydk',
+    'getpaid.backends.pagseguro',
 )
 
 GETPAID_BACKENDS_SETTINGS = {
@@ -35,6 +36,12 @@ GETPAID_BACKENDS_SETTINGS = {
     'getpaid.backends.epaydk': {
         'merchantnumber': 'xxxxxxxx',
         'secret': '4e89ea552f492d6711a6c13f99a2a1d4',
+    },
+
+    'getpaid.backends.pagseguro': {
+        'email': 'nielson@umbuzeiro.com',
+        'token': '1E936B517E154AA2BC2364C571D4D1FB',
+        # 'testing': True,
     },
 
 }
