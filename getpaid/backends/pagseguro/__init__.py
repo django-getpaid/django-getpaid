@@ -127,10 +127,9 @@ class PaymentProcessor(PaymentProcessorBase):
 
         headers = {"Content-type": "application/x-www-form-urlencoded"}
         response = requests.post(payment_full_url, headers=headers).text
-        logger.info(response)
 
         code = ""
-        logger.warning("xml response from pagseguro: "+response.encode("utf-8"))
+        logger.info("xml response from pagseguro: " + str(response.encode("utf-8")))
         dom = parseString(response)
         
         checkout = dom.getElementsByTagName("checkout")
