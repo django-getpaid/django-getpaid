@@ -5,7 +5,6 @@ import datetime
 import uuid
 import requests
 import time
-import urllib
 from django.core.urlresolvers import reverse
 from django.db.models import get_model
 from django.utils.timezone import utc
@@ -13,6 +12,8 @@ from django.utils.translation import ugettext_lazy as _
 from getpaid.signals import user_data_query
 from getpaid.backends import PaymentProcessorBase
 from xml.dom.minidom import parseString
+from six.moves.urllib.parse import urlencode
+
 
 
 logger = logging.getLogger('getpaid.backends.pagseguro')
@@ -117,7 +118,7 @@ class PaymentProcessor(PaymentProcessorBase):
                                   )
 
         full_data = dict(self._ACOUNT_DATA, **self._PRODUCT_DATA)
-        params = urllib.urlencode(full_data)
+        params = urlencode(full_data)
 
         payment_full_url = "%s%s" % (gateway_url, params)
         request.encoding = 'ISO-8859-1'
