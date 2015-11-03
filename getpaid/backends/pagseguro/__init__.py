@@ -5,7 +5,6 @@ import datetime
 import uuid
 import requests
 import time
-import urllib2
 import urllib
 from django.core.urlresolvers import reverse
 from django.db.models import get_model
