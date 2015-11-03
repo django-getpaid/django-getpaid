@@ -108,7 +108,7 @@ class PaymentProcessor(PaymentProcessorBase):
 
         product_description = self.get_order_description(self.payment, self.payment.order)
         redirectURL = PaymentProcessor._get_view_full_url(request, 'getpaid-pagseguro-success', args=(self.payment.id,))
-        # remove
+        
         self._PRODUCT_DATA.update(itemId1=self.payment.id,
                                   itemDescription1= product_description.encode("latin1", "ignore"), 
                                   currency=self.payment.currency,
