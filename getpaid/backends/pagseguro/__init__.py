@@ -48,8 +48,11 @@ class PaymentProcessor(PaymentProcessorBase):
 
     _GATEWAY_URL_START_TRANSAC = "https://ws.pagseguro.uol.com.br/v2/checkout/?"
     _GATEWAY_URL_PAYMENT = "https://pagseguro.uol.com.br/v2/checkout/payment.html?code="
+    _TRANSACTION_CONSULT_URL = "https://ws.pagseguro.uol.com.br/v2/transactions/notifications/"
+
     _DEV_GATEWAY_URL_START_TRANSAC = "https://ws.sandbox.pagseguro.uol.com.br/v2/checkout/?"
     _DEV_GATEWAY_URL_PAYMENT = "https://sandbox.pagseguro.uol.com.br/v2/checkout/payment.html?code="
+    _DEV_TRANSACTION_CONSULT_URL = "https://ws.sandbox.pagseguro.uol.com.br/v2/transactions/notifications/"
 
     _USER_DATA_TO_PAGSEGURO = {
         'name': 'Nome',  # Nome completo do cliente.
@@ -81,18 +84,18 @@ class PaymentProcessor(PaymentProcessorBase):
 
     def get_gateway_url(self, request):
         """  """
-        PayP = PaymentProcessor
-        is_dev = PayP.get_backend_setting('testing', False)
-        if is_dev:
-            gateway_url = PayP.get_backend_setting('dev_gateway_url_start_transac',
-                                            self._DEV_GATEWAY_URL_START_TRANSAC)
-            gateway_url2 = PayP.get_backend_setting('dev_gateway_url_payment', 
-                                                self._DEV_GATEWAY_URL_PAYMENT)
-        else:
-            gateway_url = PayP.get_backend_setting('gateway_url_start_transac',
+        payp = PaymentProcessor
+        gateway_url = payp.get_backend_setting('gateway_url_start_transac',
                                             self._GATEWAY_URL_START_TRANSAC)
-            gateway_url2 = PayP.get_backend_setting('gateway_url_payment', 
+        gateway_url2 = payp.get_backend_setting('gateway_url_payment', 
                                                 self._GATEWAY_URL_PAYMENT)
+        
+        is_dev = payp.get_backend_setting('testing', False)
+        if is_dev:
+            gateway_url = payp.get_backend_setting('dev_gateway_url_start_transac',
+                                            self._DEV_GATEWAY_URL_START_TRANSAC)
+            gateway_url2 = payp.get_backend_setting('dev_gateway_url_payment', 
+                                                self._DEV_GATEWAY_URL_PAYMENT)
 
         order = self.payment.order
 
@@ -117,18 +120,17 @@ class PaymentProcessor(PaymentProcessorBase):
         full_data = dict(self._ACOUNT_DATA, **self._PRODUCT_DATA)
         params = urllib.urlencode(full_data)
 
-        
         payment_full_url = "%s%s" % (gateway_url, params)
         request.encoding = 'ISO-8859-1'
-        dados = {}
-
+        
         logger.info(payment_full_url)
 
         headers = {"Content-type": "application/x-www-form-urlencoded"}
         response = requests.post(payment_full_url, headers=headers).text
-        
+        logger.info(response)
+
         code = ""
-        # logger.warning("xml response from pagseguro: "+response.encode("utf-8"))
+        logger.warning("xml response from pagseguro: "+response.encode("utf-8"))
         dom = parseString(response)
         
         checkout = dom.getElementsByTagName("checkout")
@@ -145,19 +147,24 @@ class PaymentProcessor(PaymentProcessorBase):
 
     @staticmethod
     def process_notification(params):
-        _TRANSACTION_CONSULT_URL = "https://ws.pagseguro.uol.com.br/v2/transactions/notifications/%s?email=%s&token=%s"
 
-        is_dev = PaymentProcessor.get_backend_setting('testing', False)
+        payp = PaymentProcessor
+        tmp_transaction_url = payp.get_backend_setting('transaction_url',
+                                            payp._TRANSACTION_CONSULT_URL)
+        
+        is_dev = payp.get_backend_setting('testing', False)
         if is_dev:
-            _TRANSACTION_CONSULT_URL = "https://ws.sandbox.pagseguro.uol.com.br/v2/transactions/"+\
-             "notifications/%s?email=%s&token=%s"
+            tmp_transaction_url = payp.get_backend_setting('dev_transaction_url',
+                                            payp._DEV_TRANSACTION_CONSULT_URL)
+
+        transaction_url = tmp_transaction_url + "%s?email=%s&token=%s"
 
         Payment = get_model('getpaid', 'Payment')
         
-        token = PaymentProcessor.get_backend_setting('token')
-        email = PaymentProcessor.get_backend_setting('email')
+        token = payp.get_backend_setting('token')
+        email = payp.get_backend_setting('email')
 
-        url_consult = _TRANSACTION_CONSULT_URL % (params["notificationCode"], email, token)
+        url_consult = transaction_url % (params["notificationCode"], email, token)
         resp = requests.get(url_consult)
         logger.info("pagseguro notification: " + resp.text)
 
@@ -176,7 +183,7 @@ class PaymentProcessor(PaymentProcessorBase):
             payment = Payment.objects.get(external_id__exact=reference)
         except Payment.DoesNotExist:
             logger.error('Payment does not exist with external_id=%s' % reference)
-            return
+            raise Payment.DoesNotExist
         
         if status_code in (PagseguroTransactionStatus.AVAILABLE, PagseguroTransactionStatus.PAID):
             logger.info("Updating payment" + str(payment.id))
@@ -189,7 +196,8 @@ class PaymentProcessor(PaymentProcessorBase):
                              PagseguroTransactionStatus.REFUNDED,
                              PagseguroTransactionStatus.IN_DISPUTE):
             payment.change_status('failed')
-
+        
+        return "OK"
 
     @staticmethod
     def _get_view_full_url(request, view_name, args=None):
