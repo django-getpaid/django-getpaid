@@ -93,7 +93,7 @@ Here we get a ``PaymentMethodForm`` object, that is parametrised with the curren
 
 ``PaymentMethodForm`` provides two fields: HiddenInput with order_id and ChoiceField with the backend name. This is how you use it in a template::
 
-    <form action="{% url getpaid-new-payment currency=object.currency %}" method="post">
+    <form action="{% url 'getpaid-new-payment' currency=object.currency %}" method="post">
         {% csrf_token %}
         {{ payment_form.as_p }}
         <input type="submit" value="Continue">
