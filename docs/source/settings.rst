@@ -93,3 +93,25 @@ Example::
 .. note::
 
     Required for django >=1.7
+
+
+``GETPAID_SUCCESS_URL_NAME``
+-----------------------
+
+**Optional**
+Success URL name where the payment backend should return to on success
+
+Example::
+
+    GETPAID_SUCCESS_URL_NAME = 'order_payment_success'
+    
+    
+``GETPAID_FAILURE_URL_NAME``
+-----------------------
+
+**Optional**
+Success URL name where the payment backend should return to on failure
+
+Example::
+
+    GETPAID_FAILURE_URL_NAME = 'order_payment_failure'
