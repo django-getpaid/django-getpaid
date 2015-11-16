@@ -207,8 +207,10 @@ LOGGING = {
 
 # This example uses the simplest django-celery queue possible - Database, don't use it on production!
 
-BROKER_URL = 'django://'
-
+#BROKER_URL = 'django://'
+BROKER_BACKEND = 'memory'
+CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
+CELERY_ALWAYS_EAGER = True
 
 import djcelery
 djcelery.setup_loader()

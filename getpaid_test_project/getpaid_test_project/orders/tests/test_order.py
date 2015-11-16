@@ -50,7 +50,6 @@ class OrderTest(TestCase):
         """
         order = Order(name='Test PLN order', total=100, currency='PLN')
         order.save()
-        from getpaid.utils import get_backend_choices
         response = self.client.post(reverse('getpaid-new-payment', kwargs={'currency': 'PLN'}),
                                     {'order': order.pk,
                                      'backend': 'getpaid.backends.payu'}
@@ -64,7 +63,6 @@ class OrderTest(TestCase):
         self.assertEqual(payment.status, 'in_progress')
         self.assertEqual(payment.paid_on, None)
         self.assertEqual(payment.amount_paid, 0)
-
 
     def test_failure_create_payment_eur(self):
         """
