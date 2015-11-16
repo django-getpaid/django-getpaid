@@ -21,7 +21,9 @@ class OrderTest(TestCase):
     def test_order_view(self):
         order = Order(name='Test EUR order', total=100, currency='EUR')
         order.save()
-        self.assertTemplateUsed(self.client.get(order.get_absolute_url()), 'orders/order_detail.html')
+        resp = self.client.get(order.get_absolute_url())
+        self.assertEqual(200, resp.status_code)
+        self.assertTemplateUsed(resp, 'orders/order_detail.html')
 
     def test_successful_create_payment_dummy_eur(self):
         """
@@ -29,10 +31,9 @@ class OrderTest(TestCase):
         """
         order = Order(name='Test EUR order', total=100, currency='EUR')
         order.save()
-        response = self.client.post(reverse('getpaid-new-payment', kwargs={'currency': 'EUR'}),
-                                    {'order': order.pk,
-                                     'backend': 'getpaid.backends.dummy'}
-        )
+        url = reverse('getpaid-new-payment', kwargs={'currency': 'EUR'})
+        data = {'order': order.pk, 'backend': 'getpaid.backends.dummy'}
+        response = self.client.post(url, data)
         self.assertEqual(response.status_code, 302)
         Payment = get_model('getpaid', 'Payment')
         payment = Payment.objects.get(order=order.pk)

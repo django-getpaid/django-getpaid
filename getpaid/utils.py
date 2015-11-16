@@ -1,6 +1,7 @@
 # coding: utf8
 import sys
 from collections import OrderedDict
+from importlib import import_module
 
 from django.conf import settings
 from django.utils import six
@@ -13,22 +14,7 @@ if six.PY3:
 
 
 def import_name(name):
-    components = name.split('.')
-
-    if len(components) == 1:
-        # direct module, import the module directly
-        mod = __import__(name, globals(), locals(), [name])
-    else:
-        # the module is within another, so we
-        # need to import it from there
-        parent_path = components[0:-1]
-        module_name = components[-1]
-
-        parent_mod = __import__(
-            '.'.join(parent_path), globals(), locals(), [module_name])
-        mod = getattr(parent_mod, components[-1])
-
-    return mod
+    return import_module(name)
 
 
 def import_backend_modules(submodule=None):

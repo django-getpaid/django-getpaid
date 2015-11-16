@@ -141,7 +141,6 @@ INSTALLED_APPS = (
     # Uncomment the next line to enable admin documentation:
     # 'django.contrib.admindocs',
 
-    'djcelery',
     # 'djcelery.transport',
     'kombu.transport.django',
 
@@ -209,7 +208,6 @@ LOGGING = {
 # This example uses the simplest django-celery queue possible - Database, don't use it on production!
 
 BROKER_URL = 'django://'
-
 
 
 import djcelery
