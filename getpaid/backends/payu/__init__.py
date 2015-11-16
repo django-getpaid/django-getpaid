@@ -1,16 +1,18 @@
+import time
 from decimal import Decimal
 import hashlib
 import logging
+
 from django.utils import six
 from six.moves.urllib.request import Request, urlopen
 from six.moves.urllib.parse import urlencode
-
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.translation import ugettext_lazy as _
-import time
+
 from getpaid import signals
 from getpaid.backends import PaymentProcessorBase
 from getpaid.backends.payu.tasks import get_payment_status_task, accept_payment
+
 
 logger = logging.getLogger('getpaid.backends.payu')
 
@@ -176,7 +178,7 @@ class PaymentProcessor(PaymentProcessorBase):
         for key in params.keys():
             params[key] = six.text_type(params[key]).encode('utf-8')
 
-        data = urlencode(params)
+        data = six.text_type(urlencode(params)).encode('utf-8')
         url = self._GATEWAY_URL + 'UTF/Payment/get/txt'
         request = Request(url, data)
         response = urlopen(request)
@@ -229,7 +231,7 @@ class PaymentProcessor(PaymentProcessorBase):
             params, self._GET_SIG_FIELDS, key1)
         for key in params.keys():
             params[key] = six.text_type(params[key]).encode('utf-8')
-        data = urlencode(params)
+        data = six.text_type(urlencode(params)).encode('utf-8')
         url = self._GATEWAY_URL + 'UTF/Payment/confirm/txt'
         request = Request(url, data)
         response = urlopen(request)
