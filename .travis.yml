@@ -5,12 +5,12 @@ python:
 env:
   - DJANGO_VERSION=1.6
   - DJANGO_VERSION=1.7
-  - DJANGO_VERSION=1.8.3
+  - DJANGO_VERSION=1.8.6
 # command to install dependencies
 install: 
   - "pip install -q Django==$DJANGO_VERSION"
   - "pip install -q -e .[przelewy24,payu,moip,paymill] --use-mirrors"
-  - "pip install -q -r getpaid_test_project/pip.req --use-mirrors"
+  - "pip install -q -r getpaid_test_project/requirements.txt --use-mirrors"
   - "pip install coveralls"
 # command to run tests
 script:
