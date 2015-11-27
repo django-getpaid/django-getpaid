@@ -1,14 +1,14 @@
-from django.contrib.sites.models import Site
 from django.core.management.base import BaseCommand
 from django.core.urlresolvers import reverse
 from getpaid.backends.przelewy24 import PaymentProcessor
+from getpaid.utils import get_domain
 
 
 class Command(BaseCommand):
     help = 'Additional Przelewy24 configuration'
 
     def handle(self, *args, **options):
-        current_site = Site.objects.get_current()
+        current_site = get_domain()
 
         self.stdout.write(
             'Please contact with Przelewy24 (serwis@przelewy24.pl) and provide them with the following URL: \n\n')

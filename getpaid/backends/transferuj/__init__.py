@@ -4,7 +4,6 @@ import logging
 from six.moves.urllib.parse import urlencode
 import datetime
 from django.utils import six
-from django.contrib.sites.models import Site
 from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse
 from django.db.models.loading import get_model
@@ -12,6 +11,7 @@ from django.utils.timezone import utc
 from django.utils.translation import ugettext_lazy as _
 from getpaid import signals
 from getpaid.backends import PaymentProcessorBase
+from getpaid.utils import get_domain
 
 logger = logging.getLogger('getpaid.backends.transferuj')
 
@@ -125,7 +125,7 @@ class PaymentProcessor(PaymentProcessorBase):
         if signing:
             params['md5sum'] = PaymentProcessor.compute_sig(params, self._REQUEST_SIG_FIELDS, key)
 
-        current_site = Site.objects.get_current()
+        current_site = get_domain()
 
         if PaymentProcessor.get_backend_setting('force_ssl_online', False):
             params['wyn_url'] = u'https://' + current_site.domain + reverse('getpaid-transferuj-online')

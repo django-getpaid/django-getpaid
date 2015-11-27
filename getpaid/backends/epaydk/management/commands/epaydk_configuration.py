@@ -1,14 +1,13 @@
-from django.contrib.sites.models import Site
 from django.core.management.base import BaseCommand
 from django.core.urlresolvers import reverse
+from getpaid.utils import get_domain
 
 
 class Command(BaseCommand):
     help = 'Display URL path for Epay.dk Online URL configuration'
 
     def handle(self, *args, **options):
-
-        current_site = Site.objects.get_current()
+        current_site = get_domain()
         self.stdout.write('Login to Epay.dk configuration page and '
                           'setup following links:\n\n')
 

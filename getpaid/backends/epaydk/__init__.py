@@ -12,11 +12,11 @@ from django.utils import six
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import get_language_from_request
-from django.contrib.sites.models import Site
 from django.db.models.loading import get_model
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.six.moves.urllib.parse import urlparse, urlunparse,\
     parse_qsl, urlencode, quote
+from getpaid.utils import get_domain
 
 # FIXME: commit_on_success is not exactly what I would want here...
 try:
@@ -203,9 +203,9 @@ class PaymentProcessor(PaymentProcessorBase):
         params['language'] = self._get_language_id(request, prefered=prefered)
 
         if VERSION[:2] >= (1, 8):
-            current_site = Site.objects.get_current(request=request)
+            current_site = get_domain(request=request)
         else:
-            current_site = Site.objects.get_current()
+            current_site = get_domain()
 
         accepturl = build_absolute_uri_for_site(current_site,
                                                 'getpaid-epaydk-success',

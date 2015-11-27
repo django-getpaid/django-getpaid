@@ -1,7 +1,7 @@
-from django.contrib.sites.models import Site
 from django.core.management.base import BaseCommand
 from django.core.urlresolvers import reverse
 from getpaid.backends.payu import PaymentProcessor
+from getpaid.utils import get_domain
 
 
 class Command(BaseCommand):
@@ -9,7 +9,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
 
-        current_site = Site.objects.get_current()
+        current_site = get_domain()
 
         self.stdout.write('Login to PayU configuration page and setup following links:\n\n')
         self.stdout.write(' * Success URL: http://%s%s\n                https://%s%s\n\n' % (

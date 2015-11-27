@@ -7,6 +7,7 @@ from django.conf import settings
 from django.utils import six
 from django.core.urlresolvers import reverse
 from django.utils.six.moves.urllib.parse import parse_qsl
+from django.contrib.sites.models import Site
 
 
 if six.PY3:
@@ -81,3 +82,12 @@ def qs_to_ordered_params(query_string):
             field = field.decode('utf8')
         params[field] = value
     return params
+
+
+def get_domain(self, request=None):
+    if request and request.META.get('HTTP_HOST'):
+        return request.META.get('HTTP_HOST')
+    if hasattr(settings, 'SITE_URL'):
+        return settings.SITE_URL
+
+    return Site.objects.get_current(request)
