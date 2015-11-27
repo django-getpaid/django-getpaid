@@ -4,11 +4,11 @@ from collections import OrderedDict
 from importlib import import_module
 
 from django.conf import settings
-from django import VERSION
 from django.utils import six
 from django.core.urlresolvers import reverse
 from django.utils.six.moves.urllib.parse import parse_qsl
 from django.contrib.sites.models import Site
+import django
 
 
 if six.PY3:
@@ -87,9 +87,9 @@ def qs_to_ordered_params(query_string):
 def get_domain(request=None):
     if request and request.META.get('HTTP_HOST'):
         return request.META.get('HTTP_HOST')
-    if hasattr(settings, 'SITE_URL'):
+    if hasattr(settings, 'SITE_URL') and settings.SITE_URL:
         return settings.SITE_URL
-    if VERSION[:2] >= (1, 8):
+    if django.VERSION[:2] >= (1, 8):
         site = Site.objects.get_current(request=request)
     else:
         site = Site.objects.get_current()
