@@ -84,7 +84,7 @@ def qs_to_ordered_params(query_string):
     return params
 
 
-def get_domain(self, request=None):
+def get_domain(request=None):
     if request and request.META.get('HTTP_HOST'):
         return request.META.get('HTTP_HOST')
     if hasattr(settings, 'SITE_URL'):
