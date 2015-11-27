@@ -90,6 +90,8 @@ def get_domain(request=None):
     if hasattr(settings, 'SITE_URL'):
         return settings.SITE_URL
     if VERSION[:2] >= (1, 8):
-        return Site.objects.get_current(request=request)
+        site = Site.objects.get_current(request=request)
+    else:
+        site = Site.objects.get_current()
 
-    return Site.objects.get_current()
+    return site.domain
