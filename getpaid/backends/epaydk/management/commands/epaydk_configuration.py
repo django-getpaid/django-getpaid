@@ -14,9 +14,9 @@ class Command(BaseCommand):
         success_name = 'getpaid-epaydk-success'
         path = reverse(success_name)
         self.stdout.write(' * accepturl URL: http://%s%s\n\thttps://%s%s\n\n' % (
-            current_site.domain,
+            current_site,
             path,
-            current_site.domain,
+            current_site,
             path
             )
         )
@@ -24,18 +24,18 @@ class Command(BaseCommand):
         failure_name = 'getpaid-epaydk-failure'
         path = reverse(failure_name)
         self.stdout.write(' * cancelurl URL: http://%s%s\n\thttps://%s%s\n\n' % (
-            current_site.domain,
+            current_site,
             path,
-            current_site.domain,
+            current_site,
             path
             )
         )
 
         path = reverse('getpaid-epaydk-online')
         self.stdout.write(' * callbackurl  URL: http://%s%s\n\thttps://%s%s\n\n' % (
-            current_site.domain,
+            current_site,
             path,
-            current_site.domain,
+            current_site,
             path,
             )
         )

@@ -59,9 +59,8 @@ def get_backend_settings(backend):
         return {}
 
 
-def build_absolute_uri_for_site(site, view_name, scheme='https',
+def build_absolute_uri_for_site(domain, view_name, scheme='https',
                                 reverse_args=None, reverse_kwargs=None):
-    domain = site.domain
     if not reverse_args:
         reverse_args = ()
     if not reverse_kwargs:

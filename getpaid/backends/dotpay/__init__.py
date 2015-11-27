@@ -92,19 +92,17 @@ class PaymentProcessor(PaymentProcessorBase):
 
     def get_URLC(self):
         urlc = reverse('getpaid-dotpay-online')
-        current_site = get_domain()
         if PaymentProcessor.get_backend_setting('force_ssl', False):
-            return u'https://%s%s' % (current_site.domain, urlc)
+            return u'https://%s%s' % (get_domain(), urlc)
         else:
-            return u'http://%s%s' % (current_site.domain, urlc)
+            return u'http://%s%s' % (get_domain(), urlc)
 
     def get_URL(self, pk):
-        current_site = get_domain()
         url = reverse('getpaid-dotpay-return', kwargs={'pk': pk})
         if PaymentProcessor.get_backend_setting('force_ssl', False):
-            return u'https://%s%s' % (current_site.domain, url)
+            return u'https://%s%s' % (get_domain(), url)
         else:
-            return u'http://%s%s' % (current_site.domain, url)
+            return u'http://%s%s' % (get_domain(), url)
 
     def get_gateway_url(self, request):
         """
