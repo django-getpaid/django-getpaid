@@ -90,4 +90,4 @@ def get_domain(request=None):
     if hasattr(settings, 'SITE_URL'):
         return settings.SITE_URL
 
-    return Site.objects.get_current(request)
+    return Site.objects.get_current(request=request)
