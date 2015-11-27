@@ -4,6 +4,7 @@ from collections import OrderedDict
 from importlib import import_module
 
 from django.conf import settings
+from django import VERSION
 from django.utils import six
 from django.core.urlresolvers import reverse
 from django.utils.six.moves.urllib.parse import parse_qsl
@@ -88,5 +89,7 @@ def get_domain(request=None):
         return request.META.get('HTTP_HOST')
     if hasattr(settings, 'SITE_URL'):
         return settings.SITE_URL
+    if VERSION[:2] >= (1, 8):
+        return Site.objects.get_current(request=request)
 
-    return Site.objects.get_current(request=request)
+    return Site.objects.get_current()
