@@ -1,5 +1,5 @@
 # coding: utf8
-from mock import patch, Mock
+from mock import patch
 
 from django.test import TestCase
 
@@ -8,13 +8,16 @@ from getpaid import utils
 
 class UtilsTestCase(TestCase):
 
-    def test_get_domain_request(self):
-        req = Mock(META={'HTTP_HOST': 'example1.com'})
+    @patch.object(utils, 'settings')
+    def test_get_domain_getpaid_const(self, patch_settings):
+        patch_settings.GETPAID_SITE_DOMAIN = 'example1.com'
+        patch_settings.SITE_URL = None
 
-        self.assertEquals('example1.com', utils.get_domain(request=req))
+        self.assertEquals('example1.com', utils.get_domain())
 
     @patch.object(utils, 'settings')
     def test_get_domain_site_url(self, patch_settings):
+        patch_settings.GETPAID_SITE_DOMAIN = None
         patch_settings.SITE_URL = 'example2.com'
 
         self.assertEquals('example2.com', utils.get_domain())
@@ -22,6 +25,7 @@ class UtilsTestCase(TestCase):
     @patch.object(utils, 'settings')
     @patch.object(utils, 'Site')
     def test_get_domain_site_new_django(self, patch_site, patch_settings):
+        patch_settings.GETPAID_SITE_DOMAIN = None
         patch_settings.SITE_URL = None
 
         with patch.object(utils, 'django') as patch_django:
@@ -35,6 +39,7 @@ class UtilsTestCase(TestCase):
     @patch.object(utils, 'settings')
     @patch.object(utils, 'Site')
     def test_get_domain_site_old_django(self, patch_site, patch_settings):
+        patch_settings.GETPAID_SITE_DOMAIN = None
         patch_settings.SITE_URL = None
 
         with patch.object(utils, 'django') as patch_django:
@@ -44,3 +49,45 @@ class UtilsTestCase(TestCase):
         self.assertEquals(domain,
                           patch_site.objects.get_current.return_value.domain)
         patch_site.objects.get_current.assert_called_once_with()
+
+    @patch.object(utils, 'reverse')
+    @patch.object(utils, 'get_domain')
+    def test_build_absolute_url_args_kwargs(self, patch_domain, patch_reverse):
+        patch_reverse.return_value = '/path'
+        patch_domain.return_value = 'domain'
+        args = ('asd', 'qwe')
+        kwargs = {'pk', 1}
+
+        url = utils.build_absolute_uri(
+            'test',
+            reverse_args=args,
+            reverse_kwargs=kwargs)
+
+        self.assertEquals(url, 'https://domain/path')
+        patch_reverse.assert_called_once_with('test', args=args, kwargs=kwargs)
+
+    @patch.object(utils, 'reverse')
+    @patch.object(utils, 'get_domain')
+    def test_build_absolute_url_pass_domain(self, patch_domain, patch_reverse):
+        patch_reverse.return_value = '/path'
+
+        url = utils.build_absolute_uri('test', domain='domain2')
+
+        self.assertEquals(url, 'https://domain2/path')
+        self.assertFalse(patch_domain.called)
+
+    @patch.object(utils, 'reverse')
+    def test_build_absolute_url_add_slash(self, patch_reverse):
+        patch_reverse.return_value = 'path'
+
+        url = utils.build_absolute_uri('test', domain='domain3')
+
+        self.assertEquals(url, 'https://domain3/path')
+
+    @patch.object(utils, 'reverse')
+    def test_build_absolute_url_scheme(self, patch_reverse):
+        patch_reverse.return_value = 'path'
+
+        url = utils.build_absolute_uri('test', domain='domain', scheme='ftp')
+
+        self.assertEquals(url, 'ftp://domain/path')
