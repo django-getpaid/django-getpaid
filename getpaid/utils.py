@@ -100,8 +100,6 @@ def get_domain(request=None):
     if (hasattr(settings, 'GETPAID_SITE_DOMAIN') and
             settings.GETPAID_SITE_DOMAIN):
         return settings.GETPAID_SITE_DOMAIN
-    if hasattr(settings, 'SITE_URL') and settings.SITE_URL:
-        return settings.SITE_URL
     if django.VERSION[:2] >= (1, 8):
         site = Site.objects.get_current(request=request)
     else:

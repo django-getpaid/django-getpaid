@@ -16,13 +16,6 @@ class UtilsTestCase(TestCase):
         self.assertEquals('example1.com', utils.get_domain())
 
     @patch.object(utils, 'settings')
-    def test_get_domain_site_url(self, patch_settings):
-        patch_settings.GETPAID_SITE_DOMAIN = None
-        patch_settings.SITE_URL = 'example2.com'
-
-        self.assertEquals('example2.com', utils.get_domain())
-
-    @patch.object(utils, 'settings')
     @patch.object(utils, 'Site')
     def test_get_domain_site_new_django(self, patch_site, patch_settings):
         patch_settings.GETPAID_SITE_DOMAIN = None
