@@ -1,7 +1,6 @@
 # coding: utf8
 from decimal import Decimal
 from mock import Mock, patch
-from urllib.parse import parse_qs
 from hashlib import md5
 
 from django.db.models.loading import get_model
@@ -239,8 +238,9 @@ class PaymentProcessorGetGatewayUrl(TestCase):
             data = self.get_geteway_data()
 
         for key in self.get_urls():
-            self.assertTrue(data[key].startswith('https://test/'),
-                            "{} not start with https://test/".format(data[key]))
+            str_ = data[key]
+            self.assertTrue(str_.startswith('https://test/'),
+                            "{} not start with https://test/".format(str_))
 
     def test_post(self):
         settings = self.update_settings({'method': 'post'})
