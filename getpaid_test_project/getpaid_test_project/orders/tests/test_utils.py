@@ -2,25 +2,20 @@
 from mock import patch
 
 from django.test import TestCase
+from django.test.utils import override_settings
 
 from getpaid import utils
 
 
 class UtilsTestCase(TestCase):
 
-    @patch.object(utils, 'settings')
-    def test_get_domain_getpaid_const(self, patch_settings):
-        patch_settings.GETPAID_SITE_DOMAIN = 'example1.com'
-        patch_settings.SITE_URL = None
-
+    @override_settings(GETPAID_SITE_DOMAIN='example1.com')
+    def test_get_domain_getpaid_const(self):
         self.assertEquals('example1.com', utils.get_domain())
 
-    @patch.object(utils, 'settings')
     @patch.object(utils, 'Site')
-    def test_get_domain_site_new_django(self, patch_site, patch_settings):
-        patch_settings.GETPAID_SITE_DOMAIN = None
-        patch_settings.SITE_URL = None
-
+    @override_settings(GETPAID_SITE_DOMAIN=None)
+    def test_get_domain_site_new_django(self, patch_site):
         with patch.object(utils, 'django') as patch_django:
             patch_django.VERSION = (1, 8)
             domain = utils.get_domain()
@@ -29,12 +24,9 @@ class UtilsTestCase(TestCase):
                           patch_site.objects.get_current.return_value.domain)
         patch_site.objects.get_current.assert_called_once_with(request=None)
 
-    @patch.object(utils, 'settings')
     @patch.object(utils, 'Site')
-    def test_get_domain_site_old_django(self, patch_site, patch_settings):
-        patch_settings.GETPAID_SITE_DOMAIN = None
-        patch_settings.SITE_URL = None
-
+    @override_settings(GETPAID_SITE_DOMAIN=None)
+    def test_get_domain_site_old_django(self, patch_site):
         with patch.object(utils, 'django') as patch_django:
             patch_django.VERSION = (1, 6)
             domain = utils.get_domain()

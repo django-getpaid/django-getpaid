@@ -10,3 +10,4 @@ coverage==3.7.1
 yanc
 lxml
 requests
+factory_boy
