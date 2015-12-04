@@ -112,7 +112,7 @@ class PaymentProcessor(PaymentProcessorBase):
             return (self._GATEWAY_URL, 'POST', params)
 
         params = {k: text_type(v).encode('utf-8') for k, v in params.items()}
-        return ("{}?{}".format( self._GATEWAY_URL, params), "GET", {})
+        return ("{}?{}".format( self._GATEWAY_URL, urlencode(params)), "GET", {})
 
     def _build_user_data(self, params):
         user_data = {
