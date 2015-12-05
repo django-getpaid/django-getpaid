@@ -3,8 +3,7 @@ import hashlib
 import logging
 from six.moves.urllib.parse import urlencode
 import datetime
-from django.utils import six
-from django.contrib.sites.models import Site
+from django.utils.six import text_type
 from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse
 from django.db.models.loading import get_model
@@ -12,6 +11,7 @@ from django.utils.timezone import utc
 from django.utils.translation import ugettext_lazy as _
 from getpaid import signals
 from getpaid.backends import PaymentProcessorBase
+from getpaid.utils import get_domain
 
 logger = logging.getLogger('getpaid.backends.transferuj')
 
@@ -33,10 +33,10 @@ class PaymentProcessor(PaymentProcessorBase):
     def compute_sig(params, fields, key):
         text = u''
         for field in fields:
-            text += six.text_type(params.get(field, ''))
+            text += text_type(params.get(field, ''))
         text += key
         text_encoded = text.encode('utf-8')
-        return six.text_type(hashlib.md5(text_encoded).hexdigest())
+        return text_type(hashlib.md5(text_encoded).hexdigest())
 
     @staticmethod
     def online(ip, id, tr_id, tr_date, tr_crc, tr_amount, tr_paid, tr_desc,
@@ -87,63 +87,81 @@ class PaymentProcessor(PaymentProcessorBase):
         return u'TRUE'
 
     def get_gateway_url(self, request):
-        """
-        Routes a payment to Gateway, should return URL for redirection.
-
-        """
+        "Routes a payment to Gateway, should return URL for redirection."
         params = {
-            'id': PaymentProcessor.get_backend_setting('id'),
-            'opis': self.get_order_description(self.payment, self.payment.order),
+            'id': self.get_backend_setting('id'),
+            'opis': self.get_order_description(self.payment,
+                                               self.payment.order),
+            # Here we put payment.pk as we can get order through payment model
+            'crc': self.payment.pk,
+            # amount is  in format XXX.YY PLN
+            'kwota': text_type(self.payment.amount),
         }
 
+        self._build_user_data(params)
+        self._build_md5sum(params)
+        self._build_urls(params)
+
+        method = self.get_backend_setting('method', 'get').lower()
+        if method not in ('post', 'get'):
+            raise ImproperlyConfigured(
+                'Transferuj.pl payment backend accepts only GET or POST'
+            )
+
+        if method == 'post':
+            return (self._GATEWAY_URL, 'POST', params)
+
+        params = {k: text_type(v).encode('utf-8') for k, v in params.items()}
+        return ("{}?{}".format( self._GATEWAY_URL, urlencode(params)), "GET", {})
+
+    def _build_user_data(self, params):
         user_data = {
             'email': None,
             'lang': None,
         }
+        signals.user_data_query.send(sender=None,
+                                     order=self.payment.order,
+                                     user_data=user_data)
 
-        signals.user_data_query.send(sender=None, order=self.payment.order, user_data=user_data)
-
-        if user_data['lang'] and user_data['lang'].lower() in PaymentProcessor._ACCEPTED_LANGS:
-            params['jezyk'] = user_data['lang'].lower()
-        elif PaymentProcessor.get_backend_setting('lang', False) and\
-                PaymentProcessor.get_backend_setting('lang').lower() in PaymentProcessor._ACCEPTED_LANGS:
-            params['jezyk'] = PaymentProcessor.get_backend_setting('lang').lower()
-
+        for lang in (user_data['lang'], self.get_backend_setting('lang', '')):
+            if lang and lang.lower() in self._ACCEPTED_LANGS:
+                params['jezyk'] = lang.lower()
+                break
         if user_data['email']:
             params['email'] = user_data['email']
 
-        key = PaymentProcessor.get_backend_setting('key')
+        return params
 
-        signing = PaymentProcessor.get_backend_setting('signing', True)
+    def _build_md5sum(self, params):
+        if not self.get_backend_setting('signing', True):
+            return params
 
-        # Here we put payment.pk as we can get order through payment model
-        params['crc'] = self.payment.pk
+        params['md5sum'] = self.compute_sig(
+            params, self._REQUEST_SIG_FIELDS,
+            self.get_backend_setting('key'))
 
-        # amount is  in format XXX.YY PLN
-        params['kwota'] = six.text_type(self.payment.amount)
+        return params
 
-        if signing:
-            params['md5sum'] = PaymentProcessor.compute_sig(params, self._REQUEST_SIG_FIELDS, key)
+    def _build_urls(self, params):
+        domain = get_domain()
+        online_domain = return_domain = "http"
 
-        current_site = Site.objects.get_current()
+        if self.get_backend_setting('force_ssl_online', False):
+            online_domain = "https"
+        if self.get_backend_setting('force_ssl_return', False):
+            return_domain = "https"
 
-        if PaymentProcessor.get_backend_setting('force_ssl_online', False):
-            params['wyn_url'] = u'https://' + current_site.domain + reverse('getpaid-transferuj-online')
-        else:
-            params['wyn_url'] = u'http://' + current_site.domain + reverse('getpaid-transferuj-online')
+        online_domain = "{}://{}".format(online_domain, domain)
+        return_domain = "{}://{}".format(return_domain, domain)
 
-        if PaymentProcessor.get_backend_setting('force_ssl_return', False):
-            params['pow_url'] = u'https://' + current_site.domain + reverse('getpaid-transferuj-success', kwargs={'pk': self.payment.pk})
-            params['pow_url_blad'] = u'https://' + current_site.domain + reverse('getpaid-transferuj-failure', kwargs={'pk': self.payment.pk})
-        else:
-            params['pow_url'] = u'http://' + current_site.domain + reverse('getpaid-transferuj-success', kwargs={'pk': self.payment.pk})
-            params['pow_url_blad'] = u'http://' + current_site.domain + reverse('getpaid-transferuj-failure', kwargs={'pk': self.payment.pk})
+        params['wyn_url'] = online_domain + reverse(
+            'getpaid-transferuj-online'
+        )
+        params['pow_url'] = return_domain + reverse(
+            'getpaid-transferuj-success', kwargs={'pk': self.payment.pk}
+        )
+        params['pow_url_blad'] = return_domain + reverse(
+            'getpaid-transferuj-failure', kwargs={'pk': self.payment.pk}
+        )
 
-        if PaymentProcessor.get_backend_setting('method', 'get').lower() == 'post':
-            return self._GATEWAY_URL, 'POST', params
-        elif PaymentProcessor.get_backend_setting('method', 'get').lower() == 'get':
-            for key in params.keys():
-                params[key] = six.text_type(params[key]).encode('utf-8')
-            return self._GATEWAY_URL + '?' + urlencode(params), "GET", {}
-        else:
-            raise ImproperlyConfigured('Transferuj.pl payment backend accepts only GET or POST')
+        return params

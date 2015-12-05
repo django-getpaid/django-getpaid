@@ -1,22 +1,16 @@
 from copy import deepcopy
 import logging
 import hashlib
-import uuid
-import datetime
 from decimal import Decimal, ROUND_UP
 from collections import OrderedDict
 
-from django import VERSION
-from django.conf import settings
 from django.utils import six
-from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import get_language_from_request
-from django.contrib.sites.models import Site
 from django.db.models.loading import get_model
 from django.core.exceptions import ImproperlyConfigured
-from django.utils.six.moves.urllib.parse import urlparse, urlunparse,\
-    parse_qsl, urlencode, quote
+from django.utils.six.moves.urllib.parse import urlencode
+from getpaid.utils import get_domain
 
 # FIXME: commit_on_success is not exactly what I would want here...
 try:
@@ -25,7 +19,7 @@ except ImportError:
     from django.db.transaction import atomic as commit_on_success_or_atomic
 
 from getpaid.backends import PaymentProcessorBase
-from getpaid.utils import build_absolute_uri_for_site
+from getpaid.utils import build_absolute_uri
 from getpaid import signals
 
 
@@ -172,7 +166,7 @@ class PaymentProcessor(PaymentProcessorBase):
         payment_id = unicode(self.payment.id)
 
         currency = unicode(PaymentProcessor.get_number_for_currency(
-                               self.payment.currency))
+                           self.payment.currency))
 
         # timeout in minutes
         timeout = unicode(self.get_backend_setting('timeout', '3'))
@@ -190,7 +184,6 @@ class PaymentProcessor(PaymentProcessorBase):
             (u'instantcallback', instantcallback),
         ])
 
-
         user_data = {
             u'email': None,
             u'lang': None,
@@ -202,29 +195,22 @@ class PaymentProcessor(PaymentProcessorBase):
         prefered = user_data['lang'] or 'en'
         params['language'] = self._get_language_id(request, prefered=prefered)
 
-        if VERSION[:2] >= (1, 8):
-            current_site = Site.objects.get_current(request=request)
-        else:
-            current_site = Site.objects.get_current()
+        url_data = {
+            'domain': get_domain(request=request),
+            'scheme': request.scheme
+        }
 
-        accepturl = build_absolute_uri_for_site(current_site,
-                                                'getpaid-epaydk-success',
-                                                scheme=request.scheme)
-        params['accepturl'] = accepturl
+        params['accepturl'] = build_absolute_uri('getpaid-epaydk-success',
+                                                 **url_data)
 
-        cb_secret_path = PaymentProcessor\
-            .get_backend_setting('callback_secret_path', '')
-        if not cb_secret_path:
-            cb_url = build_absolute_uri_for_site(current_site,
-                                                 'getpaid-epaydk-online',
-                                                 scheme=request.scheme)
-            params['callbackurl'] = cb_url
+        if not PaymentProcessor.get_backend_setting('callback_secret_path',
+                                                    ''):
+            params['callbackurl'] = build_absolute_uri(
+                'getpaid-epaydk-online', **url_data
+            )
 
-        cancelurl = build_absolute_uri_for_site(current_site,
-                                                'getpaid-epaydk-failure',
-                                                scheme=request.scheme)
-        params['cancelurl'] = cancelurl
-
+        params['cancelurl'] = build_absolute_uri('getpaid-epaydk-failure',
+                                                 **url_data)
         params['hash'] = PaymentProcessor.compute_hash(params)
 
         url = u"{}?{}".format(self.BACKEND_GATEWAY_BASE_URL, urlencode(params))
@@ -244,10 +230,9 @@ class PaymentProcessor(PaymentProcessorBase):
             assert payment.status == 'accepted_for_proc',\
                 "Can not confirm payment that was not accepted for processing"
             payment.external_id = params['txnid']
-            #payment_datetime = datetime.datetime.combine(params['date'],
-            #                                            params['time'])
+            # payment_datetime = datetime.datetime.combine(params['date'],
             amount = PaymentProcessor.amount_to_python(params['amount'])
-            #txnfee = PaymentProcessor.amount_to_python(params['txnfee'])
+            # txnfee = PaymentProcessor.amount_to_python(params['txnfee'])
             payment.amount_paid = amount
             return payment.on_success()
 

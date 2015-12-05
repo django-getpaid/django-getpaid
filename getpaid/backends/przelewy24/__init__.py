@@ -14,7 +14,6 @@ from django.utils import six
 from six.moves.urllib.request import Request, urlopen
 from six.moves.urllib.parse import urlencode
 
-from django.contrib.sites.models import Site
 from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext_lazy as _
@@ -23,6 +22,7 @@ from pytz import utc
 from getpaid import signals
 from getpaid.backends import PaymentProcessorBase
 from getpaid.backends.przelewy24.tasks import get_payment_status_task
+from getpaid.utils import get_domain
 
 logger = logging.getLogger('getpaid.backends.przelewy24')
 
@@ -153,12 +153,12 @@ class PaymentProcessor(PaymentProcessorBase):
         params['p24_crc'] = self.compute_sig(params, self._REQUEST_SIG_FIELDS,
                                              PaymentProcessor.get_backend_setting('crc'))
 
-        current_site = Site.objects.get_current()
+        current_site = get_domain()
         use_ssl = PaymentProcessor.get_backend_setting('ssl_return', False)
 
-        params['p24_return_url_ok'] = ('https://' if use_ssl else 'http://') + current_site.domain + reverse(
+        params['p24_return_url_ok'] = ('https://' if use_ssl else 'http://') + current_site + reverse(
             'getpaid-przelewy24-success', kwargs={'pk': self.payment.pk})
-        params['p24_return_url_error'] = ('https://' if use_ssl else 'http://') + current_site.domain + reverse(
+        params['p24_return_url_error'] = ('https://' if use_ssl else 'http://') + current_site + reverse(
             'getpaid-przelewy24-failure', kwargs={'pk': self.payment.pk})
 
         if params['p24_email'] is None:

@@ -11,7 +11,6 @@ from django.utils.six.moves.urllib.parse import urlparse, parse_qs, \
     parse_qsl, urlencode
 from django.http import HttpRequest
 from django.utils import six
-from django.contrib.sites.models import Site
 import mock
 
 import getpaid
@@ -60,7 +59,7 @@ class EpaydkBackendTestCase(TestCase):
         self.assertEqual(actual[2], '/integration/ewindow/Default.aspx')
         self.assertEqual(actual[3], '')
 
-        domain = Site.objects.get_current().domain
+        domain = getpaid.utils.get_domain()
         accepturl = u'https://'+ domain +'/getpaid.backends.epaydk/success/'
         callbackurl = u'https://'+ domain +'/getpaid.backends.epaydk/online/'
         cancelurl = u'https://'+ domain +'/getpaid.backends.epaydk/failure/'

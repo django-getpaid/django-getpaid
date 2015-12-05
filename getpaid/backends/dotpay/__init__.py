@@ -4,13 +4,13 @@ import hashlib
 import logging
 from django.utils import six
 from six.moves.urllib.parse import urlencode
-from django.contrib.sites.models import Site
 from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse
 from django.utils.timezone import utc
 from django.utils.translation import ugettext_lazy as _
 from getpaid import signals
 from getpaid.backends import PaymentProcessorBase
+from getpaid.utils import get_domain
 
 logger = logging.getLogger('getpaid.backends.dotpay')
 
@@ -92,19 +92,17 @@ class PaymentProcessor(PaymentProcessorBase):
 
     def get_URLC(self):
         urlc = reverse('getpaid-dotpay-online')
-        current_site = Site.objects.get_current()
         if PaymentProcessor.get_backend_setting('force_ssl', False):
-            return u'https://%s%s' % (current_site.domain, urlc)
+            return u'https://%s%s' % (get_domain(), urlc)
         else:
-            return u'http://%s%s' % (current_site.domain, urlc)
+            return u'http://%s%s' % (get_domain(), urlc)
 
     def get_URL(self, pk):
-        current_site = Site.objects.get_current()
         url = reverse('getpaid-dotpay-return', kwargs={'pk': pk})
         if PaymentProcessor.get_backend_setting('force_ssl', False):
-            return u'https://%s%s' % (current_site.domain, url)
+            return u'https://%s%s' % (get_domain(), url)
         else:
-            return u'http://%s%s' % (current_site.domain, url)
+            return u'http://%s%s' % (get_domain(), url)
 
     def get_gateway_url(self, request):
         """
