@@ -2,12 +2,11 @@ from decimal import Decimal
 import hashlib
 import logging
 from six.moves.urllib.parse import urlencode
-import datetime
 from django.utils import six
 from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse
 from django.db.models.loading import get_model
-from django.utils.timezone import utc
+from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
 from getpaid import signals
 from getpaid.backends import PaymentProcessorBase
@@ -75,7 +74,7 @@ class PaymentProcessor(PaymentProcessorBase):
         if tr_status == u'TRUE':
             # Due to Transferuj documentation, we need to check if amount is correct
             payment.amount_paid = Decimal(tr_paid)
-            payment.paid_on = datetime.datetime.utcnow().replace(tzinfo=utc)
+            payment.paid_on = now()
             if payment.amount <= Decimal(tr_paid):
                 # Amount is correct or it is overpaid
                 payment.change_status('paid')
