@@ -34,7 +34,8 @@ def import_backend_modules(submodule=None):
 
 def get_backend_choices(currency=None):
     """
-    Get active backends modules. Backend list can be filtered by supporting given currency.
+    Get active backends modules. Backend list can be filtered by
+    supporting given currency.
     """
     choices = []
     backends_names = getattr(settings, 'GETPAID_BACKENDS', [])
@@ -43,15 +44,20 @@ def get_backend_choices(currency=None):
         backend = import_name(backend_name)
         if currency:
             if currency in backend.PaymentProcessor.BACKEND_ACCEPTED_CURRENCY:
-                choices.append((backend_name, backend.PaymentProcessor.BACKEND_NAME, ))
+                choices.append(
+                    (backend_name, backend.PaymentProcessor.BACKEND_NAME)
+                )
         else:
-            choices.append((backend_name, backend.PaymentProcessor.BACKEND_NAME, ))
+            choices.append(
+                (backend_name, backend.PaymentProcessor.BACKEND_NAME)
+            )
     return choices
 
 
 def get_backend_settings(backend):
     """
-    Returns backend settings. If it does not exist it fails back to empty dict().
+    Returns backend settings.
+    If it does not exist it fails back to empty dict().
     """
     backends_settings = getattr(settings, 'GETPAID_BACKENDS_SETTINGS', {})
     try:
@@ -60,14 +66,20 @@ def get_backend_settings(backend):
         return {}
 
 
-def build_absolute_uri_for_site(domain, view_name, scheme='https',
-                                reverse_args=None, reverse_kwargs=None):
+def build_absolute_uri(view_name, scheme='https', domain=None,
+                       reverse_args=None, reverse_kwargs=None):
     if not reverse_args:
         reverse_args = ()
     if not reverse_kwargs:
         reverse_kwargs = {}
+    if domain is None:
+        domain = get_domain()
+
     path = reverse(view_name, args=reverse_args, kwargs=reverse_kwargs)
-    return u"{0}://{1}{2}".format(scheme, domain, path)
+    domain = domain.rstrip('/')
+    path = path.lstrip('/')
+
+    return u"{0}://{1}/{2}".format(scheme, domain, path)
 
 
 def qs_to_ordered_params(query_string):
@@ -85,10 +97,9 @@ def qs_to_ordered_params(query_string):
 
 
 def get_domain(request=None):
-    if request and request.META.get('HTTP_HOST'):
-        return request.META.get('HTTP_HOST')
-    if hasattr(settings, 'SITE_URL') and settings.SITE_URL:
-        return settings.SITE_URL
+    if (hasattr(settings, 'GETPAID_SITE_DOMAIN') and
+            settings.GETPAID_SITE_DOMAIN):
+        return settings.GETPAID_SITE_DOMAIN
     if django.VERSION[:2] >= (1, 8):
         site = Site.objects.get_current(request=request)
     else:

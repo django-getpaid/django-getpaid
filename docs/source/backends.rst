@@ -37,7 +37,7 @@ Just to have an overview, a payment backend has a very flexible architecture, al
 
     **Set Sites domain name**
 
-    This module requires Sites framework to be enabled. All backends are based on Sites domain configuration (to generate a fully qualified URL for a payment broker service). Please be sure that you set a correct domain for your deployment before running ``getpaid`` or setup SITE_URL properly to point on the right domain (see `getpaid.utils.get_domain` for url fetching order).
+    This module requires Sites framework to be enabled. All backends are based on Sites domain configuration (to generate a fully qualified URL for a payment broker service). Please be sure that you set a correct domain for your deployment before running ``getpaid`` or setup `GETPAID_SITE_DOMAIN` properly to point on the right domain (see `getpaid.utils.get_domain` for url fetching order).
 
 
 
