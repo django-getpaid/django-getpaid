@@ -3,7 +3,7 @@ from decimal import Decimal
 from mock import Mock, patch
 from hashlib import md5
 
-from django.db.models.loading import get_model
+from django.apps import apps
 from django.core.urlresolvers import reverse
 from django.test import TestCase
 from django.utils import six
@@ -91,7 +91,7 @@ class TransferujBackendTestCase(TestCase):
                                                                              '6a9e045010c27dfed24774b0afa37d0b'))
 
     def test_online_payment_ok(self):
-        Payment = get_model('getpaid', 'Payment')
+        Payment = apps.get_model('getpaid', 'Payment')
         order = Order(name='Test EUR order', total='123.45', currency='PLN')
         order.save()
         payment = Payment(order=order, amount=order.total, currency=order.currency, backend='getpaid.backends.payu')
@@ -106,7 +106,7 @@ class TransferujBackendTestCase(TestCase):
         self.assertEqual(payment.amount_paid, Decimal('123.45'))
 
     def test_online_payment_ok_over(self):
-        Payment = get_model('getpaid', 'Payment')
+        Payment = apps.get_model('getpaid', 'Payment')
         order = Order(name='Test EUR order', total='123.45', currency='PLN')
         order.save()
         payment = Payment(order=order, amount=order.total, currency=order.currency, backend='getpaid.backends.payu')
@@ -121,7 +121,7 @@ class TransferujBackendTestCase(TestCase):
         self.assertEqual(payment.amount_paid, Decimal('223.45'))
 
     def test_online_payment_partial(self):
-        Payment = get_model('getpaid', 'Payment')
+        Payment = apps.get_model('getpaid', 'Payment')
         order = Order(name='Test EUR order', total='123.45', currency='PLN')
         order.save()
         payment = Payment(order=order, amount=order.total, currency=order.currency, backend='getpaid.backends.payu')
@@ -136,7 +136,7 @@ class TransferujBackendTestCase(TestCase):
         self.assertEqual(payment.amount_paid, Decimal('23.45'))
 
     def test_online_payment_failure(self):
-        Payment = get_model('getpaid', 'Payment')
+        Payment = apps.get_model('getpaid', 'Payment')
         order = Order(name='Test EUR order', total='123.45', currency='PLN')
         order.save()
         payment = Payment(order=order, amount=order.total, currency=order.currency, backend='getpaid.backends.payu')

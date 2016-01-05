@@ -2,8 +2,9 @@
 from decimal import Decimal
 import logging
 import datetime
+
+from django.apps import apps
 from django.core.urlresolvers import reverse
-from django.db.models import get_model
 from django.utils.timezone import utc
 import requests
 import time
@@ -94,7 +95,7 @@ class PaymentProcessor(PaymentProcessorBase):
 
     @staticmethod
     def process_notification(params):
-        Payment = get_model('getpaid', 'Payment')
+        Payment = apps.get_model('getpaid', 'Payment')
         try:
             payment = Payment.objects.get(pk=int(params["id"].split("-")[0]))
         except Payment.DoesNotExist:

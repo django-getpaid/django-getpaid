@@ -7,7 +7,7 @@ from collections import OrderedDict
 from django.utils import six
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import get_language_from_request
-from django.db.models.loading import get_model
+from django.apps import apps
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.six.moves.urllib.parse import urlencode
 from getpaid.utils import get_domain
@@ -224,7 +224,7 @@ class PaymentProcessor(PaymentProcessorBase):
         """
         Payment was confirmed.
         """
-        Payment = get_model('getpaid', 'Payment')
+        Payment = apps.get_model('getpaid', 'Payment')
         with commit_on_success_or_atomic():
             payment = Payment.objects.get(id=params['orderid'])
             assert payment.status == 'accepted_for_proc',\
@@ -241,7 +241,7 @@ class PaymentProcessor(PaymentProcessorBase):
         """
         Payment was accepted into the queue for processing.
         """
-        Payment = get_model('getpaid', 'Payment')
+        Payment = apps.get_model('getpaid', 'Payment')
         with commit_on_success_or_atomic():
             payment = Payment.objects.get(id=payment_id)
             assert payment.status == 'in_progress',\
@@ -253,7 +253,7 @@ class PaymentProcessor(PaymentProcessorBase):
         """
         Payment was cancelled.
         """
-        Payment = get_model('getpaid', 'Payment')
+        Payment = apps.get_model('getpaid', 'Payment')
         with commit_on_success_or_atomic():
             payment = Payment.objects.get(id=payment_id)
             payment.change_status('cancelled')

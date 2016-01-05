@@ -3,7 +3,7 @@
 from collections import OrderedDict
 
 from django.core.urlresolvers import reverse
-from django.db.models.loading import get_model
+from django.apps import apps
 from django.test import TestCase
 from django.test.client import Client
 from django.test.utils import override_settings
@@ -26,7 +26,7 @@ class EpaydkBackendTestCase(TestCase):
 
     def setUp(self):
         self.client = Client()
-        Payment = get_model('getpaid', 'Payment')
+        Payment = apps.get_model('getpaid', 'Payment')
         order = Order(name='Test DKK order', total='123.45', currency='DKK')
         order.save()
 
@@ -112,7 +112,7 @@ class EpaydkBackendTestCase(TestCase):
         expected_url = reverse('getpaid-success-fallback',
                                kwargs=dict(pk=self.test_payment.pk))
         self.assertRedirects(response, expected_url, 302, 302)
-        Payment = get_model('getpaid', 'Payment')
+        Payment = apps.get_model('getpaid', 'Payment')
         actual = Payment.objects.get(id=self.test_payment.id)
         self.assertEqual(actual.status, 'accepted_for_proc')
 
@@ -138,7 +138,7 @@ class EpaydkBackendTestCase(TestCase):
         response = self.client.get(url, data=params)
         self.assertEqual(response.content, b'OK')
         self.assertEqual(response.status_code, 200)
-        Payment = get_model('getpaid', 'Payment')
+        Payment = apps.get_model('getpaid', 'Payment')
         actual = Payment.objects.get(id=self.test_payment.id)
         self.assertEqual(actual.status, 'paid')
 
@@ -161,7 +161,7 @@ class EpaydkBackendTestCase(TestCase):
         response = self.client.get(url, data=params)
         self.assertEqual(response.content, b'400 Bad Request')
         self.assertEqual(response.status_code, 400)
-        Payment = get_model('getpaid', 'Payment')
+        Payment = apps.get_model('getpaid', 'Payment')
         actual = Payment.objects.get(id=self.test_payment.id)
         self.assertEqual(actual.status, 'new')
 
@@ -179,6 +179,6 @@ class EpaydkBackendTestCase(TestCase):
         expected = reverse('getpaid-failure-fallback',
                            kwargs=dict(pk=self.test_payment.pk))
         self.assertRedirects(response, expected, 302, 302)
-        Payment = get_model('getpaid', 'Payment')
+        Payment = apps.get_model('getpaid', 'Payment')
         actual = Payment.objects.get(id=self.test_payment.id)
         self.assertEqual(actual.status, 'cancelled')
