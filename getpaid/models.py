@@ -152,5 +152,5 @@ def register_to_payment(order_class, **kwargs):
     backend_models_modules = import_backend_modules('models')
     for backend_name, models_module in backend_models_modules.items():
         for model in models_module.build_models(Payment):
-            apps.register_model(backend_name, module)
+            apps.register_model(backend_name, model)
     return Payment
