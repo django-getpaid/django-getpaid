@@ -7,7 +7,7 @@ from django.http import HttpResponse, HttpResponseBadRequest
 from django.views.generic import View
 from django.shortcuts import redirect, get_object_or_404
 from django.forms import ValidationError
-from django.db.models.loading import get_model
+from django.apps import apps
 
 
 from getpaid.backends.epaydk import PaymentProcessor
@@ -72,7 +72,7 @@ class AcceptView(View):
     http_method_names = ['get', ]
 
     def get(self, request):
-        Payment = get_model('getpaid', 'Payment')
+        Payment = apps.get_model('getpaid', 'Payment')
         form = EpaydkOnlineForm(request.GET)
         if not form.is_valid():
             logger.debug("EpaydkOnlineForm not valid")
@@ -121,7 +121,7 @@ class CancelView(View):
         Receives params: orderid as int payment id and error as negative int.
         @warning: epay.dk doesn't send hash param!
         """
-        Payment = get_model('getpaid', 'Payment')
+        Payment = apps.get_model('getpaid', 'Payment')
         form = EpaydkCancellForm(request.GET)
         if not form.is_valid():
             logger.debug("EpaydkCancellForm not valid")

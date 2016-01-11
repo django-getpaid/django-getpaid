@@ -2,7 +2,7 @@
 
 from decimal import Decimal
 
-from django.db.models.loading import get_model
+from django.apps import apps
 from django.test import TestCase
 from django.utils.six.moves.urllib.parse import urlparse, parse_qs, \
     parse_qsl, urlencode
@@ -58,7 +58,7 @@ class Przelewy24PaymentProcessorTestCase(TestCase):
 
     @mock.patch("getpaid.backends.przelewy24.urlopen", fake_przelewy24_payment_get_response_success)
     def test_get_payment_status_success(self):
-        Payment = get_model('getpaid', 'Payment')
+        Payment = apps.get_model('getpaid', 'Payment')
         order = Order(name='Test PLN order', total='123.45', currency='PLN')
         order.save()
         payment = Payment(pk=191, order=order, amount=order.total, currency=order.currency,
@@ -76,7 +76,7 @@ class Przelewy24PaymentProcessorTestCase(TestCase):
     @mock.patch("getpaid.backends.przelewy24.urlopen",
                 fake_przelewy24_payment_get_response_success)
     def test_get_payment_status_success_partial(self):
-        Payment = get_model('getpaid', 'Payment')
+        Payment = apps.get_model('getpaid', 'Payment')
         order = Order(name='Test PLN order', total='123.45', currency='PLN')
         order.save()
 
@@ -95,7 +95,7 @@ class Przelewy24PaymentProcessorTestCase(TestCase):
 
     @mock.patch("getpaid.backends.przelewy24.urlopen", fake_przelewy24_payment_get_response_failed)
     def test_get_payment_status_failed(self):
-        Payment = get_model('getpaid', 'Payment')
+        Payment = apps.get_model('getpaid', 'Payment')
         order = Order(name='Test PLN order', total='123.45', currency='PLN')
         order.save()
 

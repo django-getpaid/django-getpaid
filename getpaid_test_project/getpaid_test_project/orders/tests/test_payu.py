@@ -3,7 +3,7 @@
 from decimal import Decimal
 
 from django.core.urlresolvers import reverse
-from django.db.models.loading import get_model
+from django.apps import apps
 from django.test import TestCase
 from django.test.client import Client
 from django.utils.six.moves.urllib.parse import urlparse, parse_qs, \
@@ -153,7 +153,7 @@ trans_sig:e4e981bfa780fa78fb077ca1f9295f2a
     @mock.patch("getpaid.backends.payu.Request", autospec=True)
     @mock.patch("getpaid.backends.payu.urlopen", fake_payment_get_response_success)
     def test_payment_get_paid(self, mock_Request):
-        Payment = get_model('getpaid', 'Payment')
+        Payment = apps.get_model('getpaid', 'Payment')
         order = Order(name='Test EUR order', total='123.45', currency='PLN')
         order.save()
         payment = Payment(pk=99, order=order, amount=order.total, currency=order.currency,
@@ -181,7 +181,7 @@ trans_sig:e4e981bfa780fa78fb077ca1f9295f2a
 
     @mock.patch("getpaid.backends.payu.urlopen", fake_payment_get_response_failure)
     def test_payment_get_failed(self):
-        Payment = get_model('getpaid', 'Payment')
+        Payment = apps.get_model('getpaid', 'Payment')
         order = Order(name='Test EUR order', total='123.45', currency='PLN')
         order.save()
         payment = Payment(pk=98, order=order, amount=order.total, currency=order.currency,

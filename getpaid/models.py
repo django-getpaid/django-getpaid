@@ -1,5 +1,7 @@
 import sys
 from datetime import datetime
+
+from django.apps import apps
 from django.db import models
 from django.utils import six
 from django.utils.timezone import utc
@@ -124,10 +126,6 @@ class PaymentFactory(models.Model, AbstractMixin):
         self.change_status('failed')
 
 
-from django.db.models.loading import cache as app_cache, register_models
-#from utils import import_backend_modules
-
-
 def register_to_payment(order_class, **kwargs):
     """
     A function for registering unaware order class to ``getpaid``. This will
@@ -152,6 +150,7 @@ def register_to_payment(order_class, **kwargs):
     # Now build models for backends
 
     backend_models_modules = import_backend_modules('models')
-    for backend_name, models in backend_models_modules.items():
-        app_cache.register_models(backend_name, *models.build_models(Payment))
+    for backend_name, models_module in backend_models_modules.items():
+        for model in models_module.build_models(Payment):
+            apps.register_model(backend_name, model)
     return Payment

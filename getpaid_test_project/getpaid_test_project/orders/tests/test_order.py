@@ -5,7 +5,7 @@ when you run "manage.py test".
 Replace this with more appropriate tests for your application.
 """
 from django.core.urlresolvers import reverse
-from django.db.models.loading import get_model
+from django.apps import apps
 from django.forms import ValidationError
 from django.test import TestCase
 from django.test.client import Client
@@ -35,7 +35,7 @@ class OrderTest(TestCase):
         data = {'order': order.pk, 'backend': 'getpaid.backends.dummy'}
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, 302)
-        Payment = get_model('getpaid', 'Payment')
+        Payment = apps.get_model('getpaid', 'Payment')
         payment = Payment.objects.get(order=order.pk)
         self.assertEqual(payment.backend, 'getpaid.backends.dummy')
         self.assertEqual(payment.amount, order.total)
@@ -55,7 +55,7 @@ class OrderTest(TestCase):
                                      'backend': 'getpaid.backends.payu'}
         )
         self.assertEqual(response.status_code, 302)
-        Payment = get_model('getpaid', 'Payment')
+        Payment = apps.get_model('getpaid', 'Payment')
         payment = Payment.objects.get(order=order.pk)
         self.assertEqual(payment.backend, 'getpaid.backends.payu')
         self.assertEqual(payment.amount, order.total)

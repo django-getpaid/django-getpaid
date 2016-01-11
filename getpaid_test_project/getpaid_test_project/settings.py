@@ -141,7 +141,7 @@ INSTALLED_APPS = (
     # Uncomment the next line to enable admin documentation:
     # 'django.contrib.admindocs',
 
-    # 'djcelery.transport',
+    'djcelery',
     'kombu.transport.django',
 
     'getpaid',

@@ -5,7 +5,7 @@ from six.moves.urllib.parse import urlencode
 from django.utils.six import text_type
 from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse
-from django.db.models.loading import get_model
+from django.apps import apps
 from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
 from getpaid import signals
@@ -59,7 +59,7 @@ class PaymentProcessor(PaymentProcessorBase):
             logger.warning('Got message with wrong id, %s' % str(params))
             return u'ID ERR'
 
-        Payment = get_model('getpaid', 'Payment')
+        Payment = apps.get_model('getpaid', 'Payment')
         try:
             payment = Payment.objects.select_related('order').get(pk=int(tr_crc))
         except (Payment.DoesNotExist, ValueError):

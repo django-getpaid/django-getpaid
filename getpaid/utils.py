@@ -3,13 +3,15 @@ import sys
 from collections import OrderedDict
 from importlib import import_module
 
+from django.apps import apps
 from django.conf import settings
 from django.utils import six
 from django.core.urlresolvers import reverse
+from django.utils.functional import SimpleLazyObject
 from django.utils.six.moves.urllib.parse import parse_qsl
-from django.contrib.sites.models import Site
 import django
 
+Site = SimpleLazyObject(lambda: apps.get_model('sites.Site'))
 
 if six.PY3:
     unicode = str
