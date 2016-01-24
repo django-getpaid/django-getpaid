@@ -296,6 +296,8 @@ Required keys:
 
 **id**
     client ID
+**PIN**
+    secret used for checking messeges md5; generated in Dotpay admin panel
 
 
 You need to provide this information in ``GETPAID_BACKENDS_SETTINGS`` dictionary::
@@ -303,14 +305,12 @@ You need to provide this information in ``GETPAID_BACKENDS_SETTINGS`` dictionary
     GETPAID_BACKENDS_SETTINGS = {
         'getpaid.backends.dotpay' : {
                 'id' : 123456,
+                'PIN': 123456789,
 
             },
     }
 
 Optional keys:
-
-**PIN**
-    secret used for checking messeges md5; default ``""``
 
 **force_ssl**
     forcing HTTPS on incoming connections from Dotpay; default ``False``
