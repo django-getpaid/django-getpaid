@@ -83,7 +83,7 @@ class PaymentProcessor(PaymentProcessorBase):
         for key in params.keys():
             params[key] = six.text_type(params[key]).encode('utf-8')
 
-        data = urlencode(params)
+        data = urlencode(params).encode('utf-8')
 
         url = self._GATEWAY_CONFIRM_URL
         if PaymentProcessor.get_backend_setting('sandbox', False):
