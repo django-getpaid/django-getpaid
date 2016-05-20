@@ -19,6 +19,7 @@ from getpaid.utils import get_backend_settings
 if six.PY3:
     unicode = str
 
+
 class TransferujBackendTestCase(TestCase):
     def test_online_not_allowed_ip(self):
         self.assertEqual('IP ERR',
@@ -202,10 +203,10 @@ class PaymentProcessorGetGatewayUrl(TestCase):
 
     def get_urls(self):
         return {
-            'wyn_url': reverse('getpaid-transferuj-online'),
-            'pow_url_blad': reverse('getpaid-transferuj-failure',
+            'wyn_url': reverse('getpaid:transferuj:online'),
+            'pow_url_blad': reverse('getpaid:transferuj:failure',
                                     kwargs={'pk': self.payment.pk}),
-            'pow_url': reverse('getpaid-transferuj-success',
+            'pow_url': reverse('getpaid:transferuj:success',
                                kwargs={'pk': self.payment.pk}),
         }
 

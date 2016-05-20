@@ -3,6 +3,7 @@ from django.core.exceptions import ValidationError
 from django.forms.models import ModelForm
 from getpaid_test_project.orders.models import Order
 
+
 class OrderForm(ModelForm):
     class Meta:
         model = Order

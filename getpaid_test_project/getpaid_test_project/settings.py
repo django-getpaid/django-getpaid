@@ -181,26 +181,26 @@ LOGGING = {
             'level': 'ERROR',
             'propagate': True,
         },
+        'django.db': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': True,
+        },
+        'factory': {
+            'handlers': ['console'],
+            'level': 'WARN',
+        },
 
-        'getpaid_test_project':{
+        'getpaid_test_project': {
             'handlers': ['console'],
             'level': 'DEBUG',
         },
 
         #You can do some fancy logging ;)
-        'getpaid.backends.payu':{
+        'getpaid.backends': {
             'handlers': ['console'],
             'level': 'DEBUG',
         },
-        'getpaid.backends.przelewy24':{
-            'handlers': ['console'],
-            'level': 'DEBUG',
-        },
-        'getpaid.backends.transferuj':{
-            'handlers': ['console'],
-            'level': 'DEBUG',
-        }
-
     }
 }
 

@@ -2,7 +2,12 @@ from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils.encoding import python_2_unicode_compatible
 import getpaid
-from django.utils.encoding import python_2_unicode_compatible
+
+
+ORDER_STATUS_CHOICES = (
+    ('W', 'Waiting for payment'),
+    ('P', 'Payment complete')
+)
 
 
 @python_2_unicode_compatible
@@ -15,8 +20,9 @@ class Order(models.Model):
     name = models.CharField(max_length=100, default="Lock, Stock and Two Smoking Barrels")
     total = models.DecimalField(decimal_places=2, max_digits=8, default='199.99')
     currency = models.CharField(max_length=3, default='EUR')
-    status = models.CharField(max_length=1, blank=True, default='W', choices=(('W', 'Waiting for payment'),
-                                                                               ('P', 'Payment complete')))
+    status = models.CharField(max_length=1, blank=True, default='W',
+                              choices=ORDER_STATUS_CHOICES)
+
     def get_absolute_url(self):
         return reverse('order_detail', kwargs={'pk': self.pk})
 

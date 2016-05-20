@@ -24,9 +24,9 @@ class PaymillView(FormView):
     def get_success_url(self):
         url = None
         if self.success:
-            url = reverse('getpaid-success-fallback', kwargs={'pk': self.payment.pk})
+            url = reverse('getpaid:success-fallback', kwargs={'pk': self.payment.pk})
         else:
-            url = reverse('getpaid-failure-fallback', kwargs={'pk': self.payment.pk})
+            url = reverse('getpaid:failure-fallback', kwargs={'pk': self.payment.pk})
         return url
 
     def form_valid(self, form):

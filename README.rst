@@ -95,7 +95,7 @@ Let's take an example from test project::
     Payment = getpaid.register_to_payment(Order, unique=False, related_name='payments')
     
 
-For django >=1.7 please add the following line to your settings:
+and add the following line to your settings:
 
     GETPAID_ORDER_MODEL = 'my_super_app.Order'
 
@@ -140,14 +140,14 @@ for a given order currency.
 
 ``PaymentMethodForm`` provides two fields: HiddenInput with order_id and ChoiceField with backend name. This is how you use it in template::
 
-    <form action="{% url getpaid-new-payment currency=object.currency %}" method="post">
+    <form action="{% url 'getpaid:new-payment' currency=object.currency %}" method="post">
         {% csrf_token %}
         {{ payment_form.as_p }}
         <input type="submit" value="Continue">
     </form>
 
 
-Action URL of form should point on named link  `getpaid-new-payment` that requires currency code argument.
+Action URL of form should point on named link  `getpaid:new-payment` that requires currency code argument.
 This form will redirect client from order view directly to page of payment broker.
 
 Step 3. Filling necessary payment data

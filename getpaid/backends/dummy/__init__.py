@@ -9,4 +9,9 @@ class PaymentProcessor(PaymentProcessorBase):
     BACKEND_ACCEPTED_CURRENCY = (u'PLN', u'EUR', u'USD')
 
     def get_gateway_url(self, request):
-        return reverse('getpaid-dummy-authorization', kwargs={'pk': self.payment.pk}), "GET", {}
+        return (
+            reverse('getpaid:dummy:authorization',
+                    kwargs={'pk': self.payment.pk}),
+            "GET",
+            {}
+        )

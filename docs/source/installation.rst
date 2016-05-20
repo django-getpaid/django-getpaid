@@ -20,6 +20,14 @@ Second step is to enable this django application by adding it to ``INSTALLED_APP
 
         INSTALLED_APPS += ('getpaid', )
 
+and add getpaid to your project's urls.py::
+
+    url(r'^getpaid/', include('getpaid.urls', namespace='getpaid', app_name='getpaid')),
+
+.. warning:: It is advised that
+ you pass ``namespace`` and ``app_name`` as kwargs to include.
+
+
 Enabling getpaid backends
 -------------------------
 

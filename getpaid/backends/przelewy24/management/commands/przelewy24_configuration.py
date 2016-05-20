@@ -15,7 +15,7 @@ class Command(BaseCommand):
 
         self.stdout.write(
             ('https://' if PaymentProcessor.get_backend_setting('ssl_return', False) else 'http://') + '%s%s\n\n' % (
-                current_site, reverse('getpaid-przelewy24-online'))
+                current_site, reverse('getpaid:przelewy24:online'))
         )
 
         self.stdout.write(

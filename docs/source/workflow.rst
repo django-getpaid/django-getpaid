@@ -93,14 +93,14 @@ Here we get a ``PaymentMethodForm`` object, that is parametrised with the curren
 
 ``PaymentMethodForm`` provides two fields: HiddenInput with order_id and ChoiceField with the backend name. This is how you use it in a template::
 
-    <form action="{% url 'getpaid-new-payment' currency=object.currency %}" method="post">
+    <form action="{% url 'getpaid:new-payment' currency=object.currency %}" method="post">
         {% csrf_token %}
         {{ payment_form.as_p }}
         <input type="submit" value="Continue">
     </form>
 
 
-The action URL of this form should point to the named url  `getpaid-new-payment` that requires the currency code argument. This form will redirect the client from the order view directly to the page of the payment broker.
+The action URL of this form should point to the named url  `getpaid:new-payment` that requires the currency code argument. This form will redirect the client from the order view directly to the page of the payment broker.
 
 
 When client submits this form he will be redirected to getpaid internal view (``NewPaymentView``) which will do one of two things:

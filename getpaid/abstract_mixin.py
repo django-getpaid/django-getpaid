@@ -23,7 +23,7 @@ class AbstractMixin(object):
             'Meta': type('Meta', (), {'abstract': True}),
         })
         key = (args, tuple(kwargs.items()))
-        if not key in cls._classcache:
+        if key not in cls._classcache:
             clsname = ('%s%x' % (cls.__name__, hash(key))) \
                 .replace('-', '_')
             cls._classcache[key] = type(clsname, (cls, ), attrs)

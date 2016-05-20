@@ -111,7 +111,11 @@ class PaymentProcessor(PaymentProcessorBase):
             return (self._GATEWAY_URL, 'POST', params)
 
         params = {k: text_type(v).encode('utf-8') for k, v in params.items()}
-        return ("{}?{}".format( self._GATEWAY_URL, urlencode(params)), "GET", {})
+        return (
+            "{}?{}".format(self._GATEWAY_URL, urlencode(params)),
+            "GET",
+            {}
+        )
 
     def _build_user_data(self, params):
         user_data = {
@@ -154,13 +158,13 @@ class PaymentProcessor(PaymentProcessorBase):
         return_domain = "{}://{}".format(return_domain, domain)
 
         params['wyn_url'] = online_domain + reverse(
-            'getpaid-transferuj-online'
+            'getpaid:transferuj:online'
         )
         params['pow_url'] = return_domain + reverse(
-            'getpaid-transferuj-success', kwargs={'pk': self.payment.pk}
+            'getpaid:transferuj:success', kwargs={'pk': self.payment.pk}
         )
         params['pow_url_blad'] = return_domain + reverse(
-            'getpaid-transferuj-failure', kwargs={'pk': self.payment.pk}
+            'getpaid:transferuj:failure', kwargs={'pk': self.payment.pk}
         )
 
         return params

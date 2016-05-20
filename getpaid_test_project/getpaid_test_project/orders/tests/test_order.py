@@ -31,7 +31,7 @@ class OrderTest(TestCase):
         """
         order = Order(name='Test EUR order', total=100, currency='EUR')
         order.save()
-        url = reverse('getpaid-new-payment', kwargs={'currency': 'EUR'})
+        url = reverse('getpaid:new-payment', kwargs={'currency': 'EUR'})
         data = {'order': order.pk, 'backend': 'getpaid.backends.dummy'}
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, 302)
@@ -50,10 +50,9 @@ class OrderTest(TestCase):
         """
         order = Order(name='Test PLN order', total=100, currency='PLN')
         order.save()
-        response = self.client.post(reverse('getpaid-new-payment', kwargs={'currency': 'PLN'}),
-                                    {'order': order.pk,
-                                     'backend': 'getpaid.backends.payu'}
-        )
+        test_url = reverse('getpaid:new-payment', kwargs={'currency': 'PLN'})
+        data = {'order': order.pk, 'backend': 'getpaid.backends.payu'}
+        response = self.client.post(test_url, data)
         self.assertEqual(response.status_code, 302)
         Payment = apps.get_model('getpaid', 'Payment')
         payment = Payment.objects.get(order=order.pk)
@@ -71,7 +70,7 @@ class OrderTest(TestCase):
         """
         order = Order(name='Test EUR order', total=100, currency='EUR')
         order.save()
-        response = self.client.post(reverse('getpaid-new-payment',
+        response = self.client.post(reverse('getpaid:new-payment',
                                             kwargs={'currency': 'EUR'}),
                                     {'order': order.pk,
                                      'backend': 'getpaid.backends.payu'})
@@ -94,7 +93,7 @@ class OrderTest(TestCase):
                       currency='PLN')
         order.save()
         try:
-            url = reverse('getpaid-new-payment', kwargs={'currency': 'PLN'})
+            url = reverse('getpaid:new-payment', kwargs={'currency': 'PLN'})
             data = {'order': order.pk, 'backend': 'getpaid.backends.payu'}
             response = self.client.post(url, data)
             self.assertEqual(response.status_code, 403)

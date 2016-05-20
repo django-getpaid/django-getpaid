@@ -64,8 +64,8 @@ class PaymentProcessor(PaymentProcessorBase):
         etree.SubElement(xml_values, "Valor", moeda=self.payment.currency).text = str(self.payment.amount)
 
         etree.SubElement(xml_instruction, "IdProprio").text = "%s-%s" % (str(self.payment.id), str(time.time()))
-        etree.SubElement(xml_instruction, "URLRetorno").text = PaymentProcessor._get_view_full_url(request, 'getpaid-moip-success', args=(self.payment.id,))
-        etree.SubElement(xml_instruction, "URLNotificacao").text = PaymentProcessor._get_view_full_url(request, 'getpaid-moip-notifications')
+        etree.SubElement(xml_instruction, "URLRetorno").text = PaymentProcessor._get_view_full_url(request, 'getpaid:moip:success', args=(self.payment.id,))
+        etree.SubElement(xml_instruction, "URLNotificacao").text = PaymentProcessor._get_view_full_url(request, 'getpaid:moip:notifications')
 
         # collect customer data
         customer_info = {}

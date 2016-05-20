@@ -83,7 +83,7 @@ class EpaydkBackendTestCase(TestCase):
         self.assertEqual(actual[5], '')
 
     def test_online_invalid(self):
-        response = self.client.get(reverse('getpaid-epaydk-online'))
+        response = self.client.get(reverse('getpaid:epaydk:online'))
         self.assertEqual(response.content, b'400 Bad Request')
         self.assertEqual(response.status_code, 400)
 
@@ -107,9 +107,9 @@ class EpaydkBackendTestCase(TestCase):
         md5hash = payproc.compute_hash(OrderedDict(params))
         params.append(('hash', md5hash))
         query = urlencode(params)
-        url = reverse('getpaid-epaydk-success') + '?' + query
+        url = reverse('getpaid:epaydk:success') + '?' + query
         response = self.client.get(url, data=params)
-        expected_url = reverse('getpaid-success-fallback',
+        expected_url = reverse('getpaid:success-fallback',
                                kwargs=dict(pk=self.test_payment.pk))
         self.assertRedirects(response, expected_url, 302, 302)
         Payment = apps.get_model('getpaid', 'Payment')
@@ -134,7 +134,7 @@ class EpaydkBackendTestCase(TestCase):
         md5hash = payproc.compute_hash(OrderedDict(params))
         params.append(('hash', md5hash))
         query = urlencode(params)
-        url = reverse('getpaid-epaydk-online') + '?' + query
+        url = reverse('getpaid:epaydk:online') + '?' + query
         response = self.client.get(url, data=params)
         self.assertEqual(response.content, b'OK')
         self.assertEqual(response.status_code, 200)
@@ -157,7 +157,7 @@ class EpaydkBackendTestCase(TestCase):
         ]
         params.append(('hash', '1234567'))
         query = urlencode(params)
-        url = reverse('getpaid-epaydk-online') + '?' + query
+        url = reverse('getpaid:epaydk:online') + '?' + query
         response = self.client.get(url, data=params)
         self.assertEqual(response.content, b'400 Bad Request')
         self.assertEqual(response.status_code, 400)
@@ -167,16 +167,16 @@ class EpaydkBackendTestCase(TestCase):
 
     def test_online_post(self):
         data = {'test': 'data'}
-        response = self.client.post(reverse('getpaid-epaydk-online'),
+        response = self.client.post(reverse('getpaid:epaydk:online'),
                                     data=data)
         self.assertEqual(response.content, b'')
         self.assertEqual(response.status_code, 405)
 
     def test_cancelled(self):
         query = '?orderid=%s&error=-5543' % self.test_payment.id
-        url = reverse('getpaid-epaydk-failure') + query
+        url = reverse('getpaid:epaydk:failure') + query
         response = self.client.get(url)
-        expected = reverse('getpaid-failure-fallback',
+        expected = reverse('getpaid:failure-fallback',
                            kwargs=dict(pk=self.test_payment.pk))
         self.assertRedirects(response, expected, 302, 302)
         Payment = apps.get_model('getpaid', 'Payment')

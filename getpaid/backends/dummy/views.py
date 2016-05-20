@@ -1,6 +1,7 @@
 from django.core.urlresolvers import reverse
 from django.shortcuts import get_object_or_404
 from django.views.generic.edit import FormView
+
 from getpaid.backends.dummy import PaymentProcessor
 from getpaid.backends.dummy.forms import DummyQuestionForm
 from getpaid.models import Payment
@@ -21,9 +22,9 @@ class DummyAuthorizationView(FormView):
     def get_success_url(self):
         url = None
         if self.success:
-            url = reverse('getpaid-success-fallback', kwargs={'pk': self.payment.pk})
+            url = reverse('getpaid:success-fallback', kwargs={'pk': self.payment.pk})
         else:
-            url = reverse('getpaid-failure-fallback', kwargs={'pk': self.payment.pk})
+            url = reverse('getpaid:failure-fallback', kwargs={'pk': self.payment.pk})
         return url
 
     def form_valid(self, form):

@@ -11,12 +11,7 @@ from django.apps import apps
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.six.moves.urllib.parse import urlencode
 from getpaid.utils import get_domain
-
-# FIXME: commit_on_success is not exactly what I would want here...
-try:
-    from django.db.transaction import commit_on_success_or_atomic
-except ImportError:
-    from django.db.transaction import atomic as commit_on_success_or_atomic
+from django.db import transaction
 
 from getpaid.backends import PaymentProcessorBase
 from getpaid.utils import build_absolute_uri
@@ -200,16 +195,16 @@ class PaymentProcessor(PaymentProcessorBase):
             'scheme': request.scheme
         }
 
-        params['accepturl'] = build_absolute_uri('getpaid-epaydk-success',
+        params['accepturl'] = build_absolute_uri('getpaid:epaydk:success',
                                                  **url_data)
 
         if not PaymentProcessor.get_backend_setting('callback_secret_path',
                                                     ''):
             params['callbackurl'] = build_absolute_uri(
-                'getpaid-epaydk-online', **url_data
+                'getpaid:epaydk:online', **url_data
             )
 
-        params['cancelurl'] = build_absolute_uri('getpaid-epaydk-failure',
+        params['cancelurl'] = build_absolute_uri('getpaid:epaydk:failure',
                                                  **url_data)
         params['hash'] = PaymentProcessor.compute_hash(params)
 
@@ -225,7 +220,7 @@ class PaymentProcessor(PaymentProcessorBase):
         Payment was confirmed.
         """
         Payment = apps.get_model('getpaid', 'Payment')
-        with commit_on_success_or_atomic():
+        with transaction.atomic():
             payment = Payment.objects.get(id=params['orderid'])
             assert payment.status == 'accepted_for_proc',\
                 "Can not confirm payment that was not accepted for processing"
@@ -242,7 +237,7 @@ class PaymentProcessor(PaymentProcessorBase):
         Payment was accepted into the queue for processing.
         """
         Payment = apps.get_model('getpaid', 'Payment')
-        with commit_on_success_or_atomic():
+        with transaction.atomic():
             payment = Payment.objects.get(id=payment_id)
             assert payment.status == 'in_progress',\
                 "Can not accept payment that is not in progress"
@@ -254,6 +249,6 @@ class PaymentProcessor(PaymentProcessorBase):
         Payment was cancelled.
         """
         Payment = apps.get_model('getpaid', 'Payment')
-        with commit_on_success_or_atomic():
+        with transaction.atomic():
             payment = Payment.objects.get(id=payment_id)
             payment.change_status('cancelled')
