@@ -3,7 +3,45 @@ django-getpaid changes
 
 (master branch - current development)
 -------------------------------------
-* none yet
+
+Version 1.7.5
+-------------
+* Fixed przelewy24 params (py3 support)
+
+Version 1.7.4
+-------------
+* Added default apps config getpaid.apps.Config
+* Fixed and refactoring for utils.get_domain, build_absolute_uri,
+ settings.GETPAID_SITE_DOMAIN
+* Refactored register_to_payment
+* Refactored build_absolute_uri
+* Refactored and fixes in transferuj backend
+ - payment.paid_on uses local TIMEZONE now as opposed to UTC
+ - changed params
+ - add post method to SuccessView and FailureView
+* Added test models factories
+* Dropped support for Django <=1.6
+
+Version 1.7.3
+-------------
+* Refactored Dotpay
+* Moved all existing tests to test_project and added more/refactored
+* Fixed utils.import_module
+* Fixed Payu and tests (py3 support)
+* Updated docs
+
+Version 1.7.2
+-------------
+* Updated coveragerc and travis.yml
+* Added missing mgiration for Payment.status
+
+Version 1.7.1
+-------------
+* Added coveragerc
+* Updated README
+* Added settings.GETPAID_ORDER_MODEL
+* Added epay.dk support
+* Added initial django migration
 
 Version 1.7.0
 -------------

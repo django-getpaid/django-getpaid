@@ -1,4 +1,4 @@
-Django>=1.6
+Django>=1.7
 Sphinx
 celery
 django-celery
