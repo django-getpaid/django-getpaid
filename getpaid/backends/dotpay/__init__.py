@@ -91,14 +91,14 @@ class PaymentProcessor(PaymentProcessorBase):
         return u'OK'
 
     def get_URLC(self):
-        urlc = reverse('getpaid-dotpay-online')
+        urlc = reverse('getpaid:dotpay:online')
         if PaymentProcessor.get_backend_setting('force_ssl', False):
             return u'https://%s%s' % (get_domain(), urlc)
         else:
             return u'http://%s%s' % (get_domain(), urlc)
 
     def get_URL(self, pk):
-        url = reverse('getpaid-dotpay-return', kwargs={'pk': pk})
+        url = reverse('getpaid:dotpay:return', kwargs={'pk': pk})
         if PaymentProcessor.get_backend_setting('force_ssl', False):
             return u'https://%s%s' % (get_domain(), url)
         else:

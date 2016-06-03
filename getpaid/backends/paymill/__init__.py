@@ -2,6 +2,7 @@ from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext_lazy as _
 from getpaid.backends import PaymentProcessorBase
 
+
 class PaymentProcessor(PaymentProcessorBase):
     BACKEND = 'getpaid.backends.paymill'
     BACKEND_NAME = _('Paymill')
@@ -10,4 +11,4 @@ class PaymentProcessor(PaymentProcessorBase):
                                  u'SEK', u'TRY', u'GBP', u'USD', )
 
     def get_gateway_url(self, request):
-        return reverse('getpaid-paymill-authorization', kwargs={'pk' : self.payment.pk}), "GET", {}
+        return reverse('getpaid:paymill:authorization', kwargs={'pk' : self.payment.pk}), "GET", {}

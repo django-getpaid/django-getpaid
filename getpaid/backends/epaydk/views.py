@@ -66,7 +66,7 @@ class AcceptView(View):
     """
     This view is called after the payment is submitted for processing.
     Redirects to GETPAID_SUCCESS_URL_NAME if it's defined
-    otherwise to getpaid-success-fallback.
+    otherwise to getpaid:success-fallback.
     """
 
     http_method_names = ['get', ]
@@ -105,14 +105,14 @@ class AcceptView(View):
         url_name = getattr(settings, 'GETPAID_SUCCESS_URL_NAME', None)
         if url_name:
             return redirect(url_name, pk=payment.order.pk)
-        return redirect('getpaid-success-fallback', pk=payment.pk)
+        return redirect('getpaid:success-fallback', pk=payment.pk)
 
 
 class CancelView(View):
     """
     This view is called after the payment is submitted for processing.
     Redirects to GETPAID_FAILURE_URL_NAME if it's defined
-    otherwise to getpaid-failure-fallback.
+    otherwise to getpaid:failure-fallback.
     """
     http_method_names = ['get', ]
 
@@ -144,4 +144,4 @@ class CancelView(View):
         url_name = getattr(settings, 'GETPAID_FAILURE_URL_NAME', None)
         if url_name:
             return redirect(url_name, pk=payment.order.pk)
-        return redirect('getpaid-failure-fallback', pk=payment.pk)
+        return redirect('getpaid:failure-fallback', pk=payment.pk)

@@ -43,7 +43,7 @@ class SuccessView(DetailView):
     model = Payment
 
     def render_to_response(self, context, **response_kwargs):
-        return HttpResponseRedirect(reverse('getpaid-success-fallback', kwargs={'pk': self.object.pk}))
+        return HttpResponseRedirect(reverse('getpaid:success-fallback', kwargs={'pk': self.object.pk}))
 
     def post(self, *args, **kwargs):
         return self.get(*args, **kwargs)
@@ -56,7 +56,7 @@ class FailureView(DetailView):
     model = Payment
 
     def render_to_response(self, context, **response_kwargs):
-        return HttpResponseRedirect(reverse('getpaid-failure-fallback', kwargs={'pk': self.object.pk}))
+        return HttpResponseRedirect(reverse('getpaid:failure-fallback', kwargs={'pk': self.object.pk}))
 
     def post(self, *args, **kwargs):
         return self.get(*args, **kwargs)

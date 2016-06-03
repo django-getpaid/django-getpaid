@@ -57,6 +57,6 @@ class ReturnView(DetailView):
 
     def render_to_response(self, context, **response_kwargs):
         if self.request.POST['status'] == 'OK':
-            return HttpResponseRedirect(reverse('getpaid-success-fallback', kwargs={'pk': self.object.pk}))
+            return HttpResponseRedirect(reverse('getpaid:success-fallback', kwargs={'pk': self.object.pk}))
         else:
-            return HttpResponseRedirect(reverse('getpaid-failure-fallback', kwargs={'pk': self.object.pk}))
+            return HttpResponseRedirect(reverse('getpaid:failure-fallback', kwargs={'pk': self.object.pk}))

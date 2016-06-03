@@ -41,4 +41,4 @@ class SuccessView(DetailView):
     model = Payment
 
     def render_to_response(self, context, **response_kwargs):
-        return HttpResponseRedirect(reverse('getpaid-success-fallback', kwargs={'pk': self.object.pk}))
+        return HttpResponseRedirect(reverse('getpaid:success-fallback', kwargs={'pk': self.object.pk}))

@@ -111,11 +111,11 @@ trans_sig:e4e981bfa780fa78fb077ca1f9295f2a
         )
 
     def test_online_malformed(self):
-        response = self.client.post(reverse('getpaid-payu-online'), {})
+        response = self.client.post(reverse('getpaid:payu:online'), {})
         self.assertEqual(response.content, b'MALFORMED')
 
     def test_online_sig_err(self):
-        response = self.client.post(reverse('getpaid-payu-online'), {
+        response = self.client.post(reverse('getpaid:payu:online'), {
             'pos_id': 'wrong',
             'session_id': '10:11111',
             'ts': '1111',
@@ -124,7 +124,7 @@ trans_sig:e4e981bfa780fa78fb077ca1f9295f2a
         self.assertEqual(response.content, b'SIG ERR')
 
     def test_online_wrong_pos_id_err(self):
-        response = self.client.post(reverse('getpaid-payu-online'), {
+        response = self.client.post(reverse('getpaid:payu:online'), {
             'pos_id': '12345',
             'session_id': '10:11111',
             'ts': '1111',
@@ -133,7 +133,7 @@ trans_sig:e4e981bfa780fa78fb077ca1f9295f2a
         self.assertEqual(response.content, b'POS_ID ERR')
 
     def test_online_wrong_session_id_err(self):
-        response = self.client.post(reverse('getpaid-payu-online'), {
+        response = self.client.post(reverse('getpaid:payu:online'), {
             'pos_id': '123456789',
             'session_id': '111111',
             'ts': '1111',
@@ -142,7 +142,7 @@ trans_sig:e4e981bfa780fa78fb077ca1f9295f2a
         self.assertEqual(response.content, b'SESSION_ID ERR')
 
     def test_online_ok(self):
-        response = self.client.post(reverse('getpaid-payu-online'), {
+        response = self.client.post(reverse('getpaid:payu:online'), {
             'pos_id': '123456789',
             'session_id': '1:11111',
             'ts': '1111',

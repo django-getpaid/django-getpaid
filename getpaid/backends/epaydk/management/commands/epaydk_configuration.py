@@ -11,7 +11,7 @@ class Command(BaseCommand):
         self.stdout.write('Login to Epay.dk configuration page and '
                           'setup following links:\n\n')
 
-        success_name = 'getpaid-epaydk-success'
+        success_name = 'getpaid:epaydk:success'
         path = reverse(success_name)
         self.stdout.write(' * accepturl URL: http://%s%s\n\thttps://%s%s\n\n' % (
             current_site,
@@ -21,7 +21,7 @@ class Command(BaseCommand):
             )
         )
 
-        failure_name = 'getpaid-epaydk-failure'
+        failure_name = 'getpaid:epaydk:failure'
         path = reverse(failure_name)
         self.stdout.write(' * cancelurl URL: http://%s%s\n\thttps://%s%s\n\n' % (
             current_site,
@@ -31,7 +31,7 @@ class Command(BaseCommand):
             )
         )
 
-        path = reverse('getpaid-epaydk-online')
+        path = reverse('getpaid:epaydk:online')
         self.stdout.write(' * callbackurl  URL: http://%s%s\n\thttps://%s%s\n\n' % (
             current_site,
             path,
