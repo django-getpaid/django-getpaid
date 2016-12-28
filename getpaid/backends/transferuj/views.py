@@ -1,10 +1,13 @@
 import logging
+
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseRedirect
 from django.views.generic.base import View
 from django.views.generic.detail import DetailView
+
 from getpaid.backends.transferuj import PaymentProcessor
 from getpaid.models import Payment
+from getpaid.utils import get_ip_address
 
 logger = logging.getLogger('getpaid.backends.transferuj')
 
@@ -32,7 +35,7 @@ class OnlineView(View):
             logger.warning('Got malformed POST request: %s' % str(request.POST))
             return HttpResponse('MALFORMED')
 
-        status = PaymentProcessor.online(request.META['REMOTE_ADDR'], id, tr_id, tr_date, tr_crc, tr_amount, tr_paid, tr_desc, tr_status, tr_error, tr_email, md5sum)
+        status = PaymentProcessor.online(get_ip_address(request), id, tr_id, tr_date, tr_crc, tr_amount, tr_paid, tr_desc, tr_status, tr_error, tr_email, md5sum)
         return HttpResponse(status)
 
 
