@@ -51,7 +51,7 @@ class PaymentProcessor(PaymentProcessorBase):
             PaymentProcessor._ALLOWED_IP)
 
         if len(allowed_ip) != 0 and ip not in allowed_ip:
-            logger.warning('Got message from not allowed IP %s' % str(allowed_ip))
+            logger.warning('Got message from not allowed IP %s' % ip)
             return u'IP ERR'
 
         params = {'id': id, 'tr_id': tr_id, 'tr_amount': tr_amount, 'tr_crc': tr_crc}
