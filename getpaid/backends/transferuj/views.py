@@ -33,10 +33,10 @@ class OnlineView(View):
             md5sum = request.POST['md5sum']
         except KeyError:
             logger.warning('Got malformed POST request: %s' % str(request.POST))
-            return HttpResponse('MALFORMED')
+            return HttpResponse('MALFORMED', content_type='text/plain')
 
         status = PaymentProcessor.online(get_ip_address(request), id, tr_id, tr_date, tr_crc, tr_amount, tr_paid, tr_desc, tr_status, tr_error, tr_email, md5sum)
-        return HttpResponse(status)
+        return HttpResponse(status, content_type='text/plain')
 
 
 class SuccessView(DetailView):
