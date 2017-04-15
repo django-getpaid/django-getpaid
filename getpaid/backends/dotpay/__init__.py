@@ -113,6 +113,7 @@ class PaymentProcessor(PaymentProcessorBase):
             'description': self.get_order_description(self.payment, self.payment.order),
             'amount': self.payment.amount,
             'currency': self.payment.currency,
+            'channel' : self.payment.payment_channel,
             'type': 0,  # show "return" button after finished payment
             'control': self.payment.pk,
             'URL': self.get_URL(self.payment.pk),
@@ -142,6 +143,7 @@ class PaymentProcessor(PaymentProcessorBase):
             params['p_info'] = PaymentProcessor.get_backend_setting('p_info')
         if PaymentProcessor.get_backend_setting('tax', False):
             params['tax'] = 1
+        params['ch_lock'] = PaymentProcessor.get_backend_setting('check_lock', 0)
 
         gateway_url = PaymentProcessor.get_backend_setting('gateway_url', self._GATEWAY_URL)
 
