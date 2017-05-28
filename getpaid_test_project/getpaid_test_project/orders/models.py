@@ -37,5 +37,3 @@ Payment = getpaid.register_to_payment(Order,
                                       unique=False,
                                       related_name='payments')
 
-#noinspection PyUnresolvedReferences
-from .listeners import *
