@@ -20,7 +20,9 @@ class NewPaymentView(FormView):
     form_class = PaymentMethodForm
     template_name = "getpaid/payment_post_form.html"
 
-    def get_form(self, form_class):
+    def get_form(self, form_class=None):
+        if form_class is None:
+            form_class = self.get_form_class()
         self.currency = self.kwargs['currency']
         return form_class(self.currency, **self.get_form_kwargs())
 
