@@ -1,5 +1,4 @@
 # coding: utf8
-
 from decimal import Decimal
 
 from django.core.urlresolvers import reverse
@@ -18,6 +17,9 @@ from getpaid_test_project.orders.models import Order
 
 if six.PY3:
     unicode = str
+    from http.client import HTTPMessage
+else:
+    from httplib import HttpMessage
 
 
 def fake_payment_get_response_success(request):
@@ -51,7 +53,7 @@ trans_sig:4d4df5557b89a4e2d8c48436b1dd3fef
 def fake_payment_get_response_failure(request):
     class fake_response:
         def info(self):
-            message = http.client.HTTPMessage()
+            message = HTTPMessage()
             message.headers = (
                 ('Content-type', 'text/plain; charset=ISO-8859-1'),
             )
@@ -113,6 +115,7 @@ trans_sig:e4e981bfa780fa78fb077ca1f9295f2a
     def test_online_malformed(self):
         response = self.client.post(reverse('getpaid:payu:online'), {})
         self.assertEqual(response.content, b'MALFORMED')
+        self.assertEqual(response.status_code, 400)
 
     def test_online_sig_err(self):
         response = self.client.post(reverse('getpaid:payu:online'), {
@@ -122,6 +125,7 @@ trans_sig:e4e981bfa780fa78fb077ca1f9295f2a
             'sig': 'wrong sig',
         })
         self.assertEqual(response.content, b'SIG ERR')
+        self.assertEqual(response.status_code, 400)
 
     def test_online_wrong_pos_id_err(self):
         response = self.client.post(reverse('getpaid:payu:online'), {
@@ -131,6 +135,7 @@ trans_sig:e4e981bfa780fa78fb077ca1f9295f2a
             'sig': '0d6129738c0aee9d4eb56f2a1db75ab4',
         })
         self.assertEqual(response.content, b'POS_ID ERR')
+        self.assertEqual(response.status_code, 400)
 
     def test_online_wrong_session_id_err(self):
         response = self.client.post(reverse('getpaid:payu:online'), {
@@ -140,6 +145,7 @@ trans_sig:e4e981bfa780fa78fb077ca1f9295f2a
             'sig': 'fcf3db081d5085b45fe86ed0c6a9aa5e',
         })
         self.assertEqual(response.content, b'SESSION_ID ERR')
+        self.assertEqual(response.status_code, 400)
 
     def test_online_ok(self):
         response = self.client.post(reverse('getpaid:payu:online'), {
@@ -149,6 +155,7 @@ trans_sig:e4e981bfa780fa78fb077ca1f9295f2a
             'sig': '2a78322c06522613cbd7447983570188',
         })
         self.assertEqual(response.content, b'OK')
+        self.assertEqual(response.status_code, 200)
 
     @mock.patch("getpaid.backends.payu.Request", autospec=True)
     @mock.patch("getpaid.backends.payu.urlopen", fake_payment_get_response_success)
