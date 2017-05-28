@@ -8,9 +8,9 @@ env:
   - DJANGO_VERSION=1.11.1  # LTS
 # command to install dependencies
 install: 
-  - "pip install -q Django==$DJANGO_VERSION"
   - "pip install -q -e .[przelewy24,payu,moip,paymill]"
   - "pip install -q -r getpaid_test_project/requirements.txt"
+  - "pip install -q Django==$DJANGO_VERSION"
   - "pip install coveralls"
 # command to run tests
 script:
