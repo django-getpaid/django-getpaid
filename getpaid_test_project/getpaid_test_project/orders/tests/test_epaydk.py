@@ -84,7 +84,7 @@ class EpaydkBackendTestCase(TestCase):
 
     def test_online_invalid(self):
         response = self.client.get(reverse('getpaid:epaydk:online'))
-        self.assertEqual(response.content, b'400 Bad Request')
+        self.assertEqual(response.content, b'MALFORMED')
         self.assertEqual(response.status_code, 400)
 
     @override_settings(GETPAID_SUCCESS_URL_NAME=None)
@@ -159,7 +159,7 @@ class EpaydkBackendTestCase(TestCase):
         query = urlencode(params)
         url = reverse('getpaid:epaydk:online') + '?' + query
         response = self.client.get(url, data=params)
-        self.assertEqual(response.content, b'400 Bad Request')
+        self.assertEqual(response.content, b'MALFORMED')
         self.assertEqual(response.status_code, 400)
         Payment = apps.get_model('getpaid', 'Payment')
         actual = Payment.objects.get(id=self.test_payment.id)
