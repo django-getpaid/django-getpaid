@@ -12,7 +12,7 @@ class AbstractMixin(object):
     _classcache = {}
 
     @classmethod
-    def contribute(cls):
+    def contribute(cls, *args, **kwargs):
         return {}
 
     @classmethod
