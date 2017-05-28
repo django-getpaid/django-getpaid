@@ -1,6 +1,6 @@
 import logging
 from django.core.urlresolvers import reverse
-from django.http import HttpResponse, HttpResponseRedirect
+from django import http
 from django.views.generic.base import View
 from django.views.generic.detail import DetailView
 from getpaid.backends.przelewy24 import PaymentProcessor
@@ -24,13 +24,13 @@ class OnlineView(View):
             p24_crc = request.POST['p24_crc']
         except KeyError:
             logger.warning('Got malformed POST request: %s' % str(request.POST))
-            return HttpResponse('MALFORMED', status=500)
+            return http.HttpResponseBadRequest('MALFORMED')
 
         if PaymentProcessor.on_payment_status_change(p24_session_id, p24_order_id, p24_kwota, p24_order_id_full,
                                                      p24_crc):
-            return HttpResponse('OK')
+            return http.HttpResponse('OK')
         else:
-            return HttpResponse('CRC ERR')
+            return http.HttpResponseBadRequest('CRC ERR')
 
 
 class SuccessView(DetailView):
@@ -40,7 +40,7 @@ class SuccessView(DetailView):
     model = Payment
 
     def get(self, request, *args, **kwargs):
-        return HttpResponse('GET not allowed')
+        return http.HttpResponseNotAllowed('GET not allowed')
 
     def post(self, request, *args, **kwargs):
         try:
@@ -51,7 +51,7 @@ class SuccessView(DetailView):
             p24_crc = request.POST['p24_crc']
         except KeyError:
             logger.warning('Got malformed POST request: %s' % str(request.POST))
-            return HttpResponse('MALFORMED', status=500)
+            return http.HttpResponseBadRequest('MALFORMED')
 
         PaymentProcessor.on_payment_status_change(p24_session_id, p24_order_id, p24_kwota, p24_order_id_full, p24_crc)
 
@@ -60,7 +60,7 @@ class SuccessView(DetailView):
         return self.render_to_response(context)
 
     def render_to_response(self, context, **response_kwargs):
-        return HttpResponseRedirect(reverse('getpaid:success-fallback', kwargs={'pk': self.object.pk}))
+        return http.HttpResponseRedirect(reverse('getpaid:success-fallback', kwargs={'pk': self.object.pk}))
 
 
 class FailureView(DetailView):
@@ -78,7 +78,7 @@ class FailureView(DetailView):
             p24_crc = request.POST['p24_crc']
         except KeyError:
             logger.warning('Got malformed POST request: %s' % str(request.POST))
-            return HttpResponse('MALFORMED', status=500)
+            return http.HttpResponseBadRequest('MALFORMED')
 
         PaymentProcessor.on_payment_status_change(p24_session_id, p24_order_id, p24_kwota, p24_order_id_full, p24_crc)
 
@@ -88,4 +88,4 @@ class FailureView(DetailView):
 
     def render_to_response(self, context, **response_kwargs):
         logger.error("Payment %s failed on backend error" % (self.kwargs['pk'],))
-        return HttpResponseRedirect(reverse('getpaid:failure-fallback', kwargs={'pk': self.object.pk}))
+        return http.HttpResponseRedirect(reverse('getpaid:failure-fallback', kwargs={'pk': self.object.pk}))

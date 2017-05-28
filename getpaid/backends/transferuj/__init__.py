@@ -83,7 +83,7 @@ class PaymentProcessor(PaymentProcessorBase):
         elif payment.status != 'paid':
             payment.change_status('failed')
 
-        return u'TRUE'
+        return u'TRUE'  # FIXME: should return "OK" for consistency
 
     def get_gateway_url(self, request):
         "Routes a payment to Gateway, should return URL for redirection."
