@@ -13,10 +13,12 @@ class DummyAuthorizationView(FormView):
 
     def get_context_data(self, **kwargs):
         context = super(DummyAuthorizationView, self).get_context_data(**kwargs)
-        self.payment = get_object_or_404(Payment, pk=self.kwargs['pk'], status='in_progress', backend='getpaid.backends.dummy')
+        self.payment = get_object_or_404(Payment, pk=self.kwargs['pk'], status='in_progress',
+                                         backend='getpaid.backends.dummy')
         context['payment'] = self.payment
         context['order'] = self.payment.order
-        context['order_name'] = PaymentProcessor(self.payment).get_order_description(self.payment, self.payment.order)  # TODO: Refactoring of get_order_description needed, should not require payment arg
+        # TODO: Refactoring of get_order_description needed, should not require payment arg
+        context['order_name'] = PaymentProcessor(self.payment).get_order_description(self.payment, self.payment.order)
         return context
 
     def get_success_url(self):
@@ -29,7 +31,8 @@ class DummyAuthorizationView(FormView):
 
     def form_valid(self, form):
         # Change payment status and jump to success_url or failure_url
-        self.payment = get_object_or_404(Payment, pk=self.kwargs['pk'], status='in_progress', backend='getpaid.backends.dummy')
+        self.payment = get_object_or_404(Payment, pk=self.kwargs['pk'], status='in_progress',
+                                         backend='getpaid.backends.dummy')
 
         if form.cleaned_data['authorize_payment'] == '1':
             self.success = True

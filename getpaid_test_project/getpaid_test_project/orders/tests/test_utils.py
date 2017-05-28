@@ -8,7 +8,6 @@ from getpaid import utils
 
 
 class UtilsTestCase(TestCase):
-
     @override_settings(GETPAID_SITE_DOMAIN='example1.com')
     def test_get_domain_getpaid_const(self):
         self.assertEquals('example1.com', utils.get_domain())

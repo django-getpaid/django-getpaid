@@ -5,15 +5,12 @@ from django.core.urlresolvers import reverse
 from django.apps import apps
 from django.test import TestCase
 from django.test.client import Client
-from django.utils.six.moves.urllib.parse import urlparse, parse_qs, \
-    parse_qsl, urlencode
 from django.utils import six
 import mock
 
 import getpaid
 import getpaid.backends.payu
 from getpaid_test_project.orders.models import Order
-
 
 if six.PY3:
     unicode = str
@@ -58,6 +55,7 @@ def fake_payment_get_response_failure(request):
                 ('Content-type', 'text/plain; charset=ISO-8859-1'),
             )
             return message
+
         def read(self):
             return b"""
 status:OK
@@ -90,7 +88,6 @@ class PayUBackendTestCase(TestCase):
     def setUp(self):
         self.client = Client()
 
-
     def test_parse_text_result(self):
         t1 = u'''status:OK
 
@@ -110,7 +107,7 @@ trans_sig:e4e981bfa780fa78fb077ca1f9295f2a
                              'trans_ts': '1379695309225',
                              'trans_sig': 'e4e981bfa780fa78fb077ca1f9295f2a',
                          }
-        )
+                         )
 
     def test_online_malformed(self):
         response = self.client.post(reverse('getpaid:payu:online'), {})

@@ -13,7 +13,6 @@ from getpaid import signals
 from getpaid.backends import PaymentProcessorBase
 from getpaid.backends.payu.tasks import get_payment_status_task, accept_payment
 
-
 logger = logging.getLogger('getpaid.backends.payu')
 
 
@@ -31,18 +30,18 @@ class PayUTransactionStatus:
 class PaymentProcessor(PaymentProcessorBase):
     BACKEND = u'getpaid.backends.payu'
     BACKEND_NAME = _(u'PayU')
-    BACKEND_ACCEPTED_CURRENCY = (u'PLN', )
+    BACKEND_ACCEPTED_CURRENCY = (u'PLN',)
     BACKEND_LOGO_URL = u'getpaid/backends/payu/payu_logo.png'
 
     _GATEWAY_URL = u'https://www.platnosci.pl/paygw/'
     _ACCEPTED_LANGS = (u'pl', u'en')
     _REQUEST_SIG_FIELDS = (
-       u'pos_id', u'pay_type', u'session_id',
-       u'pos_auth_key', u'amount', u'desc', u'desc2', u'trsDesc', u'order_id',
-       u'first_name', u'last_name', u'payback_login', u'street', u'street_hn',
-       u'street_an', u'city', u'post_code', u'country', u'email', u'phone',
-       u'language', u'client_ip', u'ts'
-   )
+        u'pos_id', u'pay_type', u'session_id',
+        u'pos_auth_key', u'amount', u'desc', u'desc2', u'trsDesc', u'order_id',
+        u'first_name', u'last_name', u'payback_login', u'street', u'street_hn',
+        u'street_an', u'city', u'post_code', u'country', u'email', u'phone',
+        u'language', u'client_ip', u'ts'
+    )
     _ONLINE_SIG_FIELDS = (u'pos_id', u'session_id', u'ts',)
     _GET_SIG_FIELDS = (u'pos_id', u'session_id', u'ts',)
     _GET_RESPONSE_SIG_FIELDS = (
@@ -113,14 +112,12 @@ class PaymentProcessor(PaymentProcessorBase):
         if user_data['email']:
             params['email'] = user_data['email']
 
-        if user_data['lang'] and \
-                user_data['lang'].lower() in PaymentProcessor._ACCEPTED_LANGS:
+        if user_data['lang'] \
+                and user_data['lang'].lower() in PaymentProcessor._ACCEPTED_LANGS:
             params['language'] = user_data['lang'].lower()
         elif PaymentProcessor.get_backend_setting('lang', False) and \
-                PaymentProcessor.get_backend_setting('lang').lower() in \
-                    PaymentProcessor._ACCEPTED_LANGS:
-            params['language'] = six.text_type(
-                PaymentProcessor.get_backend_setting('lang').lower())
+                PaymentProcessor.get_backend_setting('lang').lower() in PaymentProcessor._ACCEPTED_LANGS:
+            params['language'] = six.text_type(PaymentProcessor.get_backend_setting('lang').lower())
 
         key1 = six.text_type(PaymentProcessor.get_backend_setting('key1'))
 
@@ -189,12 +186,11 @@ class PaymentProcessor(PaymentProcessorBase):
             logger.warning(u'Payment status error: %s' % response_params)
             return
 
-        if PaymentProcessor.compute_sig(response_params, self._GET_RESPONSE_SIG_FIELDS, key2) == response_params[
-                'trans_sig']:
-            if not (int(response_params['trans_pos_id']) == int(params['pos_id']) or int(
-                    response_params['trans_order_id']) == self.payment.pk):
-                logger.error(
-                    u'Payment status wrong pos_id and/or order id: %s' % response_params)
+        if PaymentProcessor.compute_sig(response_params, self._GET_RESPONSE_SIG_FIELDS,
+                                        key2) == response_params['trans_sig']:
+            if not (int(response_params['trans_pos_id']) == int(params['pos_id']) or
+                    int(response_params['trans_order_id']) == self.payment.pk):
+                logger.error(u'Payment status wrong pos_id and/or order id: %s' % response_params)
                 return
 
             logger.info(u'Fetching payment status: %s' % response_params)
@@ -209,15 +205,15 @@ class PaymentProcessor(PaymentProcessorBase):
                     if status == PayUTransactionStatus.AWAITING:
                         accept_payment.delay(self.payment.id, session_id)
 
-            elif status in (PayUTransactionStatus.CANCELED,
-                            PayUTransactionStatus.ERROR,
-                            PayUTransactionStatus.REJECTED,
-                            PayUTransactionStatus.REJECTED_AFTER_CANCEL):
+            elif status in (
+                    PayUTransactionStatus.CANCELED,
+                    PayUTransactionStatus.ERROR,
+                    PayUTransactionStatus.REJECTED,
+                    PayUTransactionStatus.REJECTED_AFTER_CANCEL):
                 self.payment.on_failure()
 
         else:
-            logger.error(
-                u'Payment status wrong response signature: %s' % response_params)
+            logger.error(u'Payment status wrong response signature: %s' % response_params)
 
     def accept_payment(self, session_id):
         params = {
@@ -238,20 +234,18 @@ class PaymentProcessor(PaymentProcessorBase):
         response_data = response.read().decode('utf-8')
         response_params = PaymentProcessor._parse_text_response(response_data)
         if response_params['status'] == 'OK':
-            if PaymentProcessor.compute_sig(response_params, self._GET_ACCEPT_SIG_FIELDS, key2) != response_params[
-                    'trans_sig']:
-                logger.error(
-                    u'Wrong signature for Payment/confirm response: %s' % response_params)
+            if PaymentProcessor.compute_sig(
+                    response_params,
+                    self._GET_ACCEPT_SIG_FIELDS, key2) != response_params['trans_sig']:
+                logger.error(u'Wrong signature for Payment/confirm response: %s' % response_params)
                 return
             if int(response_params['trans_pos_id']) != int(params['pos_id']):
-                logger.error(
-                    u'Wrong pos_id for Payment/confirm response: %s' % response_params)
+                logger.error(u'Wrong pos_id for Payment/confirm response: %s' % response_params)
                 return
 
             logger.info(u'Payment accepted: %s' % response_params)
         else:
-            logger.warning(u'Payment not accepted, error: %s' %
-                           response_params)
+            logger.warning(u'Payment not accepted, error: %s' % response_params)
 
     @staticmethod
     def _parse_text_response(text):
@@ -266,7 +260,6 @@ class PaymentProcessor(PaymentProcessorBase):
                 filter(
                     lambda l: len(l) == 2,
                     map(lambda l: l.split(':', 1),
-                        text.splitlines())
-            )
-            )
+                        text.splitlines()))
+                )
         )

@@ -15,6 +15,7 @@ class OnlineView(View):
 
     The most important logic of this view is delegated to ``PaymentProcessor.online()`` method
     """
+
     def post(self, request, *args, **kwargs):
         try:
             id = request.POST['id']
@@ -32,7 +33,8 @@ class OnlineView(View):
             logger.warning('Got malformed POST request: %s' % str(request.POST))
             return http.HttpResponseBadRequest('MALFORMED')
 
-        status = PaymentProcessor.online(request.META['REMOTE_ADDR'], id, tr_id, tr_date, tr_crc, tr_amount, tr_paid, tr_desc, tr_status, tr_error, tr_email, md5sum)
+        status = PaymentProcessor.online(request.META['REMOTE_ADDR'], id, tr_id, tr_date, tr_crc, tr_amount, tr_paid,
+                                         tr_desc, tr_status, tr_error, tr_email, md5sum)
         if status != u"TRUE":
             http.HttpResponseBadRequest(status)
         return http.HttpResponse(status)

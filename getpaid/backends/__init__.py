@@ -14,7 +14,7 @@ class PaymentProcessorBase(object):
        a View for incoming transaction notification status changes
     """
 
-    #Each backend need to define this values
+    # Each backend needs to define these values
     BACKEND = None
     """
     This constant should be set to fully qualified python path to the module. This is also

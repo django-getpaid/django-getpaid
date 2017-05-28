@@ -4,13 +4,11 @@ from django.utils import six
 
 from . import PaymentProcessor
 
-
 if six.PY3:
     unicode = str
 
 
 class CurrencyField(forms.Field):
-
     def to_python(self, value):
         try:
             val_int = int(value)
@@ -63,7 +61,7 @@ class EpaydkOnlineForm(forms.Form):
             parameters + secret key.    Yes
         fraud    Integer    This parameter is only transmitted if you've
             enabled Fraud Fighter. If Fraud Fighter is enabled, this value
-            is 0 if no fraud is detected, and 1 if there is any suspicion 
+            is 0 if no fraud is detected, and 1 if there is any suspicion
             that fraud in involved.    No
         payercountry    String    If Fraud Fighter is enabled, the country
             code of the payer is returned in ISO 3166 format (AN2).    No
