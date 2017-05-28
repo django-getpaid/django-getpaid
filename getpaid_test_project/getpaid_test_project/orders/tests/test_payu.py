@@ -19,7 +19,7 @@ if six.PY3:
     unicode = str
     from http.client import HTTPMessage
 else:
-    from httplib import HttpMessage
+    from httplib import HTTPMessage
 
 
 def fake_payment_get_response_success(request):
