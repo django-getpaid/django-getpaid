@@ -30,7 +30,7 @@ logger = logging.getLogger('getpaid.backends.przelewy24')
 class PaymentProcessor(PaymentProcessorBase):
     BACKEND = u'getpaid.backends.przelewy24'
     BACKEND_NAME = _(u'Przelewy24')
-    BACKEND_ACCEPTED_CURRENCY = (u'PLN', )
+    BACKEND_ACCEPTED_CURRENCY = (u'PLN',)
     BACKEND_LOGO_URL = u'getpaid/backends/przelewy24/przelewy24_logo.png'
 
     _GATEWAY_URL = u'https://secure.przelewy24.pl/index.php'
@@ -163,7 +163,8 @@ class PaymentProcessor(PaymentProcessorBase):
 
         if params['p24_email'] is None:
             raise ImproperlyConfigured(
-                '%s requires filling `email` field for payment (you need to handle `user_data_query` signal)' % self.BACKEND)
+                '%s requires filling `email` field for payment '
+                '(you need to handle `user_data_query` signal)' % self.BACKEND)
 
-        return self._SANDBOX_GATEWAY_URL if PaymentProcessor.get_backend_setting('sandbox',
-                                                                                 False) else self._GATEWAY_URL, 'POST', params
+        return self._SANDBOX_GATEWAY_URL if PaymentProcessor.get_backend_setting(
+            'sandbox', False) else self._GATEWAY_URL, 'POST', params

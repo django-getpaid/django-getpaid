@@ -16,7 +16,6 @@ import mock
 import getpaid
 from getpaid_test_project.orders.models import Order
 
-
 if six.PY3:
     unicode = str
 
@@ -60,9 +59,9 @@ class EpaydkBackendTestCase(TestCase):
         self.assertEqual(actual[3], '')
 
         domain = getpaid.utils.get_domain()
-        accepturl = u'https://'+ domain +'/getpaid.backends.epaydk/success/'
-        callbackurl = u'https://'+ domain +'/getpaid.backends.epaydk/online/'
-        cancelurl = u'https://'+ domain +'/getpaid.backends.epaydk/failure/'
+        accepturl = u'https://' + domain + '/getpaid.backends.epaydk/success/'
+        callbackurl = u'https://' + domain + '/getpaid.backends.epaydk/online/'
+        cancelurl = u'https://' + domain + '/getpaid.backends.epaydk/failure/'
         expected = [
             (u'merchantnumber', u'xxxxxxxx'),
             (u'orderid', u'1'),
