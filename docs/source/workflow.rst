@@ -179,7 +179,8 @@ So this is a little piece of logic that you need to provide to map your order to
 
 .. note::
 
-    If you don't know where to put your listeners code, we recommend to put it in ``listeners.py`` file and then add a line ``import listeners`` to the end of your ``models.py`` file. Both files (``listeners.py`` and ``models.py``) should be placed in one of your apps (possibly an app related to the order model).
+    If you don't know where to put this code, put listener functions inside `signals.py` or `listeners.py` and
+    `register them inside 'ready()' method of your app's config class <https://docs.djangoproject.com/en/1.11/ref/applications/#django.apps.AppConfig.ready>`_.
     
 .. note::
     One may wonder why isn't this handled directly on the order model via methods like get_total() and get_currency(). It was a design consideration that you may not have access to your order model and therefore couldn't add these methods. By using signals, it does not matter if you have control or not over the order model.

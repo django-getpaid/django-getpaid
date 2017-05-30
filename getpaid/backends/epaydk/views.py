@@ -38,11 +38,11 @@ class CallbackView(View):
         if cb_secret_path:
             if not kwargs.get('secret_path', ''):
                 logger.debug("empty secret path")
-                return HttpResponseBadRequest('400 Bad Request')
+                return HttpResponseBadRequest('MALFORMED')
 
             if cb_secret_path != kwargs.get('secret_path', ''):
                 logger.debug("invalid secret path")
-                return HttpResponseBadRequest('400 Bad Request')
+                return HttpResponseBadRequest('MALFORMED')
 
         form = EpaydkOnlineForm(request.GET)
         if form.is_valid():
@@ -59,7 +59,7 @@ class CallbackView(View):
         logger.error('CallbackView received invalid request')
         logger.debug("GET: %s", request.GET)
         logger.debug("form errors: %s", form.errors)
-        return HttpResponseBadRequest('400 Bad Request')
+        return HttpResponseBadRequest('MALFORMED')
 
 
 class AcceptView(View):
@@ -77,12 +77,12 @@ class AcceptView(View):
         if not form.is_valid():
             logger.debug("EpaydkOnlineForm not valid")
             logger.debug("form errors: %s", form.errors)
-            return HttpResponseBadRequest("Bad request")
+            return HttpResponseBadRequest("MALFORMED")
 
         params = qs_to_ordered_params(request.META['QUERY_STRING'])
         if not PaymentProcessor.is_received_request_valid(params):
             logger.error("MD5 hash check failed")
-            return HttpResponseBadRequest("Bad request")
+            return HttpResponseBadRequest("MALFORMED")
 
         payment = get_object_or_404(Payment,
                                     id=form.cleaned_data['orderid'])
@@ -93,14 +93,14 @@ class AcceptView(View):
                       backend=PaymentProcessor.BACKEND)
         except ValidationError:
             logger.debug("order_additional_validation raised ValidationError")
-            return HttpResponseBadRequest("Bad request")
+            return HttpResponseBadRequest("MALFORMED")
 
         try:
             PaymentProcessor.accepted_for_processing(payment_id=payment.id)
         except AssertionError as exc:
             logger.error("PaymentProcessor.accepted_for_processing"
                          " raised AssertionError %s", exc, exc_info=1)
-            return HttpResponseBadRequest("Bad request")
+            return HttpResponseBadRequest("MALFORMED")
 
         url_name = getattr(settings, 'GETPAID_SUCCESS_URL_NAME', None)
         if url_name:
@@ -126,7 +126,7 @@ class CancelView(View):
         if not form.is_valid():
             logger.debug("EpaydkCancellForm not valid")
             logger.debug("form errors: %s", form.errors)
-            return HttpResponseBadRequest("Bad request")
+            return HttpResponseBadRequest("MALFORMED")
 
         payment = get_object_or_404(Payment, id=form.cleaned_data['orderid'])
 
@@ -137,7 +137,7 @@ class CancelView(View):
                       backend=PaymentProcessor.BACKEND)
         except ValidationError:
             logger.debug("order_additional_validation raised ValidationError")
-            return HttpResponseBadRequest("Bad request")
+            return HttpResponseBadRequest("MALFORMED")
 
         PaymentProcessor.cancelled(payment_id=payment.id)
 

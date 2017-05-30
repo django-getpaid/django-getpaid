@@ -18,7 +18,7 @@ logger = logging.getLogger('getpaid.backends.transferuj')
 class PaymentProcessor(PaymentProcessorBase):
     BACKEND = u'getpaid.backends.transferuj'
     BACKEND_NAME = _(u'Transferuj.pl')
-    BACKEND_ACCEPTED_CURRENCY = (u'PLN', )
+    BACKEND_ACCEPTED_CURRENCY = (u'PLN',)
     BACKEND_LOGO_URL = u'getpaid/backends/transferuj/transferuj_logo.png'
 
     _GATEWAY_URL = u'https://secure.transferuj.pl'
@@ -31,7 +31,7 @@ class PaymentProcessor(PaymentProcessorBase):
         u'46.29.19.106',
     )
 
-    _ONLINE_SIG_FIELDS = (u'id', u'tr_id', u'tr_amount', u'tr_crc', )
+    _ONLINE_SIG_FIELDS = (u'id', u'tr_id', u'tr_amount', u'tr_crc',)
     _ACCEPTED_LANGS = (u'pl', u'en', u'de')
 
     @staticmethod
@@ -48,7 +48,7 @@ class PaymentProcessor(PaymentProcessorBase):
                tr_status, tr_error, tr_email, md5sum):
 
         allowed_ip = PaymentProcessor.get_backend_setting('allowed_ip',
-            PaymentProcessor._ALLOWED_IP)
+                                                          PaymentProcessor._ALLOWED_IP)
 
         if len(allowed_ip) != 0 and ip not in allowed_ip:
             logger.warning('Got message from not allowed IP %s' % ip)
@@ -72,7 +72,10 @@ class PaymentProcessor(PaymentProcessorBase):
             logger.error('Got message with CRC set to non existing Payment, %s' % str(params))
             return u'CRC ERR'
 
-        logger.info('Incoming payment: id=%s, tr_id=%s, tr_date=%s, tr_crc=%s, tr_amount=%s, tr_paid=%s, tr_desc=%s, tr_status=%s, tr_error=%s, tr_email=%s' % (id, tr_id, tr_date, tr_crc, tr_amount, tr_paid, tr_desc, tr_status, tr_error, tr_email))
+        logger.info(
+            'Incoming payment: id=%s, tr_id=%s, tr_date=%s, tr_crc=%s, tr_amount=%s, '
+            'tr_paid=%s, tr_desc=%s, tr_status=%s, tr_error=%s, tr_email=%s' % (
+                id, tr_id, tr_date, tr_crc, tr_amount, tr_paid, tr_desc, tr_status, tr_error, tr_email))
 
         payment.external_id = tr_id
         payment.description = tr_email
@@ -89,7 +92,7 @@ class PaymentProcessor(PaymentProcessorBase):
         elif payment.status != 'paid':
             payment.change_status('failed')
 
-        return u'TRUE'
+        return u'TRUE'  # FIXME: should return "OK" for consistency
 
     def get_gateway_url(self, request):
         "Routes a payment to Gateway, should return URL for redirection."

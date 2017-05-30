@@ -22,6 +22,7 @@ class Command(BaseCommand):
             'This is an additional URL for accepting payment status updates.\n\n')
 
         self.stdout.write(
-            'To change domain name please edit Sites settings. Don\'t forget to setup your web server to accept https connection in order to use secure links.\n')
+            'To change domain name please edit Sites settings. '
+            'Don\'t forget to setup your web server to accept https connection in order to use secure links.\n')
         if PaymentProcessor.get_backend_setting('sandbox', False):
             self.stdout.write('\nSandbox mode is ON.\n')

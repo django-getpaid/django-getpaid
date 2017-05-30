@@ -8,14 +8,14 @@ GETPAID_BACKENDS = (
 
 GETPAID_BACKENDS_SETTINGS = {
     # Please provide your settings for backends
-#    'getpaid.backends.payu' : {
-#            'pos_id' : 123456789,
-#            'key1' : 'xxx',
-#            'key2' : 'xxx',
-#            'pos_auth_key': 'xxx',
-#            'signing' : True,
-#            #'testing' : True,
-#        },
+    #    'getpaid.backends.payu' : {
+    #            'pos_id' : 123456789,
+    #            'key1' : 'xxx',
+    #            'key2' : 'xxx',
+    #            'pos_auth_key': 'xxx',
+    #            'signing' : True,
+    #            #'testing' : True,
+    #        },
 }
 
 DEBUG = True
@@ -29,12 +29,12 @@ MANAGERS = ADMINS
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3', # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
-        'NAME': 'getpaid_test_project.db',                      # Or path to database file if using sqlite3.
-        'USER': '',                      # Not used with sqlite3.
-        'PASSWORD': '',                  # Not used with sqlite3.
-        'HOST': '',                      # Set to empty string for localhost. Not used with sqlite3.
-        'PORT': '',                      # Set to empty string for default. Not used with sqlite3.
+        'ENGINE': 'django.db.backends.sqlite3',  # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
+        'NAME': 'getpaid_test_project.db',  # Or path to database file if using sqlite3.
+        'USER': '',  # Not used with sqlite3.
+        'PASSWORD': '',  # Not used with sqlite3.
+        'HOST': '',  # Set to empty string for localhost. Not used with sqlite3.
+        'PORT': '',  # Set to empty string for default. Not used with sqlite3.
     }
 }
 
@@ -95,7 +95,7 @@ STATICFILES_DIRS = (
 STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
-#    'django.contrib.staticfiles.finders.DefaultStorageFinder',
+    #    'django.contrib.staticfiles.finders.DefaultStorageFinder',
 )
 
 # Make this unique, and don't share it with anybody.
@@ -105,8 +105,25 @@ SECRET_KEY = '2$3=q&amp;0#3@et=$7v4=+uc$ny81sjj_!%w7)z_p)rc6jb+##kz!'
 TEMPLATE_LOADERS = (
     'django.template.loaders.filesystem.Loader',
     'django.template.loaders.app_directories.Loader',
-#     'django.template.loaders.eggs.Loader',
+    #     'django.template.loaders.eggs.Loader',
 )
+
+# for Django>=1.9
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+
+            ],
+        },
+    }
+]
 
 MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
@@ -130,25 +147,25 @@ TEMPLATE_DIRS = (
 )
 
 INSTALLED_APPS = (
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.sites',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    # Uncomment the next line to enable the admin:
-    'django.contrib.admin',
-    # Uncomment the next line to enable admin documentation:
-    # 'django.contrib.admindocs',
+                     'django.contrib.auth',
+                     'django.contrib.contenttypes',
+                     'django.contrib.sessions',
+                     'django.contrib.sites',
+                     'django.contrib.messages',
+                     'django.contrib.staticfiles',
+                     # Uncomment the next line to enable the admin:
+                     'django.contrib.admin',
+                     # Uncomment the next line to enable admin documentation:
+                     # 'django.contrib.admindocs',
 
-    'djcelery',
-    'kombu.transport.django',
+                     'djcelery',
+                     'kombu.transport.django',
 
-    'getpaid',
+                     'getpaid',
 
-    'getpaid_test_project.orders',
+                     'getpaid_test_project.orders',
 
-) + GETPAID_BACKENDS
+                 ) + GETPAID_BACKENDS
 
 # A sample logging configuration. The only tangible logging
 # performed by this configuration is to send an email to
@@ -169,9 +186,9 @@ LOGGING = {
             'filters': ['require_debug_false'],
             'class': 'django.utils.log.AdminEmailHandler'
         },
-        'console' : {
-            'level':'DEBUG',
-            'class':'logging.StreamHandler',
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
 
         },
     },
@@ -196,7 +213,7 @@ LOGGING = {
             'level': 'DEBUG',
         },
 
-        #You can do some fancy logging ;)
+        # You can do some fancy logging ;)
         'getpaid.backends': {
             'handlers': ['console'],
             'level': 'DEBUG',
@@ -204,13 +221,13 @@ LOGGING = {
     }
 }
 
-
 # This example uses the simplest django-celery queue possible - Database, don't use it on production!
 
-#BROKER_URL = 'django://'
+# BROKER_URL = 'django://'
 BROKER_BACKEND = 'memory'
 CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
 CELERY_ALWAYS_EAGER = True
 
 import djcelery
+
 djcelery.setup_loader()
