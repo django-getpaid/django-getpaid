@@ -1,10 +1,13 @@
 import logging
+
 from django.core.urlresolvers import reverse
 from django import http
 from django.views.generic.base import View
 from django.views.generic.detail import DetailView
+
 from getpaid.backends.transferuj import PaymentProcessor
 from getpaid.models import Payment
+from getpaid.utils import get_ip_address
 
 logger = logging.getLogger('getpaid.backends.transferuj')
 
@@ -31,13 +34,13 @@ class OnlineView(View):
             md5sum = request.POST['md5sum']
         except KeyError:
             logger.warning('Got malformed POST request: %s' % str(request.POST))
-            return http.HttpResponseBadRequest('MALFORMED')
+            return http.HttpResponseBadRequest('MALFORMED', content_type='text/plain')
 
-        status = PaymentProcessor.online(request.META['REMOTE_ADDR'], id, tr_id, tr_date, tr_crc, tr_amount, tr_paid,
+        status = PaymentProcessor.online(get_ip_address(request), id, tr_id, tr_date, tr_crc, tr_amount, tr_paid,
                                          tr_desc, tr_status, tr_error, tr_email, md5sum)
         if status != u"TRUE":
             http.HttpResponseBadRequest(status)
-        return http.HttpResponse(status)
+        return http.HttpResponse(status, content_type='text/plain')
 
 
 class SuccessView(DetailView):

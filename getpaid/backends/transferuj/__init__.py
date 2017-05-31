@@ -23,7 +23,13 @@ class PaymentProcessor(PaymentProcessorBase):
 
     _GATEWAY_URL = u'https://secure.transferuj.pl'
     _REQUEST_SIG_FIELDS = (u'id', u'kwota', u'crc',)
-    _ALLOWED_IP = (u'195.149.229.109',)
+    _ALLOWED_IP = (
+        u'195.149.229.109',
+        u'148.251.96.163',
+        u'178.32.201.77',
+        u'46.248.167.59',
+        u'46.29.19.106',
+    )
 
     _ONLINE_SIG_FIELDS = (u'id', u'tr_id', u'tr_amount', u'tr_crc',)
     _ACCEPTED_LANGS = (u'pl', u'en', u'de')
@@ -45,7 +51,7 @@ class PaymentProcessor(PaymentProcessorBase):
                                                           PaymentProcessor._ALLOWED_IP)
 
         if len(allowed_ip) != 0 and ip not in allowed_ip:
-            logger.warning('Got message from not allowed IP %s' % str(allowed_ip))
+            logger.warning('Got message from not allowed IP %s' % ip)
             return u'IP ERR'
 
         params = {'id': id, 'tr_id': tr_id, 'tr_amount': tr_amount, 'tr_crc': tr_crc}
