@@ -263,7 +263,13 @@ class PaymentProcessorGetGatewayUrl(TestCase):
         request = RequestFactory()
         request.scheme = 'https'
 
-        urls = self.pp._build_urls(params, request)
+        settings = self.update_settings({
+            'force_ssl_online': 'auto',
+            'force_ssl_return': 'auto',
+        })
+
+        with self.settings(GETPAID_BACKENDS_SETTINGS=settings):
+            urls = self.pp._build_urls(params, request)
 
         for url in list(urls.values()):
             self.assertTrue(url.startswith('https://'))
@@ -273,7 +279,13 @@ class PaymentProcessorGetGatewayUrl(TestCase):
         request = RequestFactory()
         request.scheme = 'http'
 
-        urls = self.pp._build_urls(params, request)
+        settings = self.update_settings({
+            'force_ssl_online': 'auto',
+            'force_ssl_return': 'auto',
+        })
+
+        with self.settings(GETPAID_BACKENDS_SETTINGS=settings):
+            urls = self.pp._build_urls(params, request)
 
         for url in list(urls.values()):
             self.assertTrue(url.startswith('http://'))
