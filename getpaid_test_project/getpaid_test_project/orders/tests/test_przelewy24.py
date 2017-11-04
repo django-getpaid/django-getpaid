@@ -4,8 +4,6 @@ from decimal import Decimal
 
 from django.apps import apps
 from django.test import TestCase
-from django.utils.six.moves.urllib.parse import urlparse, parse_qs, \
-    parse_qsl, urlencode
 from django.utils import six
 import mock
 

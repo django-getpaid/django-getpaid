@@ -1,5 +1,4 @@
 import logging
-from getpaid import signals
 
 logger = logging.getLogger('getpaid_test_project')
 
@@ -14,11 +13,8 @@ def new_payment_query_listener(sender, order=None, payment=None, **kwargs):
     logger.debug("new_payment_query_listener, amount=%s, currency=%s",
                  payment.amount, payment.currency)
 
-signals.new_payment_query.connect(new_payment_query_listener)
 
-
-def payment_status_changed_listener(sender, instance, old_status, new_status,
-                                    **kwargs):
+def payment_status_changed_listener(sender, instance, old_status, new_status, **kwargs):
     """
     Here we will actually do something, when payment is accepted.
     E.g. lets change an order status.
@@ -30,8 +26,6 @@ def payment_status_changed_listener(sender, instance, old_status, new_status,
         instance.order.status = 'P'
         instance.order.save()
 
-signals.payment_status_changed.connect(payment_status_changed_listener)
-
 
 def user_data_query_listener(sender, order=None, user_data=None, **kwargs):
     """
@@ -39,5 +33,3 @@ def user_data_query_listener(sender, order=None, user_data=None, **kwargs):
     """
     user_data['email'] = 'test@test.com'
     # user_data['lang'] = 'EN'
-
-signals.user_data_query.connect(user_data_query_listener)

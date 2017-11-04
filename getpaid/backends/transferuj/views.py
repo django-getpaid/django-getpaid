@@ -1,7 +1,7 @@
 import logging
 
 from django.core.urlresolvers import reverse
-from django.http import HttpResponse, HttpResponseRedirect
+from django import http
 from django.views.generic.base import View
 from django.views.generic.detail import DetailView
 
@@ -18,6 +18,7 @@ class OnlineView(View):
 
     The most important logic of this view is delegated to ``PaymentProcessor.online()`` method
     """
+
     def post(self, request, *args, **kwargs):
         try:
             id = request.POST['id']
@@ -33,10 +34,13 @@ class OnlineView(View):
             md5sum = request.POST['md5sum']
         except KeyError:
             logger.warning('Got malformed POST request: %s' % str(request.POST))
-            return HttpResponse('MALFORMED', content_type='text/plain')
+            return http.HttpResponseBadRequest('MALFORMED', content_type='text/plain')
 
-        status = PaymentProcessor.online(get_ip_address(request), id, tr_id, tr_date, tr_crc, tr_amount, tr_paid, tr_desc, tr_status, tr_error, tr_email, md5sum)
-        return HttpResponse(status, content_type='text/plain')
+        status = PaymentProcessor.online(get_ip_address(request), id, tr_id, tr_date, tr_crc, tr_amount, tr_paid,
+                                         tr_desc, tr_status, tr_error, tr_email, md5sum)
+        if status != u"TRUE":
+            http.HttpResponseBadRequest(status)
+        return http.HttpResponse(status, content_type='text/plain')
 
 
 class SuccessView(DetailView):
@@ -46,7 +50,7 @@ class SuccessView(DetailView):
     model = Payment
 
     def render_to_response(self, context, **response_kwargs):
-        return HttpResponseRedirect(reverse('getpaid:success-fallback', kwargs={'pk': self.object.pk}))
+        return http.HttpResponseRedirect(reverse('getpaid:success-fallback', kwargs={'pk': self.object.pk}))
 
     def post(self, *args, **kwargs):
         return self.get(*args, **kwargs)
@@ -59,7 +63,7 @@ class FailureView(DetailView):
     model = Payment
 
     def render_to_response(self, context, **response_kwargs):
-        return HttpResponseRedirect(reverse('getpaid:failure-fallback', kwargs={'pk': self.object.pk}))
+        return http.HttpResponseRedirect(reverse('getpaid:failure-fallback', kwargs={'pk': self.object.pk}))
 
     def post(self, *args, **kwargs):
         return self.get(*args, **kwargs)
