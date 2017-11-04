@@ -3,15 +3,12 @@ import sys
 from collections import OrderedDict
 from importlib import import_module
 
-from django.apps import apps
 from django.conf import settings
 from django.utils import six
 from django.core.urlresolvers import reverse
-from django.utils.functional import SimpleLazyObject
+from django.contrib.sites.shortcuts import get_current_site
 from django.utils.six.moves.urllib.parse import parse_qsl
-import django
 
-Site = SimpleLazyObject(lambda: apps.get_model('sites.Site'))
 
 if six.PY3:
     unicode = str
@@ -102,12 +99,7 @@ def get_domain(request=None):
     if (hasattr(settings, 'GETPAID_SITE_DOMAIN') and
             settings.GETPAID_SITE_DOMAIN):
         return settings.GETPAID_SITE_DOMAIN
-    if django.VERSION[:2] >= (1, 8):
-        site = Site.objects.get_current(request=request)
-    else:
-        site = Site.objects.get_current()
-
-    return site.domain
+    return get_current_site(request).domain
 
 
 def get_ip_address(request):
