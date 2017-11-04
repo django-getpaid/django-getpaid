@@ -250,7 +250,7 @@ There are some additional options you can provide:
         URL.
 
 **force_ssl_return**
-    default: None; similarly to ``force_ssl_online`` but forces HTTPS for client returning links.
+    default: 'auto'; similarly to ``force_ssl_online`` but forces HTTPS for client returning links.
 
     .. warning::
 
