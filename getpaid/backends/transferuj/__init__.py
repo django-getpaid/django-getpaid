@@ -4,13 +4,12 @@ import logging
 from six.moves.urllib.parse import urlencode
 from django.utils.six import text_type
 from django.core.exceptions import ImproperlyConfigured
-from django.core.urlresolvers import reverse
 from django.apps import apps
 from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
 from getpaid import signals
 from getpaid.backends import PaymentProcessorBase
-from getpaid.utils import get_domain
+from getpaid.utils import get_domain, build_absolute_uri
 
 logger = logging.getLogger('getpaid.backends.transferuj')
 
@@ -176,17 +175,22 @@ class PaymentProcessor(PaymentProcessorBase):
         else:
             return_scheme = current_scheme
 
-        online_scheme = "{}://{}".format(online_scheme, domain)
-        return_scheme = "{}://{}".format(return_scheme, domain)
-
-        params['wyn_url'] = online_scheme + reverse(
-            'getpaid:transferuj:online'
+        params['wyn_url'] = build_absolute_uri(
+            view_name='getpaid:transferuj:online',
+            scheme=online_scheme,
+            domain=domain,
         )
-        params['pow_url'] = return_scheme + reverse(
-            'getpaid:transferuj:success', kwargs={'pk': self.payment.pk}
+        params['pow_url'] = build_absolute_uri(
+            view_name='getpaid:transferuj:success',
+            scheme=return_scheme,
+            domain=domain,
+            reverse_kwargs={'pk': self.payment.pk}
         )
-        params['pow_url_blad'] = return_scheme + reverse(
-            'getpaid:transferuj:failure', kwargs={'pk': self.payment.pk}
+        params['pow_url_blad'] = build_absolute_uri(
+            view_name='getpaid:transferuj:failure',
+            scheme=return_scheme,
+            domain=domain,
+            reverse_kwargs={'pk': self.payment.pk}
         )
 
         return params
