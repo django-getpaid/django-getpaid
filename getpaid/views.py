@@ -31,7 +31,7 @@ class NewPaymentView(FormView):
         This view operates only on POST requests from order view where
         you select payment method
         """
-        return http.HttpResponseNotAllowed()
+        return http.HttpResponseNotAllowed(['POST'])
 
     def form_valid(self, form):
         from getpaid.models import Payment
