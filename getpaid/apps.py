@@ -1,7 +1,6 @@
+# -*- coding: utf-8
 from django.apps import AppConfig
 
 
-class Config(AppConfig):
+class GetpaidConfig(AppConfig):
     name = 'getpaid'
-    verbose_name = 'application getpaid'
-    label = 'getpaid'

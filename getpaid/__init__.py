@@ -1,4 +1,5 @@
-default_app_config = 'getpaid.apps.Config'
+__version__ = '2.0.0'
+default_app_config = 'getpaid.apps.GetpaidConfig'
 
 
 def register_to_payment(*args, **kwargs):

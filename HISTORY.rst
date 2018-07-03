@@ -1,8 +1,20 @@
-django-getpaid changes
-======================
+.. :changelog:
+
+History
+=======
 
 (master branch - current development)
 -------------------------------------
+
+
+
+2.0 (2018-07-03)
+----------------
+
+* Architecture redesign
+* Dropped support for Django < 1.11
+* Provide support for Django 2.0
+
 
 Version 1.7.5
 -------------
