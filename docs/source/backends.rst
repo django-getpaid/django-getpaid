@@ -237,8 +237,12 @@ There are some additional options you can provide:
         Setting an empty list ``[]`` completely disables checking of IP address which is **NOT recommended**.
 
 **force_ssl_online**
-    default: False; this option when turned to True, will force getpaid to return an HTTPS URL for Transferuj.pl to send
+    default: 'auto'; this option when turned to True, will force getpaid to return an HTTPS URL for Transferuj.pl to send
     you payment status change.
+    If this option when turned to False or None (backward compatibilty), will force getpaid to return an HTTP URL for Transferuj.pl to send
+    you payment status change.
+    If you leave default ``'auto'``, getpaid will determine protocol from HttpRequest so will be choose scheme that whole
+    Django application is running on.
 
     .. warning::
 
@@ -246,7 +250,7 @@ There are some additional options you can provide:
         URL.
 
 **force_ssl_return**
-    default: False; similarly to ``force_ssl_online`` but forces HTTPS for client returning links.
+    default: 'auto'; similarly to ``force_ssl_online`` but forces HTTPS for client returning links.
 
     .. warning::
 

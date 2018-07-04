@@ -16,7 +16,6 @@ import mock
 import getpaid
 from getpaid_test_project.orders.models import Order
 
-
 if six.PY3:
     unicode = str
 
@@ -60,9 +59,9 @@ class EpaydkBackendTestCase(TestCase):
         self.assertEqual(actual[3], '')
 
         domain = getpaid.utils.get_domain()
-        accepturl = u'https://'+ domain +'/getpaid.backends.epaydk/success/'
-        callbackurl = u'https://'+ domain +'/getpaid.backends.epaydk/online/'
-        cancelurl = u'https://'+ domain +'/getpaid.backends.epaydk/failure/'
+        accepturl = u'https://' + domain + '/getpaid.backends.epaydk/success/'
+        callbackurl = u'https://' + domain + '/getpaid.backends.epaydk/online/'
+        cancelurl = u'https://' + domain + '/getpaid.backends.epaydk/failure/'
         expected = [
             (u'merchantnumber', u'xxxxxxxx'),
             (u'orderid', u'1'),
@@ -84,7 +83,7 @@ class EpaydkBackendTestCase(TestCase):
 
     def test_online_invalid(self):
         response = self.client.get(reverse('getpaid:epaydk:online'))
-        self.assertEqual(response.content, b'400 Bad Request')
+        self.assertEqual(response.content, b'MALFORMED')
         self.assertEqual(response.status_code, 400)
 
     @override_settings(GETPAID_SUCCESS_URL_NAME=None)
@@ -159,7 +158,7 @@ class EpaydkBackendTestCase(TestCase):
         query = urlencode(params)
         url = reverse('getpaid:epaydk:online') + '?' + query
         response = self.client.get(url, data=params)
-        self.assertEqual(response.content, b'400 Bad Request')
+        self.assertEqual(response.content, b'MALFORMED')
         self.assertEqual(response.status_code, 400)
         Payment = apps.get_model('getpaid', 'Payment')
         actual = Payment.objects.get(id=self.test_payment.id)

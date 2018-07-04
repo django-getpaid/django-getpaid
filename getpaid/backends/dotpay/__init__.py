@@ -85,7 +85,8 @@ class PaymentProcessor(PaymentProcessorBase):
                 payment.change_status('paid')
             else:
                 payment.change_status('partially_paid')
-        elif int(params['t_status']) in [DotpayTransactionStatus.REJECTED, DotpayTransactionStatus.RECLAMATION, DotpayTransactionStatus.REFUNDED]:
+        elif int(params['t_status']) in [DotpayTransactionStatus.REJECTED, DotpayTransactionStatus.RECLAMATION,
+                                         DotpayTransactionStatus.REFUNDED]:
             payment.change_status('failed')
 
         return u'OK'
@@ -130,8 +131,9 @@ class PaymentProcessor(PaymentProcessorBase):
 
         if user_data['lang'] and user_data['lang'].lower() in PaymentProcessor._ACCEPTED_LANGS:
             params['lang'] = user_data['lang'].lower()
-        elif PaymentProcessor.get_backend_setting('lang', False) and \
-                PaymentProcessor.get_backend_setting('lang').lower() in PaymentProcessor._ACCEPTED_LANGS:
+        elif PaymentProcessor.get_backend_setting(
+                'lang', False
+        ) and PaymentProcessor.get_backend_setting('lang').lower() in PaymentProcessor._ACCEPTED_LANGS:
             params['lang'] = PaymentProcessor.get_backend_setting('lang').lower()
 
         if PaymentProcessor.get_backend_setting('onlinetransfer', False):

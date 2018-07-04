@@ -72,8 +72,9 @@ class OrderTest(TestCase):
         order.save()
         response = self.client.post(reverse('getpaid:new-payment',
                                             kwargs={'currency': 'EUR'}),
-                                    {'order': order.pk,
-                                     'backend': 'getpaid.backends.payu'})
+                                    {
+                                        'order': order.pk,
+                                        'backend': 'getpaid.backends.payu'})
         self.assertEqual(response.status_code, 403)
 
     def test_failure_order_additional_validation(self):
@@ -81,9 +82,11 @@ class OrderTest(TestCase):
         Tests if HTTP304 when order additional validation signal raises
         ValidationError exception.
         """
+
         def custom_validation_listener(sender=None, request=None, order=None,
                                        backend=None, **kwargs):
             raise ValidationError("BOOM!")
+
         suid = 'test-order_additional_validation'
         signals.order_additional_validation.connect(custom_validation_listener,
                                                     dispatch_uid=suid)

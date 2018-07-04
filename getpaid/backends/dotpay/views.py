@@ -1,6 +1,6 @@
 import logging
 from django.core.urlresolvers import reverse
-from django.http import HttpResponse, HttpResponseRedirect
+from django import http
 from django.views.generic.base import View
 from django.views.generic.detail import DetailView
 from getpaid.backends.dotpay import PaymentProcessor
@@ -40,10 +40,10 @@ class OnlineView(View):
             }
         except KeyError:
             logger.warning('Got malformed POST request: %s' % str(request.POST))
-            return HttpResponse('MALFORMED')
+            return http.HttpResponseBadRequest('MALFORMED')
 
         status = PaymentProcessor.online(params, ip=request.META['REMOTE_ADDR'])
-        return HttpResponse(status)
+        return http.HttpResponse(status)
 
 
 class ReturnView(DetailView):
@@ -57,6 +57,6 @@ class ReturnView(DetailView):
 
     def render_to_response(self, context, **response_kwargs):
         if self.request.POST['status'] == 'OK':
-            return HttpResponseRedirect(reverse('getpaid:success-fallback', kwargs={'pk': self.object.pk}))
+            return http.HttpResponseRedirect(reverse('getpaid:success-fallback', kwargs={'pk': self.object.pk}))
         else:
-            return HttpResponseRedirect(reverse('getpaid:failure-fallback', kwargs={'pk': self.object.pk}))
+            return http.HttpResponseRedirect(reverse('getpaid:failure-fallback', kwargs={'pk': self.object.pk}))

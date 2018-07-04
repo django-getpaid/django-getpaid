@@ -8,32 +8,9 @@ from getpaid import utils
 
 
 class UtilsTestCase(TestCase):
-
     @override_settings(GETPAID_SITE_DOMAIN='example1.com')
     def test_get_domain_getpaid_const(self):
         self.assertEquals('example1.com', utils.get_domain())
-
-    @patch.object(utils, 'Site')
-    @override_settings(GETPAID_SITE_DOMAIN=None)
-    def test_get_domain_site_new_django(self, patch_site):
-        with patch.object(utils, 'django') as patch_django:
-            patch_django.VERSION = (1, 8)
-            domain = utils.get_domain()
-
-        self.assertEquals(domain,
-                          patch_site.objects.get_current.return_value.domain)
-        patch_site.objects.get_current.assert_called_once_with(request=None)
-
-    @patch.object(utils, 'Site')
-    @override_settings(GETPAID_SITE_DOMAIN=None)
-    def test_get_domain_site_old_django(self, patch_site):
-        with patch.object(utils, 'django') as patch_django:
-            patch_django.VERSION = (1, 6)
-            domain = utils.get_domain()
-
-        self.assertEquals(domain,
-                          patch_site.objects.get_current.return_value.domain)
-        patch_site.objects.get_current.assert_called_once_with()
 
     @patch.object(utils, 'reverse')
     @patch.object(utils, 'get_domain')

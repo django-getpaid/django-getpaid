@@ -15,16 +15,15 @@ from django.conf import settings
 if six.PY3:
     unicode = str
 
-
 PAYMENT_STATUS_CHOICES = (
-        ('new', _("new")),
-        ('in_progress', _("in progress")),
-        ('accepted_for_proc', _("accepted for processing")),
-        ('partially_paid', _("partially paid")),
-        ('paid', _("paid")),
-        ('cancelled', _("cancelled")),
-        ('failed', _("failed")),
-        )
+    ('new', _("new")),
+    ('in_progress', _("in progress")),
+    ('accepted_for_proc', _("accepted for processing")),
+    ('partially_paid', _("partially paid")),
+    ('paid', _("paid")),
+    ('cancelled', _("cancelled")),
+    ('failed', _("failed")),
+)
 
 
 class PaymentManager(models.Manager):

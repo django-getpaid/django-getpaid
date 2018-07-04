@@ -4,13 +4,12 @@ import logging
 from six.moves.urllib.parse import urlencode
 from django.utils.six import text_type
 from django.core.exceptions import ImproperlyConfigured
-from django.core.urlresolvers import reverse
 from django.apps import apps
 from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
 from getpaid import signals
 from getpaid.backends import PaymentProcessorBase
-from getpaid.utils import get_domain
+from getpaid.utils import get_domain, build_absolute_uri
 
 logger = logging.getLogger('getpaid.backends.transferuj')
 
@@ -18,14 +17,20 @@ logger = logging.getLogger('getpaid.backends.transferuj')
 class PaymentProcessor(PaymentProcessorBase):
     BACKEND = u'getpaid.backends.transferuj'
     BACKEND_NAME = _(u'Transferuj.pl')
-    BACKEND_ACCEPTED_CURRENCY = (u'PLN', )
+    BACKEND_ACCEPTED_CURRENCY = (u'PLN',)
     BACKEND_LOGO_URL = u'getpaid/backends/transferuj/transferuj_logo.png'
 
     _GATEWAY_URL = u'https://secure.transferuj.pl'
     _REQUEST_SIG_FIELDS = (u'id', u'kwota', u'crc',)
-    _ALLOWED_IP = (u'195.149.229.109', )
+    _ALLOWED_IP = (
+        u'195.149.229.109',
+        u'148.251.96.163',
+        u'178.32.201.77',
+        u'46.248.167.59',
+        u'46.29.19.106',
+    )
 
-    _ONLINE_SIG_FIELDS = (u'id', u'tr_id', u'tr_amount', u'tr_crc', )
+    _ONLINE_SIG_FIELDS = (u'id', u'tr_id', u'tr_amount', u'tr_crc',)
     _ACCEPTED_LANGS = (u'pl', u'en', u'de')
 
     @staticmethod
@@ -42,10 +47,10 @@ class PaymentProcessor(PaymentProcessorBase):
                tr_status, tr_error, tr_email, md5sum):
 
         allowed_ip = PaymentProcessor.get_backend_setting('allowed_ip',
-            PaymentProcessor._ALLOWED_IP)
+                                                          PaymentProcessor._ALLOWED_IP)
 
         if len(allowed_ip) != 0 and ip not in allowed_ip:
-            logger.warning('Got message from not allowed IP %s' % str(allowed_ip))
+            logger.warning('Got message from not allowed IP %s' % ip)
             return u'IP ERR'
 
         params = {'id': id, 'tr_id': tr_id, 'tr_amount': tr_amount, 'tr_crc': tr_crc}
@@ -66,7 +71,10 @@ class PaymentProcessor(PaymentProcessorBase):
             logger.error('Got message with CRC set to non existing Payment, %s' % str(params))
             return u'CRC ERR'
 
-        logger.info('Incoming payment: id=%s, tr_id=%s, tr_date=%s, tr_crc=%s, tr_amount=%s, tr_paid=%s, tr_desc=%s, tr_status=%s, tr_error=%s, tr_email=%s' % (id, tr_id, tr_date, tr_crc, tr_amount, tr_paid, tr_desc, tr_status, tr_error, tr_email))
+        logger.info(
+            'Incoming payment: id=%s, tr_id=%s, tr_date=%s, tr_crc=%s, tr_amount=%s, '
+            'tr_paid=%s, tr_desc=%s, tr_status=%s, tr_error=%s, tr_email=%s' % (
+                id, tr_id, tr_date, tr_crc, tr_amount, tr_paid, tr_desc, tr_status, tr_error, tr_email))
 
         payment.external_id = tr_id
         payment.description = tr_email
@@ -83,7 +91,7 @@ class PaymentProcessor(PaymentProcessorBase):
         elif payment.status != 'paid':
             payment.change_status('failed')
 
-        return u'TRUE'
+        return u'TRUE'  # FIXME: should return "OK" for consistency
 
     def get_gateway_url(self, request):
         "Routes a payment to Gateway, should return URL for redirection."
@@ -99,7 +107,7 @@ class PaymentProcessor(PaymentProcessorBase):
 
         self._build_user_data(params)
         self._build_md5sum(params)
-        self._build_urls(params)
+        self._build_urls(params, request)
 
         method = self.get_backend_setting('method', 'get').lower()
         if method not in ('post', 'get'):
@@ -145,26 +153,44 @@ class PaymentProcessor(PaymentProcessorBase):
 
         return params
 
-    def _build_urls(self, params):
-        domain = get_domain()
-        online_domain = return_domain = "http"
+    def _build_urls(self, params, request):
+        domain = get_domain(request)
+        current_scheme = request.scheme
 
-        if self.get_backend_setting('force_ssl_online', False):
-            online_domain = "https"
-        if self.get_backend_setting('force_ssl_return', False):
-            return_domain = "https"
+        # Backward compatibility:
+        # If `force_ssl_online` was set to:
+        # - True: scheme was set to HTTPS
+        # - None: scheme was set to HTTP
+        # Now default one is 'auto' to setup scheme that whole Django app is
+        # running on.
+        force_ssl_online = self.get_backend_setting('force_ssl_online', 'auto')
+        force_ssl_return = self.get_backend_setting('force_ssl_return', 'auto')
 
-        online_domain = "{}://{}".format(online_domain, domain)
-        return_domain = "{}://{}".format(return_domain, domain)
+        if force_ssl_online is not 'auto':
+            online_scheme = 'https' if force_ssl_online else 'http'
+        else:
+            online_scheme = current_scheme
+        if force_ssl_return is not 'auto':
+            return_scheme = 'https' if force_ssl_return else 'http'
+        else:
+            return_scheme = current_scheme
 
-        params['wyn_url'] = online_domain + reverse(
-            'getpaid:transferuj:online'
+        params['wyn_url'] = build_absolute_uri(
+            view_name='getpaid:transferuj:online',
+            scheme=online_scheme,
+            domain=domain,
         )
-        params['pow_url'] = return_domain + reverse(
-            'getpaid:transferuj:success', kwargs={'pk': self.payment.pk}
+        params['pow_url'] = build_absolute_uri(
+            view_name='getpaid:transferuj:success',
+            scheme=return_scheme,
+            domain=domain,
+            reverse_kwargs={'pk': self.payment.pk}
         )
-        params['pow_url_blad'] = return_domain + reverse(
-            'getpaid:transferuj:failure', kwargs={'pk': self.payment.pk}
+        params['pow_url_blad'] = build_absolute_uri(
+            view_name='getpaid:transferuj:failure',
+            scheme=return_scheme,
+            domain=domain,
+            reverse_kwargs={'pk': self.payment.pk}
         )
 
         return params
