@@ -68,9 +68,12 @@ Project leader:
 
 Contributors:
 
-* pawciobiel <https://github.com/pawciobiel>
+* Paweł Bielecki <https://github.com/pawciobiel>
 * Bernardo Pires Carneiro <https://github.com/bcarneiro>
 
+Sponsors:
+
+* `Sunscrapers <https://sunscrapers.com/>`_
 
 You are welcome to contribute to this project via `github <http://github.com>`_ fork & pull request.
 
@@ -83,4 +86,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-
