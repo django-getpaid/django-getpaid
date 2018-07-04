@@ -4,13 +4,12 @@ import logging
 from six.moves.urllib.parse import urlencode
 from django.utils.six import text_type
 from django.core.exceptions import ImproperlyConfigured
-from django.core.urlresolvers import reverse
 from django.apps import apps
 from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
 from getpaid import signals
 from getpaid.backends import PaymentProcessorBase
-from getpaid.utils import get_domain
+from getpaid.utils import get_domain, build_absolute_uri
 
 logger = logging.getLogger('getpaid.backends.transferuj')
 
@@ -108,7 +107,7 @@ class PaymentProcessor(PaymentProcessorBase):
 
         self._build_user_data(params)
         self._build_md5sum(params)
-        self._build_urls(params)
+        self._build_urls(params, request)
 
         method = self.get_backend_setting('method', 'get').lower()
         if method not in ('post', 'get'):
@@ -154,26 +153,44 @@ class PaymentProcessor(PaymentProcessorBase):
 
         return params
 
-    def _build_urls(self, params):
-        domain = get_domain()
-        online_domain = return_domain = "http"
+    def _build_urls(self, params, request):
+        domain = get_domain(request)
+        current_scheme = request.scheme
 
-        if self.get_backend_setting('force_ssl_online', False):
-            online_domain = "https"
-        if self.get_backend_setting('force_ssl_return', False):
-            return_domain = "https"
+        # Backward compatibility:
+        # If `force_ssl_online` was set to:
+        # - True: scheme was set to HTTPS
+        # - None: scheme was set to HTTP
+        # Now default one is 'auto' to setup scheme that whole Django app is
+        # running on.
+        force_ssl_online = self.get_backend_setting('force_ssl_online', 'auto')
+        force_ssl_return = self.get_backend_setting('force_ssl_return', 'auto')
 
-        online_domain = "{}://{}".format(online_domain, domain)
-        return_domain = "{}://{}".format(return_domain, domain)
+        if force_ssl_online is not 'auto':
+            online_scheme = 'https' if force_ssl_online else 'http'
+        else:
+            online_scheme = current_scheme
+        if force_ssl_return is not 'auto':
+            return_scheme = 'https' if force_ssl_return else 'http'
+        else:
+            return_scheme = current_scheme
 
-        params['wyn_url'] = online_domain + reverse(
-            'getpaid:transferuj:online'
+        params['wyn_url'] = build_absolute_uri(
+            view_name='getpaid:transferuj:online',
+            scheme=online_scheme,
+            domain=domain,
         )
-        params['pow_url'] = return_domain + reverse(
-            'getpaid:transferuj:success', kwargs={'pk': self.payment.pk}
+        params['pow_url'] = build_absolute_uri(
+            view_name='getpaid:transferuj:success',
+            scheme=return_scheme,
+            domain=domain,
+            reverse_kwargs={'pk': self.payment.pk}
         )
-        params['pow_url_blad'] = return_domain + reverse(
-            'getpaid:transferuj:failure', kwargs={'pk': self.payment.pk}
+        params['pow_url_blad'] = build_absolute_uri(
+            view_name='getpaid:transferuj:failure',
+            scheme=return_scheme,
+            domain=domain,
+            reverse_kwargs={'pk': self.payment.pk}
         )
 
         return params

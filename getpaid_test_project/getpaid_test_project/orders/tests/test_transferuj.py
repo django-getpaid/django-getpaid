@@ -5,7 +5,7 @@ from hashlib import md5
 
 from django.apps import apps
 from django.core.urlresolvers import reverse
-from django.test import TestCase
+from django.test import TestCase, RequestFactory
 from django.utils import six
 from django.core.exceptions import ImproperlyConfigured
 
@@ -219,8 +219,25 @@ class PaymentProcessorGetGatewayUrl(TestCase):
     @patch.object(transferuj, 'get_domain')
     def test_domains_http(self, patch_domain):
         patch_domain.return_value = 'test'
+        settings = self.update_settings({
+            'force_ssl_online': False,
+            'force_ssl_return': False,
+        })
 
-        data = self.get_geteway_data()
+        with self.settings(GETPAID_BACKENDS_SETTINGS=settings):
+            data = self.get_geteway_data()
+
+        for key in self.get_urls():
+            self.assertTrue(data[key].startswith('http://test/'))
+
+        # backward compatibility, None was setup scheme to HTTP.
+        settings = self.update_settings({
+            'force_ssl_online': None,
+            'force_ssl_return': None,
+        })
+
+        with self.settings(GETPAID_BACKENDS_SETTINGS=settings):
+            data = self.get_geteway_data()
 
         for key in self.get_urls():
             self.assertTrue(data[key].startswith('http://test/'))
@@ -240,6 +257,38 @@ class PaymentProcessorGetGatewayUrl(TestCase):
             str_ = data[key]
             self.assertTrue(str_.startswith('https://test/'),
                             "{} not start with https://test/".format(str_))
+
+    def test_domains_https_from_request(self):
+        params = {}
+        request = RequestFactory()
+        request.scheme = 'https'
+
+        settings = self.update_settings({
+            'force_ssl_online': 'auto',
+            'force_ssl_return': 'auto',
+        })
+
+        with self.settings(GETPAID_BACKENDS_SETTINGS=settings):
+            urls = self.pp._build_urls(params, request)
+
+        for url in list(urls.values()):
+            self.assertTrue(url.startswith('https://'))
+
+    def test_domains_http_from_request(self):
+        params = {}
+        request = RequestFactory()
+        request.scheme = 'http'
+
+        settings = self.update_settings({
+            'force_ssl_online': 'auto',
+            'force_ssl_return': 'auto',
+        })
+
+        with self.settings(GETPAID_BACKENDS_SETTINGS=settings):
+            urls = self.pp._build_urls(params, request)
+
+        for url in list(urls.values()):
+            self.assertTrue(url.startswith('http://'))
 
     def test_post(self):
         settings = self.update_settings({'method': 'post'})
