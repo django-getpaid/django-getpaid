@@ -144,7 +144,7 @@ We now want to get paid for that order. So lets take a look on a view for creati
 
     from django.views.generic.detail import DetailView
     from getpaid.forms import PaymentMethodForm
-    from getpaid_test_project.orders.models import Order
+    from example.orders.models import Order
 
     class OrderView(DetailView):
         model=Order

@@ -57,14 +57,18 @@ For more information on SemVer, please visit http://semver.org/.
 Developing
 ==========
 
-Project leader:
+Original author:
 
 * Krzysztof Dorosz <cypreess@gmail.com>.
 
 
+Project leader:
+
+* Dominik Kozaczko <https://github.com/dekoza>
+
 Contributors:
 
-* Dominik Kozaczko <http://dominik.kozaczko.info>
+* pawciobiel <https://github.com/pawciobiel>
 * Bernardo Pires Carneiro <https://github.com/bcarneiro>
 
 

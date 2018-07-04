@@ -78,7 +78,7 @@ Your application after some custom workflow just created an order object. That's
 
     from django.views.generic.detail import DetailView
     from getpaid.forms import PaymentMethodForm
-    from getpaid_test_project.orders.models import Order
+    from example.orders.models import Order
 
     class OrderView(DetailView):
         model=Order
@@ -181,10 +181,10 @@ So this is a little piece of logic that you need to provide to map your order to
 
     If you don't know where to put this code, put listener functions inside `signals.py` or `listeners.py` and
     `register them inside 'ready()' method of your app's config class <https://docs.djangoproject.com/en/1.11/ref/applications/#django.apps.AppConfig.ready>`_.
-    
+
 .. note::
     One may wonder why isn't this handled directly on the order model via methods like get_total() and get_currency(). It was a design consideration that you may not have access to your order model and therefore couldn't add these methods. By using signals, it does not matter if you have control or not over the order model.
-    
+
 **Optional**
 
 Most likely you would also like to give some sort of information about your customer to your payment processor. The signal ``getpaid.signals.user_data_query`` fills this gap. Here is the declaration::
