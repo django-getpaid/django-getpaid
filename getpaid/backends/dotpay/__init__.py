@@ -5,7 +5,7 @@ import logging
 from django.utils import six
 from six.moves.urllib.parse import urlencode
 from django.core.exceptions import ImproperlyConfigured
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.utils.timezone import utc
 from django.utils.translation import ugettext_lazy as _
 from getpaid import signals

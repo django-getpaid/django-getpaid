@@ -1,1 +1,1 @@
-default_app_config = 'getpaid_test_project.orders.apps.Config'
+default_app_config = 'example.orders.apps.Config'

@@ -6,3 +6,4 @@ python-dateutil
 django-celery
 celery
 pendulum
+anyjson

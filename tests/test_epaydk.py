@@ -2,7 +2,7 @@
 
 from collections import OrderedDict
 
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.apps import apps
 from django.test import TestCase
 from django.test.client import Client
@@ -14,7 +14,7 @@ from django.utils import six
 import mock
 
 import getpaid
-from getpaid_test_project.orders.models import Order
+from example.orders.models import Order
 
 if six.PY3:
     unicode = str

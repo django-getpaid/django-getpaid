@@ -4,15 +4,15 @@ from mock import Mock, patch
 from hashlib import md5
 
 from django.apps import apps
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.test import TestCase, RequestFactory
 from django.utils import six
 from django.core.exceptions import ImproperlyConfigured
 
 from getpaid.backends.transferuj import PaymentProcessor
 from getpaid.backends import transferuj
-from getpaid_test_project.orders.models import Order
-from getpaid_test_project.orders.factories import PaymentFactory
+from example.orders.models import Order
+from example.orders.factories import PaymentFactory
 from getpaid.utils import get_backend_settings
 
 if six.PY3:

@@ -4,14 +4,14 @@ when you run "manage.py test".
 
 Replace this with more appropriate tests for your application.
 """
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.apps import apps
 from django.forms import ValidationError
 from django.test import TestCase
 from django.test.client import Client
 
 from getpaid import signals
-from getpaid_test_project.orders.models import Order
+from example.orders.models import Order
 
 
 class OrderTest(TestCase):

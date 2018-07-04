@@ -55,7 +55,7 @@ class PaymentFactory(models.Model, AbstractMixin):
 
     @classmethod
     def contribute(cls, order, **kwargs):
-        return {'order': models.ForeignKey(order, **kwargs)}
+        return {'order': models.ForeignKey(order, on_delete=models.CASCADE, **kwargs)}
 
     @classmethod
     def create(cls, order, backend):

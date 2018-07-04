@@ -1,6 +1,6 @@
 import logging
 
-logger = logging.getLogger('getpaid_test_project')
+logger = logging.getLogger('getpaid_example')
 
 
 def new_payment_query_listener(sender, order=None, payment=None, **kwargs):

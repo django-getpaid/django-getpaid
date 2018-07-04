@@ -1,7 +1,7 @@
 # coding: utf8
 from decimal import Decimal
 
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.apps import apps
 from django.test import TestCase
 from django.test.client import Client
@@ -10,7 +10,7 @@ import mock
 
 import getpaid
 import getpaid.backends.payu
-from getpaid_test_project.orders.models import Order
+from example.orders.models import Order
 
 if six.PY3:
     unicode = str

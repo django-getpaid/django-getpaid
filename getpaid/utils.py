@@ -5,17 +5,12 @@ from importlib import import_module
 
 from django.conf import settings
 from django.utils import six
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.contrib.sites.shortcuts import get_current_site
 from django.utils.six.moves.urllib.parse import parse_qsl
 
-
 if six.PY3:
     unicode = str
-
-
-def import_name(name):
-    return import_module(name)
 
 
 def import_backend_modules(submodule=None):
@@ -40,7 +35,7 @@ def get_backend_choices(currency=None):
     backends_names = getattr(settings, 'GETPAID_BACKENDS', [])
 
     for backend_name in backends_names:
-        backend = import_name(backend_name)
+        backend = import_module(backend_name)
         if currency:
             if currency in backend.PaymentProcessor.BACKEND_ACCEPTED_CURRENCY:
                 choices.append(
@@ -59,6 +54,8 @@ def get_backend_settings(backend):
     If it does not exist it fails back to empty dict().
     """
     backends_settings = getattr(settings, 'GETPAID_BACKENDS_SETTINGS', {})
+
+    # TODO: return backend_settings.get(backend, {})
     try:
         return backends_settings[backend]
     except KeyError:
@@ -96,8 +93,7 @@ def qs_to_ordered_params(query_string):
 
 
 def get_domain(request=None):
-    if (hasattr(settings, 'GETPAID_SITE_DOMAIN') and
-            settings.GETPAID_SITE_DOMAIN):
+    if (hasattr(settings, 'GETPAID_SITE_DOMAIN') and settings.GETPAID_SITE_DOMAIN):
         return settings.GETPAID_SITE_DOMAIN
     return get_current_site(request).domain
 

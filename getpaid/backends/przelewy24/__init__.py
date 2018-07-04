@@ -15,7 +15,7 @@ from six.moves.urllib.request import Request, urlopen
 from six.moves.urllib.parse import urlencode
 
 from django.core.exceptions import ImproperlyConfigured
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 from pytz import utc
 
