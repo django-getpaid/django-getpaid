@@ -49,7 +49,7 @@ setup(
     version=version,
     description="""Multi-broker payment processor for Django""",
     long_description=readme + '\n\n' + history,
-    author='Krzysztif Dorosz',
+    author='Krzysztof Dorosz',
     author_email='cypreess@gmail.com',
     url='https://github.com/cypreess/django-getpaid',
     packages=[

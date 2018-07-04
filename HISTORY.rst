@@ -8,10 +8,10 @@ History
 
 
 
-2.0 (2018-07-03)
-----------------
+Version 1.8.0 (2018-07-04)
+--------------------------
 
-* Architecture redesign
+* Updated project structure thanks to cookiecutter-djangopackage
 * Dropped support for Django < 1.11
 * Provide support for Django 2.0
 
