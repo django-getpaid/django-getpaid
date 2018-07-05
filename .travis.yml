@@ -1,20 +1,30 @@
+# Config file for automatic testing at travis-ci.org
+
 language: python
-python:
-  - "2.7"
-  - "3.5"
-  - "3.6"
-env:
-  - DJANGO_VERSION=1.8.18  # LTS supported until April 2018
-  - DJANGO_VERSION=1.10.7  # supported until December 2017
-  - DJANGO_VERSION=1.11.1  # LTS supported until April 2020
-# command to install dependencies
-install: 
-  - "pip install -q -e .[przelewy24,payu,moip,paymill]"
-  - "pip install -q -r getpaid_test_project/requirements.txt"
-  - "pip install -q Django==$DJANGO_VERSION"
-  - "pip install coveralls"
-# command to run tests
-script:
-  "cd getpaid_test_project && python manage.py test --settings=getpaid_test_project.settings_test"
+
+matrix:
+  include:
+    - python: 2.7
+      env: TOX_ENV=py27-django-111
+    - python: 3.4
+      env: TOX_ENV=py34-django-111
+    - python: 3.4
+      env: TOX_ENV=py34-django-20
+    - python: 3.5
+      env: TOX_ENV=py35-django-111
+    - python: 3.5
+      env: TOX_ENV=py35-django-20
+    - python: 3.6
+      env: TOX_ENV=py36-django-111
+    - python: 3.6
+      env: TOX_ENV=py36-django-20
+  fast_finish: true
+
+# command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
+install: pip install -r requirements_test.txt
+
+# command to run tests using coverage, e.g. python setup.py test
+script: tox -e $TOX_ENV
+
 after_success:
-  coveralls
+  - codecov -e TOX_ENV

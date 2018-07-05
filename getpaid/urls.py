@@ -12,7 +12,7 @@ for backend_name, urls in import_backend_modules('urls').items():
     backend_namespace = backend_name.split('.')[-1]
     backend_url = url(
         backend_url_regex,
-        include(urls, app_name=app_name, namespace=backend_namespace)
+        include((urls, app_name), namespace=backend_namespace)
     )
     includes_list.append(backend_url)
 

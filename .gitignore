@@ -1,4 +1,8 @@
-*.py[co]
+*.py[cod]
+__pycache__
+
+# C extensions
+*.so
 
 # Packages
 *.egg
@@ -12,6 +16,8 @@ var
 sdist
 develop-eggs
 .installed.cfg
+lib
+lib64
 
 # Installer logs
 pip-log.txt
@@ -19,11 +25,23 @@ pip-log.txt
 # Unit test / coverage reports
 .coverage
 .tox
+nosetests.xml
+htmlcov
 
-#Translations
-# *.mo
+# Translations
+*.mo
 
-#Mr Developer
+# Mr Developer
 .mr.developer.cfg
+.project
+.pydevproject
 
-.idea/*
+# Pycharm/Intellij
+.idea
+
+# Complexity
+output/*.html
+output/*/index.html
+
+# Sphinx
+docs/_build

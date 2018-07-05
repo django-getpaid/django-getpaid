@@ -4,7 +4,7 @@ import logging
 import datetime
 
 from django.apps import apps
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.utils.timezone import utc
 import requests
 import time

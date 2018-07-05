@@ -1,6 +1,6 @@
-include CHANGES
+include AUTHORS.rst
+include CONTRIBUTING.rst
+include HISTORY.rst
+include LICENSE
 include README.rst
-include *.txt
-recursive-include getpaid/backends *.png *.html
-graft getpaid/locale
-graft getpaid/templates
+recursive-include getpaid *.html *.png *.gif *js *.css *jpg *jpeg *svg *py

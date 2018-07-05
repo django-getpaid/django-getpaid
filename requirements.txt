@@ -1,0 +1,9 @@
+django-model-utils>=2.0
+# Additional requirements go here
+requests
+lxml
+python-dateutil
+django-celery
+celery
+pendulum
+anyjson

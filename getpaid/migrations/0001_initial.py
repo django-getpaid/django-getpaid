@@ -26,7 +26,7 @@ class Migration(migrations.Migration):
                 ('amount_paid', models.DecimalField(max_digits=20, default=0, decimal_places=4, verbose_name='amount paid')),
                 ('external_id', models.CharField(blank=True, null=True, verbose_name='external id', max_length=64)),
                 ('description', models.CharField(blank=True, null=True, verbose_name='description', max_length=128)),
-                ('order', models.ForeignKey(related_name='payments', to=settings.GETPAID_ORDER_MODEL)),
+                ('order', models.ForeignKey(related_name='payments', to=settings.GETPAID_ORDER_MODEL, on_delete=models.CASCADE)),
             ],
             options={
                 'verbose_name_plural': 'Payments',

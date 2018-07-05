@@ -1,1 +1,0 @@
-default_app_config = 'getpaid_test_project.orders.apps.Config'

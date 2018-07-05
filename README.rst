@@ -1,6 +1,6 @@
-
-Welcome to django-getpaid!
-============================
+=============================
+Welcome to django-getpaid
+=============================
 
 .. image:: https://img.shields.io/pypi/v/django-getpaid.svg
     :target: https://pypi.python.org/pypi/django-getpaid
@@ -18,11 +18,46 @@ Welcome to django-getpaid!
     :target: https://pypi.python.org/pypi/django-getpaid
 .. image:: https://d2weczhvl823v0.cloudfront.net/cypreess/django-getpaid/trend.png
     :target: https://bitdeli.com/free
-   
-Documentation: http://django-getpaid.readthedocs.org/en/latest/
 
-**django-getpaid** is carefully designed **multi-broker payment processor for Django** framework. It was designed
-to provide following features:
+django-getpaid is a multi-broker payment processor for Django
+
+Documentation
+=============
+
+The full documentation is at https://django-getpaid.readthedocs.io.
+
+Quickstart
+==========
+
+Install django-getpaid::
+
+    pip install django-getpaid
+
+Add it to your `INSTALLED_APPS`:
+
+.. code-block:: python
+
+    INSTALLED_APPS = (
+        ...
+        'getpaid.apps.GetpaidConfig',
+        ...
+    )
+
+Add django-getpaid's URL patterns:
+
+.. code-block:: python
+
+    from getpaid import urls as getpaid_urls
+
+
+    urlpatterns = [
+        ...
+        url(r'^', include(getpaid_urls)),
+        ...
+    ]
+
+Features
+========
 
 * **multiple payment brokers support** - allows using simultaneously many payments methods at the same time,
 * **multiple payments currency support** (getpaid will automatically filter available backends list accordingly to the payment currency),
@@ -44,20 +79,6 @@ In alphabetical order:
 * `Transferuj.pl <http://transferuj.pl>`_
 
 Don't see the payment backend you need? `Writing your own backend <https://django-getpaid.readthedocs.org/en/latest/custom_backends.html>`_ is very simple. Pull requests are welcome.
-
-Disclaimer
-----------
-This project has nothing in common with `getpaid <http://code.google.com/p/getpaid/>`_ plone project.
-It is mostly based on `mamona <https://github.com/emesik/mamona>`_ project.
-This app was written because there was not a single reliable or simple to use payment processor dedicated to django.
-You can refer to other payment modules which does not meet our needs:
-`Satchmo <http://satchmoproject.sadba.org/docs/dev/>`_,
-`python-payflowpro <https://github.com/bkeating/python-payflowpro/>`_,
-`django-authorizenet <https://github.com/zen4ever/django-authorizenet>`_,
-`mamona <https://github.com/emesik/mamona>`_,
-`django-paypal <https://github.com/johnboxall/django-paypal>`_,
-`django-payme <https://github.com/bradleyayers/django-payme/>`_.
-
 
 
 Payment workflow integration
@@ -93,7 +114,7 @@ Let's take an example from test project::
             return self.name
 
     Payment = getpaid.register_to_payment(Order, unique=False, related_name='payments')
-    
+
 
 and add the following line to your settings:
 
@@ -123,7 +144,7 @@ We now want to get paid for that order. So lets take a look on a view for creati
 
     from django.views.generic.detail import DetailView
     from getpaid.forms import PaymentMethodForm
-    from getpaid_test_project.orders.models import Order
+    from example.orders.models import Order
 
     class OrderView(DetailView):
         model=Order
@@ -261,3 +282,45 @@ Step 6. Setup your payment backends
 
 Please be sure to read carefully  `Backends <https://django-getpaid.readthedocs.org/en/latest/backends.html>`_ section for information on how to configure particular backends.
 They will probably not work out of the box without providing some account keys or other credentials.
+
+
+
+Running Tests
+=============
+
+Does the code actually work?
+
+::
+
+    source <YOURVIRTUALENV>/bin/activate
+    (myenv) $ pip install tox
+    (myenv) $ tox
+
+
+
+Disclaimer
+==========
+
+This project has nothing in common with `getpaid <http://code.google.com/p/getpaid/>`_ plone project.
+It is mostly based on `mamona <https://github.com/emesik/mamona>`_ project.
+This app was written because there was not a single reliable or simple to use payment processor dedicated to django.
+You can refer to other payment modules which does not meet our needs:
+`Satchmo <http://satchmoproject.sadba.org/docs/dev/>`_,
+`python-payflowpro <https://github.com/bkeating/python-payflowpro/>`_,
+`django-authorizenet <https://github.com/zen4ever/django-authorizenet>`_,
+`mamona <https://github.com/emesik/mamona>`_,
+`django-paypal <https://github.com/johnboxall/django-paypal>`_,
+`django-payme <https://github.com/bradleyayers/django-payme/>`_.
+
+
+
+Credits
+=======
+
+Tools used in rendering this package:
+
+*  Cookiecutter_
+*  `cookiecutter-djangopackage`_
+
+.. _Cookiecutter: https://github.com/audreyr/cookiecutter
+.. _`cookiecutter-djangopackage`: https://github.com/pydanny/cookiecutter-djangopackage

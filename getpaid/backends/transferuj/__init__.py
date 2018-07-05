@@ -4,6 +4,7 @@ import logging
 from six.moves.urllib.parse import urlencode
 from django.utils.six import text_type
 from django.core.exceptions import ImproperlyConfigured
+from django.urls import reverse
 from django.apps import apps
 from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
