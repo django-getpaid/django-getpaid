@@ -7,3 +7,5 @@ django-celery
 celery
 pendulum
 anyjson
+deprecated
+simplejson

@@ -21,6 +21,7 @@ GETPAID_ORDER_MODEL = 'orders.Order'
 GETPAID_BACKENDS = [
     'getpaid.backends.dummy',
     'getpaid.backends.payu',
+    'getpaid.backends.payu_rest',
     'getpaid.backends.transferuj',
     'getpaid.backends.przelewy24',
     'getpaid.backends.epaydk',
@@ -35,6 +36,11 @@ GETPAID_BACKENDS_SETTINGS = {
         'pos_auth_key': 'xxx',
         'signing': True,
         #        'testing' : True,
+    },
+
+    'getpaid.backends.payu_rest': {
+        'pos_id': '123456',
+        'key2': '0123456789abcdef0123456789abcdef',
     },
 
     'getpaid.backends.transferuj': {
@@ -71,8 +77,7 @@ DJANGO_APPS = [
 
     # if your app has other dependencies that need to be added to the site
     # they should be added here
-    'example.orders',
-
+    'orders',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + GETPAID_BACKENDS

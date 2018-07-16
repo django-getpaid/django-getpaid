@@ -35,11 +35,12 @@ class PaymentProcessorBase(object):
     A path in static root where payment logo could be find.
     """
 
-    def __init__(self, payment):
+    def __init__(self, payment, test_mode=False):
 
         if payment.currency not in self.BACKEND_ACCEPTED_CURRENCY:
             raise ValueError("Backend '%s' cannot process '%s' payments." % (self.BACKEND, payment.currency))
         self.payment = payment
+        self.test_mode = test_mode
 
     @classmethod
     def get_logo_url(cls):

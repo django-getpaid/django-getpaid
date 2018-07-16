@@ -11,7 +11,7 @@ from django.test import TestCase
 from django.test.client import Client
 
 from getpaid import signals
-from example.orders.models import Order
+from orders.models import Order
 
 
 class OrderTest(TestCase):

@@ -1,0 +1,53 @@
+<html>
+<body>
+<h1>Order #{{ object.pk }}</h1>
+<p>
+<a href="{% url 'home' %}">Home</a>
+<p>
+Order title: {{ object.name }}<br>
+Order total: {{ object.total }} {{ object.currency }}
+<p>
+
+{% if order.status == 'W' %}
+<h2>Choose payment type:</h2>
+<form action="{% url 'getpaid:new-payment' currency=object.currency %}" method="post">
+    {% csrf_token %}
+    {{ payment_form.as_p }}
+    <input type="submit" value="Continue">
+</form>
+{% endif %}
+
+{% if order.status == 'P' %}
+    This order was successfully paid.
+{% endif %}
+
+
+{% if order.payments.all %}
+    <h2>Payments for order</h2>
+    <p>(refresh this page to refresh payments status)
+    <table border=1>
+        <tr>
+            <th>id</th>
+            <th>amount</th>
+            <th>status</th>
+            <th>backend</th>
+            <th>created on</th>
+            <th>paid on</th>
+            <th>amount_paid</th>
+        </tr>
+    {% for payment in order.payments.all %}
+        <tr>
+            <td>{{ payment.pk }}</td>
+            <td>{{ payment.amount }} {{ payment.currency }}</td>
+            <td>{{ payment.status }}</td>
+            <td>{{ payment.backend }}</td>
+            <td>{{ payment.created_on }}</td>
+            <td>{{ payment.paid_on }}</td>
+            <td>{{ payment.amount_paid }} {{ payment.currency }}</td>
+
+        </tr>
+    {% endfor %}
+    </table>
+{% endif %}
+</body>
+</html>

@@ -4,9 +4,9 @@ from collections import OrderedDict
 from importlib import import_module
 
 from django.conf import settings
-from django.utils import six
-from django.urls import reverse
 from django.contrib.sites.shortcuts import get_current_site
+from django.urls import reverse
+from django.utils import six
 from django.utils.six.moves.urllib.parse import parse_qsl
 
 if six.PY3:

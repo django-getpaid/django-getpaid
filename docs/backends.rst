@@ -64,9 +64,49 @@ No additional setup is needed for the dummy backend.
 
 
 
+New PayU.pl backend ``getpaid.backend.payu_rest``
+-------------------------------------------------
 
-PayU.pl backend ``getpaid.backends.payu``
------------------------------------------
+The new REST-based PayU API. It can accept payments in several currencies.
+
+Enable backend
+``````````````
+Add backend full path to ``GETPAID_BACKENDS`` setting::
+
+    GETPAID_BACKENDS += ('getpaid.backends.payu_rest', )
+
+
+Don't forget to add backend path to ``INSTALLED_APPS`` also::
+
+    INSTALLED_APPS += ('getpaid.backends.payu_rest', )
+
+
+Setup backend
+`````````````
+
+**pos_id**
+    POS identificator,
+
+
+**key2**
+    according to PayU documentation this is a string that is used to compute md5 signature sent from Shop,
+
+**client_id**
+    client ID for OAuth handshake, usually equal to pos_id
+
+**client_secret**
+    secret required for OAuth handshake
+
+**lang**
+    default language for PayU pages
+
+**ssl_return**
+    boolean to indicate if the return url should be secure (defaults to True)
+
+
+Old PayU.pl backend ``getpaid.backends.payu``
+---------------------------------------------
+
 This backend can handle payment processing via Polish money broker `PayU <http://payu.pl>`_ which is currently a part of the biggest e-commerce providers on Polish market - Allegro Group.
 
 PayU accepts only payments in ``PLN``.
@@ -347,7 +387,7 @@ Optional keys:
     You may want to change this to use dotpay testing account; default: ``https://ssl.dotpay.eu/``
 
         .. warning::
-            Dotpay has strange policy regarding to gateway urls. It appears, that new accounts use ``https://ssl.dotpay.pl/``,
+Dotpay has strange policy regarding to gateway urls. It appears, that new accounts use ``https://ssl.dotpay.pl/``,
             but old accounts, that have 5-digit long id's, should still use old gateway ``https://ssl.dotpay.eu/``. For reasons
             of this behaviour You need to contact dotpay support.
 

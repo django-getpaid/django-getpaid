@@ -1,7 +1,12 @@
+# THIS PLUGIN IS DEPRECATED!
+
+# new docs: https://docs.tpay.com/
+
 from decimal import Decimal
 import hashlib
 import logging
 from six.moves.urllib.parse import urlencode
+from deprecated import deprecated
 from django.utils.six import text_type
 from django.core.exceptions import ImproperlyConfigured
 from django.urls import reverse
@@ -15,6 +20,7 @@ from getpaid.utils import get_domain, build_absolute_uri
 logger = logging.getLogger('getpaid.backends.transferuj')
 
 
+@deprecated(version='1.8', reason="This plugin is outdated.")
 class PaymentProcessor(PaymentProcessorBase):
     BACKEND = u'getpaid.backends.transferuj'
     BACKEND_NAME = _(u'Transferuj.pl')

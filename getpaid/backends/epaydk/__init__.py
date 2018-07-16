@@ -1,3 +1,4 @@
+# http://epay.bambora.com/en/payment-web-service
 from copy import deepcopy
 import logging
 import hashlib
@@ -12,6 +13,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.utils.six.moves.urllib.parse import urlencode
 from getpaid.utils import get_domain
 from django.db import transaction
+from deprecated import deprecated
 
 from getpaid.backends import PaymentProcessorBase
 from getpaid.utils import build_absolute_uri
@@ -23,6 +25,7 @@ if six.PY3:
 logger = logging.getLogger(__name__)
 
 
+@deprecated(version='1.8', reason="This plugin is deprecated.")
 class PaymentProcessor(PaymentProcessorBase):
     BACKEND = 'getpaid.backends.epaydk'
     BACKEND_NAME = _('Epay.dk backend')
