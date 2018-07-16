@@ -106,6 +106,7 @@ Setup backend
 
 Old PayU.pl backend ``getpaid.backends.payu``
 ---------------------------------------------
+
 This backend can handle payment processing via Polish money broker `PayU <http://payu.pl>`_ which is currently a part of the biggest e-commerce providers on Polish market - Allegro Group.
 
 PayU accepts only payments in ``PLN``.
