@@ -14,7 +14,7 @@ from django.utils import six
 import mock
 
 import getpaid
-from example.orders.models import Order
+from orders.models import Order
 
 if six.PY3:
     unicode = str

@@ -1,3 +1,7 @@
+# http://developers.payu.com/pl/classic_api.html
+# THIS PLUGIN IS DEPRECATED AND WILL NOT BE UPDATED!
+# Please use 'payu_rest'
+
 import time
 from decimal import Decimal
 import hashlib
@@ -8,6 +12,7 @@ from six.moves.urllib.request import Request, urlopen
 from six.moves.urllib.parse import urlencode
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.translation import ugettext_lazy as _
+from deprecated import deprecated
 
 from getpaid import signals
 from getpaid.backends import PaymentProcessorBase
@@ -27,6 +32,7 @@ class PayUTransactionStatus:
     ERROR = 888
 
 
+@deprecated(version='1.8', reason="This plugin is outdated.")
 class PaymentProcessor(PaymentProcessorBase):
     BACKEND = u'getpaid.backends.payu'
     BACKEND_NAME = _(u'PayU')

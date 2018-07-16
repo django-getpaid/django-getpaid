@@ -3,7 +3,7 @@ from getpaid import signals
 
 
 class Config(AppConfig):
-    name = 'example.orders'
+    name = 'orders'
     verbose_name = 'application orders'
     label = 'orders'
 

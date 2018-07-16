@@ -26,16 +26,16 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-
 GETPAID_ORDER_MODEL = 'orders.Order'
 
-GETPAID_BACKENDS = (
+GETPAID_BACKENDS = [
     'getpaid.backends.dummy',
-)
+    'getpaid.backends.payu_rest',
+]
 
 # Application definition
 
-INSTALLED_APPS = [
+APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -48,7 +48,18 @@ INSTALLED_APPS = [
     # if your app has other dependencies that need to be added to the site
     # they should be added here
     'orders',
-] + GETPAID_BACKENDS
+]
+
+INSTALLED_APPS = APPS + GETPAID_BACKENDS
+
+GETPAID_BACKENDS_SETTINGS = {
+    'getpaid.backends.payu_rest': {
+        'client_id': '334774',
+        'pos_id': '334774',
+        'client_secret': 'e1b8b7043a0935da370fe54a5721be91',
+        'key2': 'ac2380bcfe9c7f0b72a97313000a4f4b',
+    }
+}
 
 MIDDLEWARE_CLASSES = [
     'django.middleware.security.SecurityMiddleware',

@@ -1,4 +1,6 @@
 # Create your views here.
+from django import http
+from django.views import View
 from django.views.generic import CreateView
 from django.views.generic.detail import DetailView
 from getpaid.forms import PaymentMethodForm
@@ -28,3 +30,8 @@ class OrderView(DetailView):
         )
         return context
 
+
+class PostGetter(View):
+    def post(self, request, *args, **kwargs):
+        import ipdb; ipdb.set_trace()
+        return http.HttpResponse("OK")

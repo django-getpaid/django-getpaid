@@ -9,3 +9,5 @@ django-model-utils>=2.0
 
 # Additional test requirements go here
 factory_boy
+requests_mock
+ipdb

@@ -1,9 +1,13 @@
+# THIS PLUGIN IS PENDING UPDATE! DO NOT USE YET!
+# If you have working plugin for przelewy24 - please create a PR
+
 # Author: Krzysztof Dorosz <cypreess@gmail.com>
 #
 # Disclaimer:
 # Writing and open sourcing this backend was kindly funded by Issue Stand
 # http://issuestand.com/
 #
+# new docs: https://www.przelewy24.pl/dla-firm/instalacja
 
 from decimal import Decimal
 import hashlib
@@ -13,6 +17,7 @@ import datetime
 from django.utils import six
 from six.moves.urllib.request import Request, urlopen
 from six.moves.urllib.parse import urlencode
+from deprecated import deprecated
 
 from django.core.exceptions import ImproperlyConfigured
 from django.urls import reverse
@@ -27,6 +32,7 @@ from getpaid.utils import get_domain
 logger = logging.getLogger('getpaid.backends.przelewy24')
 
 
+@deprecated(version='1.8', reason="This plugin is outdated.")
 class PaymentProcessor(PaymentProcessorBase):
     BACKEND = u'getpaid.backends.przelewy24'
     BACKEND_NAME = _(u'Przelewy24')

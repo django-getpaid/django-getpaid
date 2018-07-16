@@ -11,8 +11,8 @@ from django.core.exceptions import ImproperlyConfigured
 
 from getpaid.backends.transferuj import PaymentProcessor
 from getpaid.backends import transferuj
-from example.orders.models import Order
-from example.orders.factories import PaymentFactory
+from orders.models import Order
+from orders.factories import PaymentFactory
 from getpaid.utils import get_backend_settings
 
 if six.PY3:

@@ -1,3 +1,6 @@
+# Implemented using dotpay documentation version 1.49.11.1
+# https://ssl.dotpay.pl/s2/login/cloudfs1/magellan_media/common_file/dotpay_instrukcja_techniczna_implementacji_platnosci.pdf
+
 import datetime
 from decimal import Decimal
 import hashlib
@@ -26,18 +29,19 @@ class DotpayTransactionStatus:
 class PaymentProcessor(PaymentProcessorBase):
     BACKEND = 'getpaid.backends.dotpay'
     BACKEND_NAME = _('Dotpay')
-    BACKEND_ACCEPTED_CURRENCY = ('PLN', 'EUR', 'USD', 'GBP', 'JPY', 'CZK', 'SEK')
+    BACKEND_ACCEPTED_CURRENCY = ('PLN', 'EUR', 'USD', 'GBP', 'JPY', 'CZK', 'SEK', 'UAH', 'RON')
     BACKEND_LOGO_URL = 'getpaid/backends/dotpay/dotpay_logo.png'
 
     _ALLOWED_IP = ('195.150.9.37',)
-    _ACCEPTED_LANGS = ('pl', 'en', 'de', 'it', 'fr', 'es', 'cz', 'ru', 'bg')
+    _ACCEPTED_LANGS = ('pl', 'en', 'de', 'it', 'fr', 'es', 'cs', 'ru', 'hu', 'ro')
     _GATEWAY_URL = 'https://ssl.dotpay.pl/t2/'
-    _ONLINE_SIG_FIELDS = ('id', 'control', 't_id', 'amount', 'email', 'service', 'code', 'username', 'password', 't_status')
+    _ONLINE_SIG_FIELDS = (
+        'id', 'control', 't_id', 'amount', 'email', 'service', 'code', 'username', 'password', 't_status')
 
     @staticmethod
     def compute_sig(params, fields, PIN):
-        text = PIN + ":" + (u":".join(map(lambda field: params.get(field, ''), fields)))
-        return hashlib.md5(text.encode('utf8')).hexdigest()
+        text = PIN + ("".join(map(lambda field: params.get(field, ''), fields)))
+        return hashlib.sha256(text.encode('utf8')).hexdigest()
 
     @staticmethod
     def online(params, ip):
@@ -50,7 +54,7 @@ class PaymentProcessor(PaymentProcessorBase):
 
         PIN = PaymentProcessor.get_backend_setting('PIN', '')
 
-        if params['md5'] != PaymentProcessor.compute_sig(params, PaymentProcessor._ONLINE_SIG_FIELDS, PIN):
+        if params['signature'] != PaymentProcessor.compute_sig(params, PaymentProcessor._ONLINE_SIG_FIELDS, PIN):
             logger.warning('Got message with wrong sig, %s' % str(params))
             return u'SIG ERR'
 
@@ -114,10 +118,11 @@ class PaymentProcessor(PaymentProcessorBase):
             'description': self.get_order_description(self.payment, self.payment.order),
             'amount': self.payment.amount,
             'currency': self.payment.currency,
-            'type': 0,  # show "return" button after finished payment
+            'type': 0,  # 0 = show "return" button after finished payment
             'control': self.payment.pk,
             'URL': self.get_URL(self.payment.pk),
             'URLC': self.get_URLC(),
+            'api_version': 'dev',
         }
 
         user_data = {
@@ -131,9 +136,8 @@ class PaymentProcessor(PaymentProcessorBase):
 
         if user_data['lang'] and user_data['lang'].lower() in PaymentProcessor._ACCEPTED_LANGS:
             params['lang'] = user_data['lang'].lower()
-        elif PaymentProcessor.get_backend_setting(
-                'lang', False
-        ) and PaymentProcessor.get_backend_setting('lang').lower() in PaymentProcessor._ACCEPTED_LANGS:
+        elif PaymentProcessor.get_backend_setting('lang', False) \
+            and PaymentProcessor.get_backend_setting('lang').lower() in PaymentProcessor._ACCEPTED_LANGS:
             params['lang'] = PaymentProcessor.get_backend_setting('lang').lower()
 
         if PaymentProcessor.get_backend_setting('onlinetransfer', False):

@@ -10,7 +10,7 @@ import mock
 
 import getpaid
 import getpaid.backends.payu
-from example.orders.models import Order
+from orders.models import Order
 
 if six.PY3:
     unicode = str
@@ -158,7 +158,7 @@ trans_sig:e4e981bfa780fa78fb077ca1f9295f2a
     @mock.patch("getpaid.backends.payu.urlopen", fake_payment_get_response_success)
     def test_payment_get_paid(self, mock_Request):
         Payment = apps.get_model('getpaid', 'Payment')
-        order = Order(name='Test EUR order', total='123.45', currency='PLN')
+        order = Order(name='Test PLN order', total='123.45', currency='PLN')
         order.save()
         payment = Payment(pk=99, order=order, amount=order.total, currency=order.currency,
                           backend='getpaid.backends.payu')

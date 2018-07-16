@@ -9,7 +9,7 @@ import mock
 
 import getpaid
 from getpaid.backends import przelewy24
-from example.orders.models import Order
+from orders.models import Order
 
 
 if six.PY3:

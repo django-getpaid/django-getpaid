@@ -16,7 +16,7 @@ Including another URLconf
 from django.conf.urls import url, include
 from django.contrib import admin
 
-from example.orders.views import HomeView, OrderView
+from orders.views import HomeView, OrderView
 
 app_name = 'getpaid_example'
 
