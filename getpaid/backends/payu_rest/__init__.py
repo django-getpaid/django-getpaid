@@ -3,7 +3,6 @@
 from __future__ import unicode_literals
 import simplejson as json
 import pendulum
-import time
 from decimal import Decimal
 import hashlib
 import logging
@@ -12,7 +11,6 @@ from collections import OrderedDict
 
 from django.urls import reverse
 from django.utils import six
-from six.moves.urllib.request import Request, urlopen
 from six.moves.urllib.parse import urlencode
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.translation import ugettext_lazy as _
@@ -20,7 +18,6 @@ from django.utils.translation import ugettext_lazy as _
 from getpaid import signals
 from getpaid import utils as getpaid_utils
 from getpaid.backends import PaymentProcessorBase
-from getpaid.backends.payu.tasks import get_payment_status_task, accept_payment
 
 logger = logging.getLogger('getpaid.backends.payu_rest')
 
@@ -64,32 +61,6 @@ class PaymentProcessor(PaymentProcessorBase):
         u'trans_pos_id', u'trans_session_id', u'trans_order_id',
         u'trans_status', u'trans_amount', u'trans_desc', u'trans_ts',)
     _GET_ACCEPT_SIG_FIELDS = (u'trans_pos_id', u'trans_session_id', u'trans_ts',)
-
-    def __legacy(self):
-        #### START COMMENT
-        # sig_params = deepcopy(params)
-        # sig_products = sig_params.pop('products')
-        # sig_buyer = sig_params.pop('buyer')
-        #
-        # for i, product in enumerate(sig_products):
-        #     for field, value in product.items():
-        #         sig_params['products_{i}_{field}'.format(i=i, field=field)] = value
-        #
-        # for field, value in sig_buyer.items():
-        #     sig_params['buyer_{}'.format(field)] = value
-        #
-        #
-        # sig_algorithm = self.get_backend_setting('sig_algorithm', 'SHA-256')
-        # key2 = self.get_backend_setting('key2', None)
-        # assert key2 is not None
-        #
-        # signature = self.compute_sig(sig_params, key=key2, algorithm=sig_algorithm)
-        #
-        # params['OpenPayu-Signature'] = 'sender={sender};algorithm={sig_algorithm};signature={signature}'.format(
-        #     sender=pos_id, sig_algorithm=sig_algorithm, signature=signature
-        # )
-        #### END COMMENT
-        pass
 
     @staticmethod
     def prepare_sig_data(params):
@@ -229,7 +200,7 @@ class PaymentProcessor(PaymentProcessorBase):
             buyer_info['phone'] = customer_phone
 
         current_site = getpaid_utils.get_domain(request)
-        use_ssl = self.get_backend_setting('ssl_return', False)
+        use_ssl = self.get_backend_setting('ssl_return', True)
 
         notify_url = "http{}://{}{}".format(
             's' if use_ssl else '',
@@ -264,8 +235,6 @@ class PaymentProcessor(PaymentProcessorBase):
 
         order_url = "{gateway_url}api/v2_1/orders".format(gateway_url=self._GATEWAY_URL)
 
-        # self.__legacy()
-
         order_register = requests.post(order_url, json=params, headers=headers, allow_redirects=False)
         order_register_data = order_register.json()
         status = order_register_data.get('status', {}).get('statusCode', '')
@@ -276,106 +245,6 @@ class PaymentProcessor(PaymentProcessorBase):
 
         return final_url, 'GET', {}
 
-    def get_payment_status(self, session_id):
-        # FIXME
-        params = {
-            u'pos_id': self.get_backend_setting('pos_id'),
-            u'session_id': session_id,
-            u'ts': time.time()
-        }
-        key1 = self.get_backend_setting('key1')
-        key2 = self.get_backend_setting('key2')
-
-        params['sig'] = self.compute_sig(
-            params, self._GET_SIG_FIELDS, key1)
-
-        for key in params.keys():
-            params[key] = six.text_type(params[key]).encode('utf-8')
-
-        data = six.text_type(urlencode(params)).encode('utf-8')
-        url = self._GATEWAY_URL + 'UTF/Payment/get/txt'
-        request = Request(url, data)
-        response = urlopen(request)
-        response_data = response.read().decode('utf-8')
-        response_params = self._parse_text_response(response_data)
-
-        if not response_params['status'] == u'OK':
-            logger.warning(u'Payment status error: %s' % response_params)
-            return
-
-        if self.compute_sig(response_params, self._GET_RESPONSE_SIG_FIELDS,
-                            key2) == response_params['trans_sig']:
-            if not (int(response_params['trans_pos_id']) == int(params['pos_id']) or
-                    int(response_params['trans_order_id']) == self.payment.pk):
-                logger.error(u'Payment status wrong pos_id and/or order id: %s' % response_params)
-                return
-
-            logger.info(u'Fetching payment status: %s' % response_params)
-
-            self.payment.external_id = response_params['trans_id']
-
-            status = int(response_params['trans_status'])
-            if status in (PayUTransactionStatus.AWAITING, PayUTransactionStatus.FINISHED):
-
-                if self.payment.on_success(Decimal(response_params['trans_amount']) / Decimal('100')):
-                    # fully paid
-                    if status == PayUTransactionStatus.AWAITING:
-                        accept_payment.delay(self.payment.id, session_id)
-
-            elif status in (
-                PayUTransactionStatus.CANCELED,
-                PayUTransactionStatus.ERROR,
-                PayUTransactionStatus.REJECTED,
-                PayUTransactionStatus.REJECTED_AFTER_CANCEL):
-                self.payment.on_failure()
-
-        else:
-            logger.error(u'Payment status wrong response signature: %s' % response_params)
-
-    def accept_payment(self, session_id):
-        params = {
-            'pos_id': self.get_backend_setting('pos_id'),
-            'session_id': session_id,
-            'ts': time.time()
-        }
-        key1 = self.get_backend_setting('key1')
-        key2 = self.get_backend_setting('key2')
-        params['sig'] = self.compute_sig(
-            params, self._GET_SIG_FIELDS, key1)
-        for key in params.keys():
-            params[key] = six.text_type(params[key]).encode('utf-8')
-        data = six.text_type(urlencode(params)).encode('utf-8')
-        url = self._GATEWAY_URL + 'UTF/Payment/confirm/txt'
-        request = Request(url, data)
-        response = urlopen(request)
-        response_data = response.read().decode('utf-8')
-        response_params = self._parse_text_response(response_data)
-        if response_params['status'] == 'OK':
-            if self.compute_sig(response_params, self._GET_ACCEPT_SIG_FIELDS, key2
-                                ) != response_params['trans_sig']:
-                logger.error(u'Wrong signature for Payment/confirm response: %s' % response_params)
-                return
-            if int(response_params['trans_pos_id']) != int(params['pos_id']):
-                logger.error(u'Wrong pos_id for Payment/confirm response: %s' % response_params)
-                return
-
-            logger.info(u'Payment accepted: %s' % response_params)
-        else:
-            logger.warning(u'Payment not accepted, error: %s' % response_params)
-
-    @staticmethod
-    def _parse_text_response(text):
-        """
-        Parses inputs like:
-        variable : some value
-        variable2 : 123.44
-        into dict
-        """
-        return dict(
-            map(lambda kv: (kv[0].rstrip(), kv[1].lstrip()),
-                filter(
-                    lambda l: len(l) == 2,
-                    map(lambda l: l.split(':', 1),
-                        text.splitlines()))
-                )
-        )
+    def get_payment_status(self, *args, **kwargs):
+        # FIXME - might be needed in other flow
+        pass
