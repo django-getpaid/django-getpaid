@@ -11,7 +11,8 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys, os
+import os
+import sys
 
 sys.path.append(
     os.path.join(
@@ -38,7 +39,7 @@ sys.path.append(
         'django-getpaid')
 )
 
-#import django
+# import django
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "example.settings_docs")
 
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -234,6 +235,7 @@ latex_documents = [
 # If false, no module index is generated.
 # latex_domain_indices = True
 
+
 # -- Options for manual page output --------------------------------------------
 
 # One entry per manual page. List of tuples
@@ -245,6 +247,7 @@ man_pages = [
 
 # If true, show URL addresses after external links.
 # man_show_urls = False
+
 
 # -- Options for Texinfo output ------------------------------------------------
 
