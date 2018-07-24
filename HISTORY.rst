@@ -8,11 +8,19 @@ History
 
 
 
-Version 1.8.0 (2018-07-04)
+Version 1.8.0 (2018-07-24)
 --------------------------
 
 * Updated project structure thanks to cookiecutter-djangopackage
-* Dropped support for Django < 1.11
+* New plugin: pay_rest - New PayU API
+* Updated following plugins:
+  * payu - legacy API still works on new URL
+* Dropped support for following plugins:
+  * epaydk (API no longer functional)
+  * moip (will be moved to separate package)
+  * transferuj.pl (API no longer functional)
+  * przelewy24.pl (API needs update, but no sandbox available anymore)
+* Dropped support for Django <= 1.10
 * Provide support for Django 2.0
 
 

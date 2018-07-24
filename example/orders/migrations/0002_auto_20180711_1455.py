@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ('orders', '0001_initial'),
     ]
@@ -23,7 +22,8 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='order',
             name='status',
-            field=models.CharField(blank=True, choices=[('W', 'Waiting for payment'), ('P', 'Payment complete')], default='W', max_length=1),
+            field=models.CharField(blank=True, choices=[('W', 'Waiting for payment'), ('P', 'Payment complete')],
+                                   default='W', max_length=1),
         ),
         migrations.AlterField(
             model_name='order',

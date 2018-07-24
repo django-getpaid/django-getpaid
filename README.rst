@@ -3,21 +3,17 @@ Welcome to django-getpaid
 =============================
 
 .. image:: https://img.shields.io/pypi/v/django-getpaid.svg
-    :target: https://pypi.python.org/pypi/django-getpaid
+    :target: https://pypi.org/project/django-getpaid/
     :alt: Latest PyPI version
-.. image:: https://img.shields.io/pypi/dm/django-getpaid.svg
-    :target: https://pypi.python.org/pypi/django-getpaid
-    :alt: Number of PyPI downloads
-.. image:: https://travis-ci.org/cypreess/django-getpaid.png?branch=master
-    :target: https://travis-ci.org/cypreess/django-getpaid
-.. image:: https://coveralls.io/repos/cypreess/django-getpaid/badge.svg?branch=master&service=github
-    :target: https://coveralls.io/github/cypreess/django-getpaid?branch=master
-.. image:: https://img.shields.io/badge/wheel-yes-green.svg
-    :target: https://pypi.python.org/pypi/django-getpaid
+.. image:: https://img.shields.io/travis/sunscrapers/django-getpaid.svg
+    :target: https://travis-ci.org/sunscrapers/django-getpaid
+.. image:: https://img.shields.io/coveralls/github/cypreess/django-getpaid.svg
+    :target: https://coveralls.io/github/django-getpaid/django-getpaid?branch=master
+.. image:: https://img.shields.io/pypi/wheel/django-getpaid.svg
+    :target: https://pypi.org/project/django-getpaid/
 .. image:: https://img.shields.io/pypi/l/django-getpaid.svg
-    :target: https://pypi.python.org/pypi/django-getpaid
-.. image:: https://d2weczhvl823v0.cloudfront.net/cypreess/django-getpaid/trend.png
-    :target: https://bitdeli.com/free
+    :target: https://pypi.org/project/django-getpaid/
+
 
 django-getpaid is a multi-broker payment processor for Django
 
@@ -71,12 +67,7 @@ Supported backends:
 In alphabetical order:
 
 * `Dotpay.pl/Dotpay.eu <http://dotpay.eu>`_
-* `Epay.dk <http://www.epay.dk>`_
-* `Moip.com.br <http://moip.com.br>`_
 * `PayU.pl <http://payu.pl>`_
-* `Paymill.com <http://paymill.com>`_
-* `Przelewy24.pl <http://www.przelewy24.pl/>`_
-* `Transferuj.pl <http://transferuj.pl>`_
 
 Don't see the payment backend you need? `Writing your own backend <https://django-getpaid.readthedocs.org/en/latest/custom_backends.html>`_ is very simple. Pull requests are welcome.
 
@@ -316,6 +307,8 @@ You can refer to other payment modules which does not meet our needs:
 
 Credits
 =======
+
+Proudly sponsored by `SUNSCRAPERS <http://sunscrapers.com/>`_
 
 Tools used in rendering this package:
 

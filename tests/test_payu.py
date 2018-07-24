@@ -1,16 +1,16 @@
 # coding: utf8
 from decimal import Decimal
 
-from django.urls import reverse
+import mock
 from django.apps import apps
 from django.test import TestCase
 from django.test.client import Client
+from django.urls import reverse
 from django.utils import six
-import mock
+from orders.models import Order
 
 import getpaid
 import getpaid.backends.payu
-from orders.models import Order
 
 if six.PY3:
     unicode = str
@@ -98,16 +98,17 @@ trans_ts:1379695309225
 trans_sig:e4e981bfa780fa78fb077ca1f9295f2a
 
         '''
-        self.assertEqual(getpaid.backends.payu.PaymentProcessor._parse_text_response(t1),
-                         {
-                             'status': 'OK',
-                             'trans_id': '349659572',
-                             'trans_pos_id': '105664',
-                             'trans_session_id': '48:1379695300.48',
-                             'trans_ts': '1379695309225',
-                             'trans_sig': 'e4e981bfa780fa78fb077ca1f9295f2a',
-                         }
-                         )
+        self.assertEqual(
+            getpaid.backends.payu.PaymentProcessor._parse_text_response(t1),
+            {
+                'status': 'OK',
+                'trans_id': '349659572',
+                'trans_pos_id': '105664',
+                'trans_session_id': '48:1379695300.48',
+                'trans_ts': '1379695309225',
+                'trans_sig': 'e4e981bfa780fa78fb077ca1f9295f2a',
+            }
+        )
 
     def test_online_malformed(self):
         response = self.client.post(reverse('getpaid:payu:online'), {})
@@ -171,7 +172,7 @@ trans_sig:e4e981bfa780fa78fb077ca1f9295f2a
         self.assertNotEqual(payment.paid_on, None)
         self.assertNotEqual(payment.amount_paid, Decimal('0'))
 
-        url = 'https://www.platnosci.pl/paygw/UTF/Payment/get/txt'
+        url = 'https://secure.payu.com/paygw/UTF/Payment/get/txt'
         callargs = mock_Request.call_args_list
         self.assertEqual(url, callargs[0][0][0])
         if six.PY3:

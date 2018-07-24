@@ -21,5 +21,5 @@ Sponsors
 --------
 
 Many thanks to Sunscrapers_ for sponsoring development since version 1.8
-.. _Sunscrapers: http://sunscrapers.com/
 
+.. _Sunscrapers: http://sunscrapers.com/

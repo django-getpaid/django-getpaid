@@ -1,8 +1,8 @@
-from django.urls import reverse
 from django.db import models
+from django.urls import reverse
 from django.utils.encoding import python_2_unicode_compatible
-import getpaid
 
+import getpaid
 
 ORDER_STATUS_CHOICES = (
     ('W', 'Waiting for payment'),
@@ -36,4 +36,3 @@ class Order(models.Model):
 Payment = getpaid.register_to_payment(Order,
                                       unique=False,
                                       related_name='payments')
-

@@ -33,5 +33,4 @@ class OrderView(DetailView):
 
 class PostGetter(View):
     def post(self, request, *args, **kwargs):
-        import ipdb; ipdb.set_trace()
         return http.HttpResponse("OK")

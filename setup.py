@@ -23,10 +23,10 @@ def get_version(*file_paths):
 
 version = get_version("getpaid", "__init__.py")
 
-
 if sys.argv[-1] == 'publish':
     try:
         import wheel
+
         print("Wheel version: ", wheel.__version__)
     except ImportError:
         print('Wheel library missing. Please run "pip install wheel"')
@@ -49,14 +49,14 @@ setup(
     version=version,
     description="""Multi-broker payment processor for Django""",
     long_description=readme + '\n\n' + history,
-    author='Krzysztof Dorosz',
-    author_email='cypreess@gmail.com',
-    url='https://github.com/cypreess/django-getpaid',
+    author='Django-getpaid Team',
+    author_email='d.kozaczko@sunscrapers.com',
+    url='https://github.com/django-getpaid/django-getpaid',
     packages=[
         'getpaid',
     ],
     include_package_data=True,
-    install_requires=["django-model-utils>=2.0",],
+    install_requires=["django-model-utils>=2.0", ],
     license="MIT",
     zip_safe=False,
     keywords='django-getpaid',
@@ -78,17 +78,17 @@ setup(
         'payu': [
             'django-celery>=3.0.11',
         ],
-        'przelewy24': [
-            'django-celery>=3.0.11',
-            'pytz',
-        ],
-        'moip': [
-            'requests',
-            'lxml'
-        ],
-        'paymill': [
-            'pymill',
-        ]
+        # 'przelewy24': [
+        #     'django-celery>=3.0.11',
+        #     'pytz',
+        # ],
+        # 'moip': [
+        #     'requests',
+        #     'lxml'
+        # ],
+        # 'paymill': [
+        #     'pymill',
+        # ]
     },
 
 )
