@@ -14,12 +14,12 @@ Version 1.8.0 (2018-07-24)
 * Updated project structure thanks to cookiecutter-djangopackage
 * New plugin: pay_rest - New PayU API
 * Updated following plugins:
-  * payu - legacy API still works on new URL
+  - payu - legacy API still works on new URL
 * Dropped support for following plugins:
-  * epaydk (API no longer functional)
-  * moip (will be moved to separate package)
-  * transferuj.pl (API no longer functional)
-  * przelewy24.pl (API needs update, but no sandbox available anymore)
+  - epaydk (API no longer functional)
+  - moip (will be moved to separate package)
+  - transferuj.pl (API no longer functional)
+  - przelewy24.pl (API needs update, but no sandbox available anymore)
 * Dropped support for Django <= 1.10
 * Provide support for Django 2.0
 
@@ -32,13 +32,13 @@ Version 1.7.4
 -------------
 * Added default apps config getpaid.apps.Config
 * Fixed and refactoring for utils.get_domain, build_absolute_uri,
- settings.GETPAID_SITE_DOMAIN
+  settings.GETPAID_SITE_DOMAIN
 * Refactored register_to_payment
 * Refactored build_absolute_uri
 * Refactored and fixes in transferuj backend
- - payment.paid_on uses local TIMEZONE now as opposed to UTC
- - changed params
- - add post method to SuccessView and FailureView
+  - payment.paid_on uses local TIMEZONE now as opposed to UTC
+  - changed params
+  - add post method to SuccessView and FailureView
 * Added test models factories
 * Dropped support for Django <=1.6
 
@@ -108,7 +108,6 @@ Version 1.2
 * Dotpay backend added
 * Hooks for backends to accept email and user name
 * Refactoring
-
 
 Version 1.1
 -----------
