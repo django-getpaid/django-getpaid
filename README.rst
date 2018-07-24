@@ -5,10 +5,10 @@ Welcome to django-getpaid
 .. image:: https://img.shields.io/pypi/v/django-getpaid.svg
     :target: https://pypi.org/project/django-getpaid/
     :alt: Latest PyPI version
-.. image:: https://img.shields.io/travis/cypreess/django-getpaid.svg
-    :target: https://travis-ci.org/cypreess/django-getpaid
+.. image:: https://img.shields.io/travis/sunscrapers/django-getpaid.svg
+    :target: https://travis-ci.org/sunscrapers/django-getpaid
 .. image:: https://img.shields.io/coveralls/github/cypreess/django-getpaid.svg
-    :target: https://coveralls.io/github/cypreess/django-getpaid?branch=master
+    :target: https://coveralls.io/github/django-getpaid/django-getpaid?branch=master
 .. image:: https://img.shields.io/pypi/wheel/django-getpaid.svg
     :target: https://pypi.org/project/django-getpaid/
 .. image:: https://img.shields.io/pypi/l/django-getpaid.svg

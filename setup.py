@@ -49,9 +49,9 @@ setup(
     version=version,
     description="""Multi-broker payment processor for Django""",
     long_description=readme + '\n\n' + history,
-    author='SUNSCRAPERS & Krzysztof Dorosz',
+    author='Django-getpaid Team',
     author_email='d.kozaczko@sunscrapers.com',
-    url='https://github.com/cypreess/django-getpaid',
+    url='https://github.com/django-getpaid/django-getpaid',
     packages=[
         'getpaid',
     ],
