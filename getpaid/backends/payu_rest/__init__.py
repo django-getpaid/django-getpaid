@@ -1,19 +1,20 @@
 # coding: utf-8
 # Based on version 2.1 specs from http://developers.payu.com/pl/restapi.html
 from __future__ import unicode_literals
-import simplejson as json
-import pendulum
-from decimal import Decimal
+
 import hashlib
 import logging
-import requests
 from collections import OrderedDict
+from decimal import Decimal
 
+import pendulum
+import requests
+import simplejson as json
+from django.core.exceptions import ImproperlyConfigured
 from django.urls import reverse
 from django.utils import six
-from six.moves.urllib.parse import urlencode
-from django.core.exceptions import ImproperlyConfigured
 from django.utils.translation import ugettext_lazy as _
+from six.moves.urllib.parse import urlencode
 
 from getpaid import signals
 from getpaid import utils as getpaid_utils
@@ -141,9 +142,11 @@ class PaymentProcessor(PaymentProcessorBase):
             client_id = self.get_backend_setting('client_id')
             client_secret = self.get_backend_setting('client_secret')
             url = "{gateway_url}pl/standard/user/oauth/authorize?" \
-                  "grant_type={grant_type}&client_id={client_id}&client_secret={client_secret}".format(
-                gateway_url=self._GATEWAY_URL,
-                grant_type=grant_type, client_id=client_id, client_secret=client_secret)
+                  "grant_type={grant_type}&" \
+                  "client_id={client_id}&" \
+                  "client_secret={client_secret}".format(gateway_url=self._GATEWAY_URL,
+                                                         grant_type=grant_type, client_id=client_id,
+                                                         client_secret=client_secret)
         elif grant_type == 'trusted_merchant':
             raise ImproperlyConfigured('grant_type not yet supported')
         else:
@@ -176,11 +179,10 @@ class PaymentProcessor(PaymentProcessorBase):
             email=user_data['email'],
         )
 
-        if user_data['lang'] \
-            and user_data['lang'].lower() in self._ACCEPTED_LANGS:
+        if user_data['lang'] and user_data['lang'].lower() in self._ACCEPTED_LANGS:
             buyer_info['language'] = user_data['lang'].lower()
-        elif self.get_backend_setting('lang', False) and \
-            self.get_backend_setting('lang').lower() in self._ACCEPTED_LANGS:
+        elif self.get_backend_setting('lang', False
+                                      ) and (self.get_backend_setting('lang').lower() in self._ACCEPTED_LANGS):
             buyer_info['language'] = six.text_type(self.get_backend_setting('lang').lower())
 
         customer_id = user_data.get('id', None)
@@ -219,12 +221,12 @@ class PaymentProcessor(PaymentProcessorBase):
                 name='Payment #{} from {}'.format(self.payment.pk, current_site),
                 unitPrice=str(int(self.payment.amount * 100)),
                 quantity="1",
-                ## optional:
+                # ### optional:
                 # virtual=True,
                 # listingDate='',
             )],
 
-            ## optional:
+            # ### optional:
             notifyUrl=notify_url,
             extOrderId=str(self.payment.pk),
             # validityTime='',

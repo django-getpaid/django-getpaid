@@ -6,7 +6,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
@@ -20,7 +19,9 @@ class Migration(migrations.Migration):
                 ('name', models.CharField(default=b'Lock, Stock and Two Smoking Barrels', max_length=100)),
                 ('total', models.DecimalField(decimal_places=2, default=b'199.99', max_digits=8)),
                 ('currency', models.CharField(default=b'EUR', max_length=3)),
-                ('status', models.CharField(blank=True, choices=[(b'W', b'Waiting for payment'), (b'P', b'Payment complete')], default=b'W', max_length=1)),
+                ('status',
+                 models.CharField(blank=True, choices=[(b'W', b'Waiting for payment'), (b'P', b'Payment complete')],
+                                  default=b'W', max_length=1)),
             ],
         ),
     ]

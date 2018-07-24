@@ -1,4 +1,5 @@
 # http://developers.payu.com/pl/classic_api.html
+# THIS METHOD IS DEPRECATED BY PAYU!
 # THIS PLUGIN IS DEPRECATED AND WILL NOT BE UPDATED!
 # Please use 'payu_rest'
 
@@ -39,7 +40,7 @@ class PaymentProcessor(PaymentProcessorBase):
     BACKEND_ACCEPTED_CURRENCY = (u'PLN',)
     BACKEND_LOGO_URL = u'getpaid/backends/payu/payu_logo.png'
 
-    _GATEWAY_URL = u'https://www.platnosci.pl/paygw/'
+    _GATEWAY_URL = u'https://secure.payu.com/paygw/'
     _ACCEPTED_LANGS = (u'pl', u'en')
     _REQUEST_SIG_FIELDS = (
         u'pos_id', u'pay_type', u'session_id',

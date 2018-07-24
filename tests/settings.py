@@ -1,6 +1,7 @@
 # noinspection PyUnresolvedReferences
 import os
-import sys
+
+import djcelery
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -22,9 +23,9 @@ GETPAID_BACKENDS = [
     'getpaid.backends.dummy',
     'getpaid.backends.payu',
     'getpaid.backends.payu_rest',
-    'getpaid.backends.transferuj',
-    'getpaid.backends.przelewy24',
-    'getpaid.backends.epaydk',
+    # 'getpaid.backends.transferuj',
+    # 'getpaid.backends.przelewy24',
+    # 'getpaid.backends.epaydk',
 ]
 
 GETPAID_BACKENDS_SETTINGS = {
@@ -43,21 +44,21 @@ GETPAID_BACKENDS_SETTINGS = {
         'key2': '0123456789abcdef0123456789abcdef',
     },
 
-    'getpaid.backends.transferuj': {
-        'id': 1234,
-        'key': 'AAAAAAAA',
-
-    },
-
-    'getpaid.backends.przelewy24': {
-        'id': 1234,
-        'crc': '1111111111111111',
-    },
-
-    'getpaid.backends.epaydk': {
-        'merchantnumber': 'xxxxxxxx',
-        'secret': '4e89ea552f492d6711a6c13f99a2a1d4',
-    },
+    # 'getpaid.backends.transferuj': {
+    #     'id': 1234,
+    #     'key': 'AAAAAAAA',
+    #
+    # },
+    #
+    # 'getpaid.backends.przelewy24': {
+    #     'id': 1234,
+    #     'crc': '1111111111111111',
+    # },
+    #
+    # 'getpaid.backends.epaydk': {
+    #     'merchantnumber': 'xxxxxxxx',
+    #     'secret': '4e89ea552f492d6711a6c13f99a2a1d4',
+    # },
 
 }
 
@@ -162,8 +163,6 @@ STATIC_URL = '/static/'
 BROKER_BACKEND = 'memory'
 CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
 CELERY_ALWAYS_EAGER = True
-
-import djcelery
 
 djcelery.setup_loader()
 
