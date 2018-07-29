@@ -3,9 +3,7 @@ django-model-utils>=2.0
 requests
 lxml
 python-dateutil
-django-celery
-celery
 pendulum
 anyjson
-deprecated
 simplejson
+swapper

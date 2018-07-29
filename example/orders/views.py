@@ -25,7 +25,7 @@ class OrderView(DetailView):
     def get_context_data(self, **kwargs):
         context = super(OrderView, self).get_context_data(**kwargs)
         context['payment_form'] = PaymentMethodForm(
-            self.object.currency,
+            currency=self.object.currency,
             initial={'order': self.object}
         )
         return context

@@ -3,6 +3,7 @@ from django.urls import reverse
 from django.utils.encoding import python_2_unicode_compatible
 
 import getpaid
+from getpaid.models import AbstractOrder
 
 ORDER_STATUS_CHOICES = (
     ('W', 'Waiting for payment'),
@@ -10,8 +11,7 @@ ORDER_STATUS_CHOICES = (
 )
 
 
-@python_2_unicode_compatible
-class Order(models.Model):
+class Order(AbstractOrder):
     """
     This is an example Order object. This one is very simple - is only one item,
     but you can easily create more complicated models with multi-items it does not matter
@@ -33,6 +33,3 @@ class Order(models.Model):
         self.currency = self.currency.upper()
 
 
-Payment = getpaid.register_to_payment(Order,
-                                      unique=False,
-                                      related_name='payments')

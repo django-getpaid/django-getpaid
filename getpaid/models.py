@@ -1,19 +1,13 @@
-import sys
-from datetime import datetime
+import uuid
+from importlib import import_module
 
-from django.apps import apps
-from django.db import models
-from django.utils import six
-from django.utils.timezone import utc
-from django.utils.translation import ugettext_lazy as _
-from django.utils.encoding import python_2_unicode_compatible
-from .abstract_mixin import AbstractMixin
-from getpaid import signals
-from .utils import import_backend_modules
+import pendulum
+import swapper
 from django.conf import settings
+from django.db import models
+from django.utils.translation import ugettext_lazy as _
 
-if six.PY3:
-    unicode = str
+from . import signals
 
 PAYMENT_STATUS_CHOICES = (
     ('new', _("new")),
@@ -26,17 +20,24 @@ PAYMENT_STATUS_CHOICES = (
 )
 
 
-class PaymentManager(models.Manager):
-    def get_queryset(self):
-        return super(PaymentManager, self).get_queryset().select_related('order')
+class AbstractOrder(models.Model):
+    class Meta:
+        abstract = True
+
+    def get_redirect_url(self, *args, **kwargs):
+        return self.get_absolute_url()
+
+    def get_absolute_url(self):
+        raise NotImplementedError
+
+    def is_ready_for_payment(self):
+        return True
 
 
-@python_2_unicode_compatible
-class PaymentFactory(models.Model, AbstractMixin):
-    """
-    This is an abstract class that defines a structure of Payment model that will be
-    generated dynamically with one additional field: ``order``
-    """
+class AbstractPayment(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    order = models.ForeignKey(swapper.get_model_name('getpaid', 'Order'), verbose_name=_("order"),
+                              on_delete=models.CASCADE, related_name='payments')
     amount = models.DecimalField(_("amount"), decimal_places=4, max_digits=20)
     currency = models.CharField(_("currency"), max_length=3)
     status = models.CharField(_("status"), max_length=20, choices=PAYMENT_STATUS_CHOICES, default='new', db_index=True)
@@ -49,36 +50,16 @@ class PaymentFactory(models.Model, AbstractMixin):
 
     class Meta:
         abstract = True
+        ordering = ['-created_on']
+        verbose_name = _('Payment')
+        verbose_name_plural = _('Payments')
 
     def __str__(self):
-        return _("Payment #%(id)d") % {'id': self.id}
-
-    @classmethod
-    def contribute(cls, order, **kwargs):
-        return {'order': models.ForeignKey(order, on_delete=models.CASCADE, **kwargs)}
-
-    @classmethod
-    def create(cls, order, backend):
-        """
-            Builds Payment object based on given Order instance
-        """
-        payment = Payment()
-        payment.order = order
-        payment.backend = backend
-        signals.new_payment_query.send(sender=None, order=order, payment=payment)
-        if payment.currency is None or payment.amount is None:
-            raise NotImplementedError('Please provide a listener for getpaid.signals.new_payment_query')
-        payment.save()
-        signals.new_payment.send(sender=None, order=order, payment=payment)
-        return payment
+        return _("Payment #{self.id}".format(self=self))
 
     def get_processor(self):
-        try:
-            __import__(self.backend)
-            module = sys.modules[self.backend]
-            return module.PaymentProcessor
-        except (ImportError, AttributeError):
-            raise ValueError("Backend '%s' is not available or provides no processor." % self.backend)
+        module = import_module(self.backend)
+        return module.PaymentProcessor(self)
 
     def change_status(self, new_status):
         """
@@ -91,7 +72,7 @@ class PaymentFactory(models.Model, AbstractMixin):
             self.status = new_status
             self.save()
             signals.payment_status_changed.send(
-                sender=type(self), instance=self,
+                sender=self.__class__, instance=self,
                 old_status=old_status, new_status=new_status
             )
 
@@ -104,9 +85,10 @@ class PaymentFactory(models.Model, AbstractMixin):
         Returns boolean value if payment was fully paid
         """
         if getattr(settings, 'USE_TZ', False):
-            self.paid_on = datetime.utcnow().replace(tzinfo=utc)
+            self.paid_on = pendulum.now('UTC')
         else:
-            self.paid_on = datetime.now()
+            timezone = getattr(settings, 'TIME_ZONE', 'local')
+            self.paid_on = pendulum.now(timezone)
         if amount:
             self.amount_paid = amount
         else:
@@ -124,32 +106,24 @@ class PaymentFactory(models.Model, AbstractMixin):
         """
         self.change_status('failed')
 
+    def get_redirect_params(self):
+        return self.get_processor().get_redirect_params()
 
-def register_to_payment(order_class, **kwargs):
-    """
-    A function for registering unaware order class to ``getpaid``. This will
-    generate a ``Payment`` model class that will store payments with
-    ForeignKey to original order class
+    def get_form(self, *args, **kwargs):
+        return self.get_processor().get_form(*args, **kwargs)
 
-    This also will build a model class for every enabled backend.
-    """
-    global Payment
-    global Order
+    def handle_callback(self, request, *args, **kwargs):
+        return self.get_processor().handle_callback(request, *args, **kwargs)
 
-    class Payment(PaymentFactory.construct(order=order_class, **kwargs)):
-        objects = PaymentManager()
+    def get_items(self):
+        """
+        Some backends require the list of items to be added to Payment.
+        Item format: {name: "", amount: ""}
+        :return:
+        """
+        raise NotImplementedError
 
-        class Meta:
-            ordering = ('-created_on',)
-            verbose_name = _("Payment")
-            verbose_name_plural = _("Payments")
 
-    Order = order_class
-
-    # Now build models for backends
-
-    backend_models_modules = import_backend_modules('models')
-    for backend_name, models_module in backend_models_modules.items():
-        for model in models_module.build_models(Payment):
-            apps.register_model(backend_name, model)
-    return Payment
+class Payment(AbstractPayment):
+    class Meta(AbstractPayment.Meta):
+        swappable = swapper.swappable_setting('getpaid', 'Payment')

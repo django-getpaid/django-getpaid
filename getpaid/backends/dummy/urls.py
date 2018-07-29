@@ -1,8 +1,8 @@
-from django.conf.urls import url
-from getpaid.backends.dummy.views import DummyAuthorizationView
+from django.urls import path
+
+from . import views
 
 urlpatterns = [
-    url(r'^payment/authorization/(?P<pk>[0-9]+)/$',
-        DummyAuthorizationView.as_view(),
-        name='authorization'),
+    path('authorize', views.DummyAuthorizationView.as_view(), name='authorize'),
+
 ]

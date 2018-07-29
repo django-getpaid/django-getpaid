@@ -1,30 +1,25 @@
-# getpaid views
-import logging
-from django.conf import settings
-from django.core.exceptions import PermissionDenied, ImproperlyConfigured
-from django.urls import reverse
+import swapper
 from django import http
-from django.shortcuts import get_object_or_404
+from django.conf import settings
+from django.core import exceptions
+from django.shortcuts import get_object_or_404, resolve_url
 from django.template.response import TemplateResponse
-from django.views.generic.base import RedirectView
-from django.views.generic.edit import FormView
-from getpaid.forms import PaymentMethodForm, ValidationError
-from getpaid.signals import (redirecting_to_payment_gateway_signal,
-                             order_additional_validation)
+from django.utils.http import urlencode
+from django.views import View
+from django.views.generic import CreateView, RedirectView
+
+from .forms import PaymentMethodForm
 
 
-logger = logging.getLogger(__name__)
-
-
-class NewPaymentView(FormView):
+class CreatePaymentView(CreateView):
     form_class = PaymentMethodForm
     template_name = "getpaid/payment_post_form.html"
 
     def get_form(self, form_class=None):
         if form_class is None:
             form_class = self.get_form_class()
-        self.currency = self.kwargs['currency']
-        return form_class(self.currency, **self.get_form_kwargs())
+        currency = self.kwargs['currency']
+        return form_class(currency=currency, **self.get_form_kwargs())
 
     def get(self, request, *args, **kwargs):
         """
@@ -34,56 +29,67 @@ class NewPaymentView(FormView):
         return http.HttpResponseNotAllowed(['POST'])
 
     def form_valid(self, form):
-        from getpaid.models import Payment
-        try:
-            order_additional_validation.send(
-                sender=None, request=self.request,
-                order=form.cleaned_data['order'],
-                backend=form.cleaned_data['backend'])
-        except ValidationError:
-            return self.form_invalid(form)
+        payment = form.save()
 
-        payment = Payment.create(form.cleaned_data['order'],
-                                 form.cleaned_data['backend'])
-        processor = payment.get_processor()(payment)
-        gateway_url_tuple = processor.get_gateway_url(self.request)
+        url, method, params = payment.get_redirect_params()
         payment.change_status('in_progress')
-        redirecting_to_payment_gateway_signal.send(
-            sender=None, request=self.request,
-            order=form.cleaned_data['order'], payment=payment,
-            backend=form.cleaned_data['backend'])
-
-        if gateway_url_tuple[1].upper() == 'GET':
-            return http.HttpResponseRedirect(gateway_url_tuple[0])
-        elif gateway_url_tuple[1].upper() == 'POST':
-            context = self.get_context_data()
-            context['gateway_url'] = processor.get_gateway_url(self.request)[0]
-            context['form'] = processor.get_form(gateway_url_tuple[2])
+        if method.upper() == 'GET':
+            if params:
+                url = "{url}?{params}".format(url=url, params=urlencode(params))
+            return http.HttpResponseRedirect(url)
+        elif method.upper() == 'POST':
+            context = self.get_context_data(
+                form=payment.get_form(params),
+                gateway_url=url
+            )
 
             return TemplateResponse(
                 request=self.request,
                 template=self.get_template_names(),
                 context=context)
         else:
-            raise ImproperlyConfigured()
+            raise exceptions.ImproperlyConfigured
 
     def form_invalid(self, form):
-        raise PermissionDenied
+        raise exceptions.PermissionDenied
 
 
 class FallbackView(RedirectView):
+    """
+    FallbackView (in form of either SuccessView or FailureView) handles the
+    return from payment broker.
+    """
     success = None
     permanent = False
 
-    def get_redirect_url(self, **kwargs):
-        from getpaid.models import Payment
-        self.payment = get_object_or_404(Payment, pk=self.kwargs['pk'])
+    def get_redirect_url(self, *args, **kwargs):
+        Payment = swapper.load_model('getpaid', 'Payment')
 
+        getpaid_settings = getattr(settings, 'GETPAID', {})
+        payment = get_object_or_404(Payment, pk=self.kwargs['pk'])
         if self.success:
-            url_name = getattr(settings, 'GETPAID_SUCCESS_URL_NAME', None)
+            url = getattr(getpaid_settings, 'SUCCESS_URL', None)
         else:
-            url_name = getattr(settings, 'GETPAID_FAILURE_URL_NAME', None)
+            url = getattr(getpaid_settings, 'FAILURE_URL', None)
 
-        if url_name is not None:
-            return reverse(url_name, kwargs={'pk': self.payment.order_id})
-        return self.payment.order.get_absolute_url()
+        if url is not None:
+            return resolve_url(url, pk=payment.order.pk)  # we may want to return to the Order summary or smth
+        return resolve_url(payment.order.get_redirect_url(payment, success=self.success))
+
+
+class SuccessView(FallbackView):
+    success = True
+
+
+class FailureView(FallbackView):
+    success = False
+
+
+class CallbackView(View):
+    def post(self, request, pk, *args, **kwargs):
+        Payment = swapper.load_model('getpaid', 'Payment')
+        payment = get_object_or_404(Payment, pk=pk)
+        return payment.handle_callback(request, *args, **kwargs)
+
+    def get(self, request, pk, *args, **kwargs):
+        return self.post(request, pk, *args, **kwargs)

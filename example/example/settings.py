@@ -11,8 +11,6 @@ https://docs.djangoproject.com/en/1.9/ref/settings/
 """
 import os
 
-import djcelery
-
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -28,15 +26,11 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 GETPAID_ORDER_MODEL = 'orders.Order'
-
-GETPAID_BACKENDS = [
-    'getpaid.backends.dummy',
-    'getpaid.backends.payu_rest',
-]
+GETPAID_PAYMENT_MODEL = 'getpaid.Payment'
 
 # Application definition
 
-APPS = [
+INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -45,22 +39,12 @@ APPS = [
     'django.contrib.staticfiles',
 
     'getpaid',
+    'getpaid.backends.dummy',
 
     # if your app has other dependencies that need to be added to the site
     # they should be added here
     'orders',
 ]
-
-INSTALLED_APPS = APPS + GETPAID_BACKENDS
-
-GETPAID_BACKENDS_SETTINGS = {
-    'getpaid.backends.payu_rest': {
-        'client_id': '334774',
-        'pos_id': '334774',
-        'client_secret': 'e1b8b7043a0935da370fe54a5721be91',
-        'key2': 'ac2380bcfe9c7f0b72a97313000a4f4b',
-    }
-}
 
 MIDDLEWARE_CLASSES = [
     'django.middleware.security.SecurityMiddleware',
@@ -107,18 +91,18 @@ DATABASES = {
 # https://docs.djangoproject.com/en/1.9/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    # {
+    #     'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    # },
+    # {
+    #     'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+    # },
+    # {
+    #     'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    # },
+    # {
+    #     'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    # },
 ]
 
 # Internationalization
@@ -138,9 +122,3 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/1.9/howto/static-files/
 
 STATIC_URL = '/static/'
-
-BROKER_BACKEND = 'memory'
-CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
-CELERY_ALWAYS_EAGER = True
-
-djcelery.setup_loader()

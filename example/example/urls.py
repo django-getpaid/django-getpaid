@@ -25,5 +25,5 @@ urlpatterns = [
 
     url(r'^$', HomeView.as_view(), name='home'),
     url(r'^order/(?P<pk>\d+)/$', OrderView.as_view(), name='order_detail'),
-    url(r'', include('getpaid.urls', namespace='getpaid')),
+    url(r'^payments/', include('getpaid.urls')),
 ]
