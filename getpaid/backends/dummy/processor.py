@@ -10,6 +10,7 @@ class PaymentProcessor(BaseProcessor):
     slug = "dummy"
     title = "Dummy"
     accepted_currencies = ['PLN', 'EUR']
+    method = 'POST'
 
     def handle_callback(self, request, *args, **kwargs):
         payload = json.loads(request.data)
@@ -21,7 +22,7 @@ class PaymentProcessor(BaseProcessor):
         return HttpResponse('OK')
 
     def get_redirect_params(self):
-        params = {
+        return {
             'payment': self.payment.pk,
             'value': self.payment.amount,
             'currency': self.payment.currency,
@@ -30,4 +31,6 @@ class PaymentProcessor(BaseProcessor):
             'success_url': reverse('getpaid:payment-success', kwargs=dict(pk=self.payment.pk)),
             'failure_url': reverse('getpaid:payment-failure', kwargs=dict(pk=self.payment.pk)),
         }
-        return reverse('getpaid:dummy:authorize'), 'POST', params
+
+    def get_redirect_url(self):
+        return reverse('getpaid:dummy:gateway')

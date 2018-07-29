@@ -109,6 +109,12 @@ class AbstractPayment(models.Model):
     def get_redirect_params(self):
         return self.get_processor().get_redirect_params()
 
+    def get_redirect_url(self):
+        return self.get_processor().get_redirect_url()
+
+    def get_redirect_method(self):
+        return self.get_processor().get_redirect_method()
+
     def get_form(self, *args, **kwargs):
         return self.get_processor().get_form(*args, **kwargs)
 

@@ -31,7 +31,9 @@ class CreatePaymentView(CreateView):
     def form_valid(self, form):
         payment = form.save()
 
-        url, method, params = payment.get_redirect_params()
+        url = payment.get_redirect_url()
+        method = payment.get_redirect_method()
+        params = payment.get_redirect_params()
         payment.change_status('in_progress')
         if method.upper() == 'GET':
             if params:
@@ -68,8 +70,10 @@ class FallbackView(RedirectView):
         getpaid_settings = getattr(settings, 'GETPAID', {})
         payment = get_object_or_404(Payment, pk=self.kwargs['pk'])
         if self.success:
+            payment.on_success()
             url = getattr(getpaid_settings, 'SUCCESS_URL', None)
         else:
+            payment.on_failure()
             url = getattr(getpaid_settings, 'FAILURE_URL', None)
 
         if url is not None:

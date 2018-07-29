@@ -1,8 +1,12 @@
-class BaseProcessor(object):
+from abc import abstractmethod, ABC
+
+
+class BaseProcessor(ABC):
     display_name = None
     accepted_currencies = None
     logo_url = None
     slug = None  # for friendly urls
+    method = 'GET'
 
     def __init__(self, payment):
         self.payment = payment
@@ -36,3 +40,20 @@ class BaseProcessor(object):
     @classmethod
     def get_logo_url(cls):
         return cls.logo_url
+
+    def get_payment_status(self):
+        """
+        Logic for checking payment status with broker.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_redirect_params(self):
+        return {}
+
+    def get_redirect_method(self):
+        return self.method
+
+    @abstractmethod
+    def get_redirect_url(self):
+        return
