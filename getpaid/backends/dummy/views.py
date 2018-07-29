@@ -14,7 +14,7 @@ class DummyAuthorizationView(FormView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        params = self.request.POST
+        params = self.request.POST or self.request.GET  # both cases for testability
         context['payment'] = params.get('payment')
         context['value'] = params.get('value')
         context['currency'] = params.get('currency')
@@ -32,10 +32,11 @@ class DummyAuthorizationView(FormView):
     def form_valid(self, form):
         self.form = form
         url = self.request.build_absolute_uri(form.cleaned_data['callback'])
+        # TODO: call post from delayed subprocess
         if form.cleaned_data['authorize_payment'] == '1':
             self.success = True
-            requests.post(url, json='{"status": "OK"}')
+            requests.post(url, json={"status": "OK"})
         else:
             self.success = False
-            requests.post(url, json='{"status": "FAIL"}')
+            requests.post(url, json={"status": "FAIL"})
         return super().form_valid(form)

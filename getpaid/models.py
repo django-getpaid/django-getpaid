@@ -24,7 +24,14 @@ class AbstractOrder(models.Model):
     class Meta:
         abstract = True
 
-    def get_redirect_url(self, *args, **kwargs):
+    def get_redirect_url(self, *args, success=None, **kwargs):
+        """
+        Method used to determine the final url the client should see after
+        returning from gateway. Client will be redirected to this url after
+        backend handled the original callback (i.e. updated payment status)
+        and only if SUCCESS_URL or FAILURE_URL settings are NOT set.
+        :param success:
+        """
         return self.get_absolute_url()
 
     def get_absolute_url(self):
@@ -32,6 +39,15 @@ class AbstractOrder(models.Model):
 
     def is_ready_for_payment(self):
         return True
+
+    def get_items(self):
+        """
+        There are backends that require some sort of item list to be attached
+        to the payment. But it's up to you if the list is real or contains only
+        one item called "Payment for stuff in {myshop}" ;)
+        :return: List of {name: "", amount: ""} dicts.
+        """
+        raise NotImplementedError
 
 
 class AbstractPayment(models.Model):
@@ -124,11 +140,15 @@ class AbstractPayment(models.Model):
     def get_items(self):
         """
         Some backends require the list of items to be added to Payment.
-        Item format: {name: "", amount: ""}
-        :return:
+        Because both Order and Payment can be customized, let Order handle this.
         """
-        raise NotImplementedError
+        return self.order.get_items()
 
+    def fetch_status(self):
+        """
+        See BaseProcessor.fetch_status
+        """
+        return self.get_processor().fetch_status()
 
 class Payment(AbstractPayment):
     class Meta(AbstractPayment.Meta):

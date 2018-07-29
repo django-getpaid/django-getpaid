@@ -1,8 +1,6 @@
 from django.db import models
 from django.urls import reverse
-from django.utils.encoding import python_2_unicode_compatible
 
-import getpaid
 from getpaid.models import AbstractOrder
 
 ORDER_STATUS_CHOICES = (
@@ -31,5 +29,3 @@ class Order(AbstractOrder):
 
     def clean(self):
         self.currency = self.currency.upper()
-
-

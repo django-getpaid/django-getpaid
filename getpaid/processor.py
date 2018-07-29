@@ -41,7 +41,7 @@ class BaseProcessor(ABC):
     def get_logo_url(cls):
         return cls.logo_url
 
-    def get_payment_status(self):
+    def fetch_status(self):
         """
         Logic for checking payment status with broker.
         """
