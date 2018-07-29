@@ -12,6 +12,7 @@ from .forms import PaymentMethodForm
 
 
 class CreatePaymentView(CreateView):
+    model = swapper.load_model('getpaid', 'Payment')
     form_class = PaymentMethodForm
     template_name = "getpaid/payment_post_form.html"
 
@@ -27,6 +28,10 @@ class CreatePaymentView(CreateView):
         you select payment method
         """
         return http.HttpResponseNotAllowed(['POST'])
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        return kwargs
 
     def form_valid(self, form):
         payment = form.save()

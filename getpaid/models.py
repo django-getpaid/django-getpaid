@@ -1,4 +1,5 @@
 import uuid
+from decimal import Decimal
 from importlib import import_module
 
 import pendulum
@@ -37,7 +38,7 @@ class AbstractOrder(models.Model):
     def get_absolute_url(self):
         raise NotImplementedError
 
-    def is_ready_for_payment(self):
+    def is_ready_for_payment(self) -> bool:
         return True
 
     def get_items(self):
@@ -47,6 +48,25 @@ class AbstractOrder(models.Model):
         one item called "Payment for stuff in {myshop}" ;)
         :return: List of {name: "", amount: ""} dicts.
         """
+        raise NotImplementedError
+
+    def get_total_amount(self) -> Decimal:
+        """
+        This method must return the total value of the Order.
+        :return: Decimal object
+        """
+        raise NotImplementedError
+
+    def get_user_info(self):
+        """
+        This method should return dict with necessary user info.
+        For most backends email should be sufficent.
+        Field names: `email`, `first_name`, `last_name`, `phone`
+        :return:
+        """
+        raise NotImplementedError
+
+    def get_description(self):
         raise NotImplementedError
 
 
@@ -71,7 +91,7 @@ class AbstractPayment(models.Model):
         verbose_name_plural = _('Payments')
 
     def __str__(self):
-        return _("Payment #{self.id}".format(self=self))
+        return "Payment #{self.id}".format(self=self)
 
     def get_processor(self):
         module = import_module(self.backend)
@@ -149,6 +169,7 @@ class AbstractPayment(models.Model):
         See BaseProcessor.fetch_status
         """
         return self.get_processor().fetch_status()
+
 
 class Payment(AbstractPayment):
     class Meta(AbstractPayment.Meta):

@@ -29,3 +29,9 @@ class Order(AbstractOrder):
 
     def clean(self):
         self.currency = self.currency.upper()
+
+    def get_total_amount(self):
+        return self.total
+
+    def get_description(self):
+        return self.name
