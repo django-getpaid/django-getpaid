@@ -13,5 +13,5 @@ def run_getpaid_validators(data):
         module_name, validator_name = path.rsplit('.', 1)
         module = import_module(module_name)
         validator = getattr(module, validator_name)
-        validator(data)
+        data = validator(data)
     return data

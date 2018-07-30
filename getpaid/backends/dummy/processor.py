@@ -8,9 +8,10 @@ from getpaid.processor import BaseProcessor
 
 class PaymentProcessor(BaseProcessor):
     slug = "dummy"
-    title = "Dummy"
+    display_name = "Dummy"
     accepted_currencies = ['PLN', 'EUR']
     method = 'POST'
+    template_name = "getpaid_dummy_backend/payment_post_form.html"
 
     def handle_callback(self, request, *args, **kwargs):
         payload = json.loads(request.data)

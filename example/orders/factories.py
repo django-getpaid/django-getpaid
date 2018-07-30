@@ -19,4 +19,4 @@ class PaymentFactory(factory.DjangoModelFactory):
     order = factory.SubFactory(OrderFactory)
     amount = 200
     currency = "PLN"
-    backend = "getpaid.backends.payu"
+    backend = "getpaid.backends.dummy"

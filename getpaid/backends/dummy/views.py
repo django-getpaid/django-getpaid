@@ -9,7 +9,7 @@ class DummyAuthorizationView(FormView):
     This view simulates the behavior of payment
     """
     form_class = DummyQuestionForm
-    template_name = "getpaid_dummy_backend/dummy_authorization.html"
+    template_name = "getpaid_dummy_backend/fake_gateway_authorization_form.html"
     success = None
 
     def get_context_data(self, **kwargs):

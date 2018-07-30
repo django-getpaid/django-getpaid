@@ -6,7 +6,12 @@ History
 (master branch - current development)
 -------------------------------------
 
+Version 2.0.0 (2018-08-01)
+--------------------------
 
+* BREAKING: Complete redesign of internal API.
+* Payment becomes swappable model - like Django's User model
+* Payment acts as customizable interface to PaymentProcessor
 
 Version 1.8.0 (2018-07-24)
 --------------------------

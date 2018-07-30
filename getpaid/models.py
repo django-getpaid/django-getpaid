@@ -1,6 +1,4 @@
 import uuid
-from decimal import Decimal
-from importlib import import_module
 
 import pendulum
 import swapper
@@ -9,6 +7,7 @@ from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
 from . import signals
+from .registry import registry
 
 PAYMENT_STATUS_CHOICES = (
     ('new', _("new")),
@@ -38,7 +37,7 @@ class AbstractOrder(models.Model):
     def get_absolute_url(self):
         raise NotImplementedError
 
-    def is_ready_for_payment(self) -> bool:
+    def is_ready_for_payment(self):
         return True
 
     def get_items(self):
@@ -46,11 +45,11 @@ class AbstractOrder(models.Model):
         There are backends that require some sort of item list to be attached
         to the payment. But it's up to you if the list is real or contains only
         one item called "Payment for stuff in {myshop}" ;)
-        :return: List of {name: "", amount: ""} dicts.
+        :return: List of {"name": str, "quantity": Decimal, "unit_price": Decimal} dicts.
         """
         raise NotImplementedError
 
-    def get_total_amount(self) -> Decimal:
+    def get_total_amount(self):
         """
         This method must return the total value of the Order.
         :return: Decimal object
@@ -94,8 +93,8 @@ class AbstractPayment(models.Model):
         return "Payment #{self.id}".format(self=self)
 
     def get_processor(self):
-        module = import_module(self.backend)
-        return module.PaymentProcessor(self)
+        processor = registry[self.backend]
+        return processor(self)
 
     def change_status(self, new_status):
         """
@@ -169,6 +168,9 @@ class AbstractPayment(models.Model):
         See BaseProcessor.fetch_status
         """
         return self.get_processor().fetch_status()
+
+    def get_template_names(self, view=None):
+        return self.get_processor().get_template_names(view=view)
 
 
 class Payment(AbstractPayment):

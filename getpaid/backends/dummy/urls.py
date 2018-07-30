@@ -1,8 +1,7 @@
-from django.urls import path
+from django.conf.urls import url
 
 from . import views
 
 urlpatterns = [
-    path('fake_gateway', views.DummyAuthorizationView.as_view(), name='gateway'),
-
+    url(r'^fake_gateway/$', views.DummyAuthorizationView.as_view(), name='gateway'),
 ]

@@ -42,7 +42,7 @@ class Migration(migrations.Migration):
                 'verbose_name_plural': 'Payments',
                 'ordering': ['-created_on'],
                 'abstract': False,
-                'swappable': 'GETPAID_PAYMENT_MODEL',
+                'swappable': swapper.get_model_name('getpaid', 'Payment'),
             },
         ),
     ]

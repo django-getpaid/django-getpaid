@@ -1,5 +1,4 @@
 from django.apps import AppConfig
-from getpaid import signals
 
 
 class Config(AppConfig):

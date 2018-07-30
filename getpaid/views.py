@@ -14,7 +14,7 @@ from .forms import PaymentMethodForm
 class CreatePaymentView(CreateView):
     model = swapper.load_model('getpaid', 'Payment')
     form_class = PaymentMethodForm
-    template_name = "getpaid/payment_post_form.html"
+    # template_name = "getpaid/payment_post_form.html"
 
     def get_form(self, form_class=None):
         if form_class is None:
@@ -52,10 +52,11 @@ class CreatePaymentView(CreateView):
 
             return TemplateResponse(
                 request=self.request,
-                template=self.get_template_names(),
+                # template=self.get_template_names(),
+                template=payment.get_template_names(view=self),
                 context=context)
         else:
-            raise exceptions.ImproperlyConfigured
+            raise exceptions.ImproperlyConfigured('Only GET and POST supported.')
 
     def form_invalid(self, form):
         raise exceptions.PermissionDenied

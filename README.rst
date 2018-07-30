@@ -293,16 +293,6 @@ Disclaimer
 ==========
 
 This project has nothing in common with `getpaid <http://code.google.com/p/getpaid/>`_ plone project.
-It is mostly based on `mamona <https://github.com/emesik/mamona>`_ project.
-This app was written because there was not a single reliable or simple to use payment processor dedicated to django.
-You can refer to other payment modules which does not meet our needs:
-`Satchmo <http://satchmoproject.sadba.org/docs/dev/>`_,
-`python-payflowpro <https://github.com/bkeating/python-payflowpro/>`_,
-`django-authorizenet <https://github.com/zen4ever/django-authorizenet>`_,
-`mamona <https://github.com/emesik/mamona>`_,
-`django-paypal <https://github.com/johnboxall/django-paypal>`_,
-`django-payme <https://github.com/bradleyayers/django-payme/>`_.
-
 
 
 Credits
