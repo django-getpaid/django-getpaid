@@ -4,8 +4,6 @@ language: python
 
 matrix:
   include:
-    - python: 2.7
-      env: TOX_ENV=py27-django-111
     - python: 3.4
       env: TOX_ENV=py34-django-111
     - python: 3.4
@@ -14,10 +12,14 @@ matrix:
       env: TOX_ENV=py35-django-111
     - python: 3.5
       env: TOX_ENV=py35-django-20
+    - python: 3.5
+      env: TOX_ENV=py35-django-21
     - python: 3.6
       env: TOX_ENV=py36-django-111
     - python: 3.6
       env: TOX_ENV=py36-django-20
+    - python: 3.6
+      env: TOX_ENV=py36-django-21
   fast_finish: true
 
 # command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors

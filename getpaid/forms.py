@@ -26,11 +26,11 @@ class PaymentMethodForm(forms.ModelForm):
 
     def __init__(self, *args, currency=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.initial['currency'] = currency
         order = self.initial.get('order')
         if order is not None:
             self.initial['amount'] = order.get_total_amount()
             self.initial['description'] = order.get_description()
-            self.initial['currency'] = currency
         backends = registry.get_choices(currency)
         self.fields['backend'] = forms.ChoiceField(
             choices=backends,

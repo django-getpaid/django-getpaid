@@ -30,6 +30,7 @@ class AbstractOrder(models.Model):
         returning from gateway. Client will be redirected to this url after
         backend handled the original callback (i.e. updated payment status)
         and only if SUCCESS_URL or FAILURE_URL settings are NOT set.
+        By default it returns the result of `get_absolute_url`
         :param success:
         """
         return self.get_absolute_url()
@@ -38,6 +39,9 @@ class AbstractOrder(models.Model):
         raise NotImplementedError
 
     def is_ready_for_payment(self):
+        """Most of the validation is made in PaymentMethodForm using but if you
+        need any extra validation. For example you most probably want to disable
+        making another payment for order that is already paid."""
         return True
 
     def get_items(self):
@@ -59,8 +63,8 @@ class AbstractOrder(models.Model):
     def get_user_info(self):
         """
         This method should return dict with necessary user info.
-        For most backends email should be sufficent.
-        Field names: `email`, `first_name`, `last_name`, `phone`
+        For most backends email should be sufficient.
+        Expected field names: `email`, `first_name`, `last_name`, `phone`
         :return:
         """
         raise NotImplementedError
