@@ -1,13 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-"""
-test_django-getpaid
-------------
-
-Tests for `django-getpaid` models module.
-"""
-
 from django.conf import settings
 from django.test import TestCase
 

@@ -23,8 +23,9 @@ class BaseProcessor(ABC):
         Only used if the payment processor requires POST requests.
         Generates a form only containg hidden input fields.
         """
-        from getpaid.forms import PaymentHiddenInputsPostForm
-        return PaymentHiddenInputsPostForm(items=post_data)
+        from . import forms
+
+        return forms.PaymentHiddenInputsPostForm(items=post_data)
 
     def handle_callback(self, request, *args, **kwargs):
         """

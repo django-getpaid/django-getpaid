@@ -100,6 +100,3 @@ class CallbackView(View):
         Payment = swapper.load_model('getpaid', 'Payment')
         payment = get_object_or_404(Payment, pk=pk)
         return payment.handle_callback(request, *args, **kwargs)
-
-    def get(self, request, pk, *args, **kwargs):
-        return self.post(request, pk, *args, **kwargs)

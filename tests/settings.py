@@ -20,9 +20,6 @@ DATABASES = {
 ROOT_URLCONF = "tests.urls"
 
 INSTALLED_APPS = [
-    "django.contrib.auth",
-    "django.contrib.contenttypes",
-    "django.contrib.sites",
     "getpaid",
     "getpaid.backends.dummy",
     'orders',
