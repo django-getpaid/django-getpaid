@@ -3,25 +3,16 @@ from django.test import TestCase
 
 from getpaid.processor import BaseProcessor
 from getpaid.registry import registry
+from .tools import Plugin
 
 dummy = 'getpaid.backends.dummy'
 
 
-class Plugin(BaseProcessor):
-    display_name = 'Test plugin'
-    accepted_currencies = ['EUR', 'USD']
-    slug = 'test_plugin'
-
-    def get_redirect_url(self):
-        return 'test'
-
-    def get_redirect_params(self):
-        return {}
-
-
 class TestRegistry(TestCase):
 
-    def setUp(self):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
         registry.register(Plugin)
 
     def test_register(self):
@@ -39,6 +30,3 @@ class TestRegistry(TestCase):
 
     def test_url(self):
         assert len(registry.urls) > 0
-
-    def tearDown(self):
-        pass

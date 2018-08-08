@@ -31,7 +31,6 @@ class AbstractOrder(models.Model):
         backend handled the original callback (i.e. updated payment status)
         and only if SUCCESS_URL or FAILURE_URL settings are NOT set.
         By default it returns the result of `get_absolute_url`
-        :param success:
         """
         return self.get_absolute_url()
 
@@ -141,7 +140,7 @@ class AbstractPayment(models.Model):
 
     def on_failure(self):
         """
-        Called when payment was failed
+        Called when payment has failed
         """
         self.change_status('failed')
 
@@ -172,6 +171,17 @@ class AbstractPayment(models.Model):
         See BaseProcessor.fetch_status
         """
         return self.get_processor().fetch_status()
+
+    def fetch_and_update_status(self):
+        remote_status = self.fetch_status()
+        status = remote_status.get('status', None)
+        amount = remote_status.get('amount', None)
+        if (status is not None and 'paid' in status) or amount is not None:
+            self.on_success(amount)
+        elif status == 'failed':
+            self.on_failure()
+        elif status is not None:
+            self.change_status(status)
 
     def get_template_names(self, view=None):
         return self.get_processor().get_template_names(view=view)

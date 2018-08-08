@@ -52,6 +52,10 @@ class BaseProcessor(ABC):
     def fetch_status(self):
         """
         Logic for checking payment status with broker.
+
+        Should return dict with either "amount" or "status" keys.
+        If "status" key is used, it should be one of getpaid.models.PAYMENT_STATUS_CHOICES
+        If both keys are present, "status" takes precednce.
         """
         raise NotImplementedError
 

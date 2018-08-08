@@ -1,7 +1,7 @@
 from django.db import models
 from django.urls import reverse
 
-from getpaid.models import AbstractOrder
+from getpaid.models import AbstractOrder, AbstractPayment
 
 ORDER_STATUS_CHOICES = (
     ('W', 'Waiting for payment'),
@@ -35,3 +35,13 @@ class Order(AbstractOrder):
 
     def get_description(self):
         return self.name
+
+    def get_user_info(self):
+        return {"email": "test@example.com"}
+
+
+class CustomPayment(AbstractPayment):
+    """
+    Needed for test purposes.
+    """
+    custom = models.BooleanField(default=True, editable=False)

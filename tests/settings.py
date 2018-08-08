@@ -30,3 +30,4 @@ SITE_ID = 1
 MIDDLEWARE = ()
 
 GETPAID_ORDER_MODEL = 'orders.Order'
+GETPAID_PAYMENT_MODEL = 'orders.CustomPayment'

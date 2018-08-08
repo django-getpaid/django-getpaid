@@ -26,7 +26,7 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 GETPAID_ORDER_MODEL = 'orders.Order'
-GETPAID_PAYMENT_MODEL = 'getpaid.Payment'
+GETPAID_PAYMENT_MODEL = 'orders.CustomPayment'
 
 # Application definition
 
