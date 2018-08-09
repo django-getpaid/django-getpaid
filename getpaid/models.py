@@ -50,7 +50,11 @@ class AbstractOrder(models.Model):
         one item called "Payment for stuff in {myshop}" ;)
         :return: List of {"name": str, "quantity": Decimal, "unit_price": Decimal} dicts.
         """
-        raise NotImplementedError
+        return [{
+            'name': self.get_description(),
+            'quantity': 1,
+            'unit_price': self.get_total_amount(),
+        }]
 
     def get_total_amount(self):
         """

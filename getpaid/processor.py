@@ -71,12 +71,9 @@ class BaseProcessor(ABC):
         return
 
     def get_template_names(self, view=None):
-        getpaid_config = getattr(settings, 'GETPAID', {})
-        backend_config = getpaid_config.get('BACKENDS', {}).get(self.path, {})
-
-        template_name = backend_config.get('POST_TEMPLATE')
+        template_name = self.get_setting('POST_TEMPLATE')
         if template_name is None:
-            template_name = getpaid_config.get('POST_TEMPLATE')
+            template_name = self.getpaid_config.get('POST_TEMPLATE')
         if template_name is None:
             template_name = self.template_name
         if template_name is None and hasattr(view, 'get_template_names'):
@@ -84,3 +81,11 @@ class BaseProcessor(ABC):
         if template_name is None:
             raise ImproperlyConfigured("Couldn't determine template name!")
         return [template_name]
+
+    def get_setting(self, name, default=None):
+        backend_settings = self.getpaid_config.get('BACKENDS', {}).get(self.path, {})
+        return backend_settings.get(name, default)
+
+    @property
+    def getpaid_config(self):
+        return getattr(settings, 'GETPAID', {})

@@ -6,7 +6,7 @@ from .forms import DummyQuestionForm
 
 class DummyAuthorizationView(FormView):
     """
-    This view simulates the behavior of payment
+    This view simulates the behavior of payment broker
     """
     form_class = DummyQuestionForm
     template_name = "getpaid_dummy_backend/fake_gateway_authorization_form.html"

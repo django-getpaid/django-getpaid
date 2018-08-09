@@ -31,9 +31,6 @@ class TestModels(TestCase):
         assert payment.get_redirect_method() == proc.get_redirect_method()
 
         with self.assertRaises(NotImplementedError):
-            payment.get_items()
-
-        with self.assertRaises(NotImplementedError):
             payment.fetch_status()
 
         assert payment.get_template_names() == ['getpaid_dummy_backend/payment_post_form.html']
