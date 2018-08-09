@@ -35,6 +35,10 @@ class AbstractOrder(models.Model):
         return self.get_absolute_url()
 
     def get_absolute_url(self):
+        """
+        Standard method recommended in Django docs. It should return
+        the URL to see details of particular Order.
+        """
         raise NotImplementedError
 
     def is_ready_for_payment(self):
@@ -68,11 +72,13 @@ class AbstractOrder(models.Model):
         This method should return dict with necessary user info.
         For most backends email should be sufficient.
         Expected field names: `email`, `first_name`, `last_name`, `phone`
-        :return:
         """
         raise NotImplementedError
 
     def get_description(self):
+        """
+        :return: Description of the Order. Should return the value of appropriate field.
+        """
         raise NotImplementedError
 
 
@@ -99,14 +105,29 @@ class AbstractPayment(models.Model):
     def __str__(self):
         return "Payment #{self.id}".format(self=self)
 
+    def get_items(self):
+        """
+        Some backends require the list of items to be added to Payment.
+
+        This method relays the call to Order. It is here simply because
+        you can change the Order's fieldname when customizing Payment model.
+        """
+        return self.order.get_items()
+
     def get_processor(self):
+        """
+        Returns the processor instance for the backend that
+        was chosen for this Payment. By default it takes it from global
+        backend registry. You most probably don't want to mess with this.
+        """
         processor = registry[self.backend]
         return processor(self)
 
     def change_status(self, new_status):
         """
-        Always change payment status via this method. Otherwise the signal
-        will not be emitted.
+        Used for changing the status of the Payment.
+        You should always change payment status via this method.
+        Otherwise the signal will not be emitted.
         """
         if self.status != new_status:
             # do anything only when status is really changed
@@ -124,7 +145,7 @@ class AbstractPayment(models.Model):
         complete payment, but can optionally accept received amount as a parameter
         to handle partial payments.
 
-        Returns boolean value if payment was fully paid
+        Returns boolean value whether payment was fully paid.
         """
         if getattr(settings, 'USE_TZ', False):
             self.paid_on = pendulum.now('UTC')
@@ -144,39 +165,84 @@ class AbstractPayment(models.Model):
 
     def on_failure(self):
         """
-        Called when payment has failed
+        Called when payment has failed. By default changes status to 'failed'
         """
         self.change_status('failed')
 
     def get_redirect_params(self):
+        """
+        Interfaces processor's ``get_redirect_params``.
+
+        Redirect params is a dictionary containing all the data required by
+        backend to process the payment in appropriate format.
+        The data is extracted from Paymentand Order.
+        """
         return self.get_processor().get_redirect_params()
 
     def get_redirect_url(self):
+        """
+        Interfaces processor's ``get_redirect_url``.
+
+        Returns URL where the user will be redirected to complete the payment.
+        """
         return self.get_processor().get_redirect_url()
 
     def get_redirect_method(self):
+        """
+        Interfaces processor's ``get_redirect_method``.
+
+        Returns the method to be used to complete the payment - 'POST' or 'GET'.
+        """
         return self.get_processor().get_redirect_method()
 
     def get_form(self, *args, **kwargs):
+        """
+        Interfaces processor's ``get_form``.
+
+        Returns a Form to be used on intermediate page if the method returned by
+        ``get_redirect_method`` is 'POST'.
+        """
         return self.get_processor().get_form(*args, **kwargs)
 
-    def handle_callback(self, request, *args, **kwargs):
-        return self.get_processor().handle_callback(request, *args, **kwargs)
+    def get_template_names(self, view=None):
+        """
+        Interfaces processor's ``get_template_names``.
 
-    def get_items(self):
+        Used to get templates for intermediate page when ``get_redirect_method``
+        returns 'POST'.
         """
-        Some backends require the list of items to be added to Payment.
-        Because both Order and Payment can be customized, let Order handle this.
+        return self.get_processor().get_template_names(view=view)
+
+    def handle_callback(self, request, *args, **kwargs):
         """
-        return self.order.get_items()
+        Interfaces processor's ``handle_callback``.
+
+        Called when 'PUSH' flow is used for a backend. In this scenario
+        broker's server will send a request to our server with information
+        about the state of Payment. Broker can send several such requests during
+        Payment's lifetime. Backend should analyze this request and return
+        appropriate response that can be understood by broker's service.
+
+        :param request: Request sent by payment broker.
+
+        :return: HttpResponse instance
+        """
+        return self.get_processor().handle_callback(request, *args, **kwargs)
 
     def fetch_status(self):
         """
-        See BaseProcessor.fetch_status
+        Interfaces processor's ``fetch_status``.
+
+        Used during 'PULL' flow. Fetches status from broker's service
+        and translates it to a value from ``PAYMENT_STATUS_CHOICES``.
         """
         return self.get_processor().fetch_status()
 
     def fetch_and_update_status(self):
+        """
+        Used during 'PULL' flow to automatically fetch and update
+        Payment's status.
+        """
         remote_status = self.fetch_status()
         status = remote_status.get('status', None)
         amount = remote_status.get('amount', None)
@@ -186,9 +252,6 @@ class AbstractPayment(models.Model):
             self.on_failure()
         elif status is not None:
             self.change_status(status)
-
-    def get_template_names(self, view=None):
-        return self.get_processor().get_template_names(view=view)
 
 
 class Payment(AbstractPayment):

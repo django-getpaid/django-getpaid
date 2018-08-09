@@ -1,3 +1,4 @@
+============
 Installation
 ============
 
@@ -42,11 +43,15 @@ The model does not need to be named ``Order`` - you may choose any name you want
 The important thing though is for it to inherit ``getpaid``'s ``AbstractOrder``
 and implement some of its methods. An example Order could look like this::
 
+    from django.conf import settings
     from django.db import models
     from getpaid.models import AbstractOrder
 
     class CustomOrder(AbstractOrder):
-        buyer = models.
+        buyer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+        description = models.CharField(max_length=128, default='Order from mystore')
+        total = models.DecimalField()
+        currency = models.CharField(max_length=3, default=settings.DEFAULT_CURRENCY)
 
         def get_user_info(self):
             return {'email': self.buyer.email}
@@ -56,6 +61,9 @@ and implement some of its methods. An example Order could look like this::
 
         def get_description(self):
             return self.description
+
+        def get_currency(self):
+            return self.currency
 
         # either one of those two is required:
         def get_redirect_url(self, *args, success=None, **kwargs):
@@ -97,13 +105,12 @@ Put this inside your ``settings.py``::
 (Optional) Provide custom Payment model
 ---------------------------------------
 
-If you want, you can provide your own Payment model. Read more in `customization`_
+If you want, you can provide your own Payment model. Read more in :doc:`customization`
 
-IMPORTANT NOTE
---------------
+.. note::
 
-Payment model behaves like django.auth.User model - after you use the original,
-migration to a custom version is VERY hard.
+    Payment model behaves like django.auth.User model - after you use the original,
+    migration to a custom version is VERY hard.
 
 Add getpaid to urls
 -------------------
@@ -141,3 +148,4 @@ The last step is to provide config for installed plugins inside your ``settings.
             },
         }
     }
+

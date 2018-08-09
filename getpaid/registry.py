@@ -23,6 +23,9 @@ class PluginRegistry(object):
     def __getitem__(self, item):
         return self._backends[item]
 
+    def __iter__(self):
+        return iter(self._backends)
+
     def register(self, module_or_proc):
         if hasattr(module_or_proc, '__base__') and issubclass(module_or_proc, BaseProcessor):
             self._backends[module_or_proc.slug] = module_or_proc
@@ -42,6 +45,12 @@ class PluginRegistry(object):
             for name, p in self._backends.items()
             if importable('{}.urls'.format(name))
         ]
+
+    def get_all_supported_currency_choices(self):
+        currencies = set()
+        for backend in self._backends:
+            currencies.update(backend.accepted_currencies or [])
+        return [(c.upper(), c.upper()) for c in currencies]
 
 
 registry = PluginRegistry()
