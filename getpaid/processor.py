@@ -15,8 +15,10 @@ class BaseProcessor(ABC):
     def __init__(self, payment):
         self.payment = payment
         self.path = payment.backend
+        self.context = {}  # can be used by Payment's customized methods.
         if self.slug is None:
             self.slug = payment.backend  # no more Mr. Friendly :P
+        self.config = getattr(settings, 'GETPAID_BACKEND_SETTINGS', {}).get(self.path, {})
 
     def get_form(self, post_data):
         """
@@ -83,5 +85,4 @@ class BaseProcessor(ABC):
         return [template_name]
 
     def get_setting(self, name, default=None):
-        backend_settings = getattr(settings, 'GETPAID_BACKEND_SETTINGS', {}).get(self.path)
-        return backend_settings.get(name, default)
+        return self.config.get(name, default)

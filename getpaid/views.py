@@ -14,6 +14,7 @@ from .forms import PaymentMethodForm
 class CreatePaymentView(CreateView):
     model = swapper.load_model('getpaid', 'Payment')
     form_class = PaymentMethodForm
+
     # template_name = "getpaid/payment_post_form.html"
 
     def get_form(self, form_class=None):

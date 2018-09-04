@@ -1,4 +1,5 @@
 import uuid
+from importlib import import_module
 
 import pendulum
 import swapper
@@ -11,8 +12,8 @@ from .registry import registry
 
 PAYMENT_STATUS_CHOICES = (
     ('new', _("new")),
-    ('in_progress', _("in progress")),
     ('accepted_for_proc', _("accepted for processing")),
+    ('in_progress', _("in progress")),
     ('partially_paid', _("partially paid")),
     ('paid', _("paid")),
     ('cancelled', _("cancelled")),
@@ -118,9 +119,15 @@ class AbstractPayment(models.Model):
         """
         Returns the processor instance for the backend that
         was chosen for this Payment. By default it takes it from global
-        backend registry. You most probably don't want to mess with this.
+        backend registry and tries to import it when it's not there.
+        You most probably don't want to mess with this.
         """
-        processor = registry[self.backend]
+        if self.backend in registry:
+            processor = registry[self.backend]
+        else:
+            # last resort if backend has been removed from INSTALLED_APPS
+            module = import_module(self.backend)
+            processor = getattr(module, 'PaymentProcessor')
         return processor(self)
 
     def change_status(self, new_status):

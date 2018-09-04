@@ -136,16 +136,13 @@ Provide config for plugins
 
 The last step is to provide config for installed plugins inside your ``settings.py``::
 
-    GETPAID = {
-        'BACKENDS': {
-            'getpaid_payu': {   # dotted import path of the plugin
-                # refer to backend docs for its real settings
-                'pos_id': 123456789,
-                'key2': abcdef123456789,
+    GETPAID_BACKEND_SETTINGS = {
+        'getpaid_payu': {   # dotted import path of the plugin
+            # refer to backend docs for its real settings
+            'pos_id': 123456789,
+            'key2': abcdef123456789,
+        },
+        'getpaid.backends.dummy': {
+            'confirmation_method': 'push',
             },
-            'getpaid.backends.dummy': {
-                'confirmation_method': 'push',
-            },
-        }
     }
-
