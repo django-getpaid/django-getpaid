@@ -51,7 +51,7 @@ class PaymentProcessor(PaymentProcessorBase):
         allowed_ip = cls.get_backend_setting('allowed_ip', cls._ALLOWED_IP)
 
         if len(allowed_ip) != 0 and ip not in allowed_ip:
-            logger.warning('Got message from not allowed IP %s' % str(allowed_ip))
+            logger.warning('Got message from not allowed IP %s' % str(ip))
             return 'IP ERR'
 
         PIN = cls.get_backend_setting('PIN', '')
