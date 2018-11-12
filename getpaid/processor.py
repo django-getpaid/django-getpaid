@@ -23,7 +23,7 @@ class BaseProcessor(ABC):
     def get_form(self, post_data):
         """
         Only used if the payment processor requires POST requests.
-        Generates a form only containg hidden input fields.
+        Generates a form only containing hidden input fields.
         """
         from . import forms
 
@@ -57,7 +57,7 @@ class BaseProcessor(ABC):
 
         Should return dict with either "amount" or "status" keys.
         If "status" key is used, it should be one of getpaid.models.PAYMENT_STATUS_CHOICES
-        If both keys are present, "status" takes precednce.
+        If both keys are present, "status" takes precedence.
         """
         raise NotImplementedError
 
@@ -75,7 +75,7 @@ class BaseProcessor(ABC):
     def get_template_names(self, view=None):
         template_name = self.get_setting('POST_TEMPLATE')
         if template_name is None:
-            template_name = getattr(settings, 'GETPAID_POST_TEMPLATE')
+            template_name = getattr(settings, 'GETPAID_POST_TEMPLATE', None)
         if template_name is None:
             template_name = self.template_name
         if template_name is None and hasattr(view, 'get_template_names'):

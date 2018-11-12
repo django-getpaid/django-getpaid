@@ -12,12 +12,20 @@ from .registry import registry
 
 PAYMENT_STATUS_CHOICES = (
     ('new', _("new")),
-    ('accepted_for_proc', _("accepted for processing")),
     ('in_progress', _("in progress")),
+    ('accepted_for_proc', _("accepted for processing")),
     ('partially_paid', _("partially paid")),
     ('paid', _("paid")),
     ('cancelled', _("cancelled")),
     ('failed', _("failed")),
+    ('refunded', _('refunded')),
+)
+
+FRAUD_STATUS_CHOICES = (
+    ('unknown', _('unknown')),
+    ('accepted', _('accepted')),
+    ('rejected', _('rejected')),
+    ('check', _('check')),
 )
 
 
@@ -94,8 +102,14 @@ class AbstractPayment(models.Model):
     created_on = models.DateTimeField(_("created on"), auto_now_add=True, db_index=True)
     paid_on = models.DateTimeField(_("paid on"), blank=True, null=True, default=None, db_index=True)
     amount_paid = models.DecimalField(_("amount paid"), decimal_places=4, max_digits=20, default=0)
-    external_id = models.CharField(_("external id"), max_length=64, blank=True, null=True)
-    description = models.CharField(_("description"), max_length=128, blank=True, null=True)
+    refunded_on = models.DateTimeField(_("refunded on"), blank=True, null=True, default=None, db_index=True)
+    amount_refunded = models.DecimalField(_("amount refunded"), decimal_places=4, max_digits=20, default=0)
+    external_id = models.CharField(_("external id"), max_length=64, blank=True, db_index=True, default='')
+    description = models.CharField(_("description"), max_length=128, blank=True, default='')
+    fraud_status = models.CharField(_("fraud status"), max_length=20, choices=FRAUD_STATUS_CHOICES, default='unknown',
+                                    db_index=True)
+    fraud_message = models.TextField(_("fraud message"), blank=True)
+    _processor = None
 
     class Meta:
         abstract = True
@@ -105,6 +119,12 @@ class AbstractPayment(models.Model):
 
     def __str__(self):
         return "Payment #{self.id}".format(self=self)
+
+    @property
+    def processor(self):
+        if self._processor is None:
+            self._processor = self.get_processor()
+        return self._processor
 
     def get_items(self):
         """
@@ -146,6 +166,23 @@ class AbstractPayment(models.Model):
                 old_status=old_status, new_status=new_status
             )
 
+    def change_fraud_status(self, new_status, message=''):
+        """
+        Used for changing fraud status of the Payment.
+        You should always change payment fraud status via this method.
+        Otherwise the signal will not be emitted.
+        """
+        if self.fraud_status != new_status:
+            # do anything only when status is really changed
+            old_status = self.fraud_status
+            self.fraud_status = new_status
+            self.fraud_message = message
+            self.save()
+            signals.payment_fraud_changed.send(
+                sender=self.__class__, instance=self,
+                old_status=old_status, new_status=new_status, message=message
+            )
+
     def on_success(self, amount=None):
         """
         Called when payment receives successful balance income. It defaults to
@@ -155,19 +192,23 @@ class AbstractPayment(models.Model):
         Returns boolean value whether payment was fully paid.
         """
         if getattr(settings, 'USE_TZ', False):
-            self.paid_on = pendulum.now('UTC')
-        else:
             timezone = getattr(settings, 'TIME_ZONE', 'local')
             self.paid_on = pendulum.now(timezone)
+        else:
+            self.paid_on = pendulum.now('UTC')
+
         if amount:
             self.amount_paid = amount
         else:
             self.amount_paid = self.amount
+
         fully_paid = (self.amount_paid >= self.amount)
+
         if fully_paid:
             self.change_status('paid')
         else:
             self.change_status('partially_paid')
+
         return fully_paid
 
     def on_failure(self):
@@ -184,7 +225,7 @@ class AbstractPayment(models.Model):
         backend to process the payment in appropriate format.
         The data is extracted from Paymentand Order.
         """
-        return self.get_processor().get_redirect_params()
+        return self.processor.get_redirect_params()
 
     def get_redirect_url(self):
         """
@@ -192,7 +233,7 @@ class AbstractPayment(models.Model):
 
         Returns URL where the user will be redirected to complete the payment.
         """
-        return self.get_processor().get_redirect_url()
+        return self.processor.get_redirect_url()
 
     def get_redirect_method(self):
         """
@@ -200,7 +241,7 @@ class AbstractPayment(models.Model):
 
         Returns the method to be used to complete the payment - 'POST' or 'GET'.
         """
-        return self.get_processor().get_redirect_method()
+        return self.processor.get_redirect_method()
 
     def get_form(self, *args, **kwargs):
         """
@@ -209,7 +250,7 @@ class AbstractPayment(models.Model):
         Returns a Form to be used on intermediate page if the method returned by
         ``get_redirect_method`` is 'POST'.
         """
-        return self.get_processor().get_form(*args, **kwargs)
+        return self.processor.get_form(*args, **kwargs)
 
     def get_template_names(self, view=None):
         """
@@ -218,7 +259,7 @@ class AbstractPayment(models.Model):
         Used to get templates for intermediate page when ``get_redirect_method``
         returns 'POST'.
         """
-        return self.get_processor().get_template_names(view=view)
+        return self.processor.get_template_names(view=view)
 
     def handle_callback(self, request, *args, **kwargs):
         """
@@ -234,7 +275,7 @@ class AbstractPayment(models.Model):
 
         :return: HttpResponse instance
         """
-        return self.get_processor().handle_callback(request, *args, **kwargs)
+        return self.processor.handle_callback(request, *args, **kwargs)
 
     def fetch_status(self):
         """
@@ -243,7 +284,7 @@ class AbstractPayment(models.Model):
         Used during 'PULL' flow. Fetches status from broker's service
         and translates it to a value from ``PAYMENT_STATUS_CHOICES``.
         """
-        return self.get_processor().fetch_status()
+        return self.processor.fetch_status()
 
     def fetch_and_update_status(self):
         """
