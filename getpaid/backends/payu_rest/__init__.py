@@ -144,7 +144,7 @@ class PaymentProcessor(PaymentProcessorBase):
             url = "{gateway_url}pl/standard/user/oauth/authorize?" \
                   "grant_type={grant_type}&" \
                   "client_id={client_id}&" \
-                  "client_secret={client_secret}".format(gateway_url=self._GATEWAY_URL,
+                  "client_secret={client_secret}".format(gateway_url=self.get_backend_setting('gateway_url', self._GATEWAY_URL),
                                                          grant_type=grant_type, client_id=client_id,
                                                          client_secret=client_secret)
         elif grant_type == 'trusted_merchant':
@@ -235,7 +235,7 @@ class PaymentProcessor(PaymentProcessorBase):
             # payMethods=None,
         )
 
-        order_url = "{gateway_url}api/v2_1/orders".format(gateway_url=self._GATEWAY_URL)
+        order_url = "{gateway_url}api/v2_1/orders".format(gateway_url=self.get_backend_setting('gateway_url', self._GATEWAY_URL))
 
         order_register = requests.post(order_url, json=params, headers=headers, allow_redirects=False)
         order_register_data = order_register.json()
