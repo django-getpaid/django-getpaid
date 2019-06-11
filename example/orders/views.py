@@ -10,12 +10,12 @@ from .models import Order
 
 class HomeView(CreateView):
     model = Order
-    template_name = 'home.html'
+    template_name = "home.html"
     form_class = OrderForm
 
     def get_context_data(self, **kwargs):
         context = super(HomeView, self).get_context_data(**kwargs)
-        context['orders'] = Order.objects.all()
+        context["orders"] = Order.objects.all()
         return context
 
 
@@ -24,9 +24,8 @@ class OrderView(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super(OrderView, self).get_context_data(**kwargs)
-        context['payment_form'] = PaymentMethodForm(
-            currency=self.object.currency,
-            initial={'order': self.object}
+        context["payment_form"] = PaymentMethodForm(
+            currency=self.object.currency, initial={"order": self.object}
         )
         return context
 

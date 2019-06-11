@@ -9,7 +9,7 @@ class BaseProcessor(ABC):
     accepted_currencies = None
     logo_url = None
     slug = None  # for friendly urls
-    method = 'GET'
+    method = "GET"
     template_name = None
 
     def __init__(self, payment):
@@ -18,7 +18,9 @@ class BaseProcessor(ABC):
         self.context = {}  # can be used by Payment's customized methods.
         if self.slug is None:
             self.slug = payment.backend  # no more Mr. Friendly :P
-        self.config = getattr(settings, 'GETPAID_BACKEND_SETTINGS', {}).get(self.path, {})
+        self.config = getattr(settings, "GETPAID_BACKEND_SETTINGS", {}).get(
+            self.path, {}
+        )
 
     def get_form(self, post_data):
         """
@@ -73,12 +75,12 @@ class BaseProcessor(ABC):
         return
 
     def get_template_names(self, view=None):
-        template_name = self.get_setting('POST_TEMPLATE')
+        template_name = self.get_setting("POST_TEMPLATE")
         if template_name is None:
-            template_name = getattr(settings, 'GETPAID_POST_TEMPLATE', None)
+            template_name = getattr(settings, "GETPAID_POST_TEMPLATE", None)
         if template_name is None:
             template_name = self.template_name
-        if template_name is None and hasattr(view, 'get_template_names'):
+        if template_name is None and hasattr(view, "get_template_names"):
             return view.get_template_names()
         if template_name is None:
             raise ImproperlyConfigured("Couldn't determine template name!")

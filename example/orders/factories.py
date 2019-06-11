@@ -4,7 +4,6 @@ from .models import Order, Payment
 
 
 class OrderFactory(factory.DjangoModelFactory):
-
     class Meta:
         model = Order
 
@@ -12,7 +11,6 @@ class OrderFactory(factory.DjangoModelFactory):
 
 
 class PaymentFactory(factory.DjangoModelFactory):
-
     class Meta:
         model = Payment
 

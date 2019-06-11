@@ -7,9 +7,9 @@ from .models import Order
 class OrderForm(ModelForm):
     class Meta:
         model = Order
-        exclude = ('status', )
+        exclude = ("status",)
 
     def clean_total(self):
-        if self.cleaned_data['total'] <= Decimal('0'):
-            raise ValidationError('Provide some reasonable item price')
-        return self.cleaned_data['total']
+        if self.cleaned_data["total"] <= Decimal("0"):
+            raise ValidationError("Provide some reasonable item price")
+        return self.cleaned_data["total"]

@@ -7,26 +7,9 @@ from django.conf import settings
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
+from . import PaymentStatus, FraudStatus
 from . import signals
 from .registry import registry
-
-PAYMENT_STATUS_CHOICES = (
-    ('new', _("new")),
-    ('in_progress', _("in progress")),
-    ('accepted_for_proc', _("accepted for processing")),
-    ('partially_paid', _("partially paid")),
-    ('paid', _("paid")),
-    ('cancelled', _("cancelled")),
-    ('failed', _("failed")),
-    ('refunded', _('refunded')),
-)
-
-FRAUD_STATUS_CHOICES = (
-    ('unknown', _('unknown')),
-    ('accepted', _('accepted')),
-    ('rejected', _('rejected')),
-    ('check', _('check')),
-)
 
 
 class AbstractOrder(models.Model):
@@ -63,11 +46,13 @@ class AbstractOrder(models.Model):
         one item called "Payment for stuff in {myshop}" ;)
         :return: List of {"name": str, "quantity": Decimal, "unit_price": Decimal} dicts.
         """
-        return [{
-            'name': self.get_description(),
-            'quantity': 1,
-            'unit_price': self.get_total_amount(),
-        }]
+        return [
+            {
+                "name": self.get_description(),
+                "quantity": 1,
+                "unit_price": self.get_total_amount(),
+            }
+        ]
 
     def get_total_amount(self):
         """
@@ -93,29 +78,56 @@ class AbstractOrder(models.Model):
 
 class AbstractPayment(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    order = models.ForeignKey(swapper.get_model_name('getpaid', 'Order'), verbose_name=_("order"),
-                              on_delete=models.CASCADE, related_name='payments')
+    order = models.ForeignKey(
+        swapper.get_model_name("getpaid", "Order"),
+        verbose_name=_("order"),
+        on_delete=models.CASCADE,
+        related_name="payments",
+    )
     amount = models.DecimalField(_("amount"), decimal_places=4, max_digits=20)
     currency = models.CharField(_("currency"), max_length=3)
-    status = models.CharField(_("status"), max_length=20, choices=PAYMENT_STATUS_CHOICES, default='new', db_index=True)
+    status = models.CharField(
+        _("status"),
+        max_length=20,
+        choices=PaymentStatus.CHOICES,
+        default=PaymentStatus.NEW,
+        db_index=True,
+    )
     backend = models.CharField(_("backend"), max_length=50)
     created_on = models.DateTimeField(_("created on"), auto_now_add=True, db_index=True)
-    paid_on = models.DateTimeField(_("paid on"), blank=True, null=True, default=None, db_index=True)
-    amount_paid = models.DecimalField(_("amount paid"), decimal_places=4, max_digits=20, default=0)
-    refunded_on = models.DateTimeField(_("refunded on"), blank=True, null=True, default=None, db_index=True)
-    amount_refunded = models.DecimalField(_("amount refunded"), decimal_places=4, max_digits=20, default=0)
-    external_id = models.CharField(_("external id"), max_length=64, blank=True, db_index=True, default='')
-    description = models.CharField(_("description"), max_length=128, blank=True, default='')
-    fraud_status = models.CharField(_("fraud status"), max_length=20, choices=FRAUD_STATUS_CHOICES, default='unknown',
-                                    db_index=True)
+    paid_on = models.DateTimeField(
+        _("paid on"), blank=True, null=True, default=None, db_index=True
+    )
+    amount_paid = models.DecimalField(
+        _("amount paid"), decimal_places=4, max_digits=20, default=0
+    )
+    refunded_on = models.DateTimeField(
+        _("refunded on"), blank=True, null=True, default=None, db_index=True
+    )
+    amount_refunded = models.DecimalField(
+        _("amount refunded"), decimal_places=4, max_digits=20, default=0
+    )
+    external_id = models.CharField(
+        _("external id"), max_length=64, blank=True, db_index=True, default=""
+    )
+    description = models.CharField(
+        _("description"), max_length=128, blank=True, default=""
+    )
+    fraud_status = models.CharField(
+        _("fraud status"),
+        max_length=20,
+        choices=FraudStatus.CHOICES,
+        default=FraudStatus.UNKNOWN,
+        db_index=True,
+    )
     fraud_message = models.TextField(_("fraud message"), blank=True)
     _processor = None
 
     class Meta:
         abstract = True
-        ordering = ['-created_on']
-        verbose_name = _('Payment')
-        verbose_name_plural = _('Payments')
+        ordering = ["-created_on"]
+        verbose_name = _("Payment")
+        verbose_name_plural = _("Payments")
 
     def __str__(self):
         return "Payment #{self.id}".format(self=self)
@@ -147,7 +159,7 @@ class AbstractPayment(models.Model):
         else:
             # last resort if backend has been removed from INSTALLED_APPS
             module = import_module(self.backend)
-            processor = getattr(module, 'PaymentProcessor')
+            processor = getattr(module, "PaymentProcessor")
         return processor(self)
 
     def change_status(self, new_status):
@@ -162,11 +174,13 @@ class AbstractPayment(models.Model):
             self.status = new_status
             self.save()
             signals.payment_status_changed.send(
-                sender=self.__class__, instance=self,
-                old_status=old_status, new_status=new_status
+                sender=self.__class__,
+                instance=self,
+                old_status=old_status,
+                new_status=new_status,
             )
 
-    def change_fraud_status(self, new_status, message=''):
+    def change_fraud_status(self, new_status, message=""):
         """
         Used for changing fraud status of the Payment.
         You should always change payment fraud status via this method.
@@ -179,8 +193,11 @@ class AbstractPayment(models.Model):
             self.fraud_message = message
             self.save()
             signals.payment_fraud_changed.send(
-                sender=self.__class__, instance=self,
-                old_status=old_status, new_status=new_status, message=message
+                sender=self.__class__,
+                instance=self,
+                old_status=old_status,
+                new_status=new_status,
+                message=message,
             )
 
     def on_success(self, amount=None):
@@ -191,23 +208,23 @@ class AbstractPayment(models.Model):
 
         Returns boolean value whether payment was fully paid.
         """
-        if getattr(settings, 'USE_TZ', False):
-            timezone = getattr(settings, 'TIME_ZONE', 'local')
+        if getattr(settings, "USE_TZ", False):
+            timezone = getattr(settings, "TIME_ZONE", "local")
             self.paid_on = pendulum.now(timezone)
         else:
-            self.paid_on = pendulum.now('UTC')
+            self.paid_on = pendulum.now("UTC")
 
         if amount:
             self.amount_paid = amount
         else:
             self.amount_paid = self.amount
 
-        fully_paid = (self.amount_paid >= self.amount)
+        fully_paid = self.amount_paid >= self.amount
 
         if fully_paid:
-            self.change_status('paid')
+            self.change_status("paid")
         else:
-            self.change_status('partially_paid')
+            self.change_status("partially_paid")
 
         return fully_paid
 
@@ -215,7 +232,7 @@ class AbstractPayment(models.Model):
         """
         Called when payment has failed. By default changes status to 'failed'
         """
-        self.change_status('failed')
+        self.change_status("failed")
 
     def get_redirect_params(self):
         """
@@ -292,11 +309,11 @@ class AbstractPayment(models.Model):
         Payment's status.
         """
         remote_status = self.fetch_status()
-        status = remote_status.get('status', None)
-        amount = remote_status.get('amount', None)
-        if (status is not None and 'paid' in status) or amount is not None:
+        status = remote_status.get("status", None)
+        amount = remote_status.get("amount", None)
+        if (status is not None and "paid" in status) or amount is not None:
             self.on_success(amount)
-        elif status == 'failed':
+        elif status == "failed":
             self.on_failure()
         elif status is not None:
             self.change_status(status)
@@ -304,4 +321,4 @@ class AbstractPayment(models.Model):
 
 class Payment(AbstractPayment):
     class Meta(AbstractPayment.Meta):
-        swappable = swapper.swappable_setting('getpaid', 'Payment')
+        swappable = swapper.swappable_setting("getpaid", "Payment")

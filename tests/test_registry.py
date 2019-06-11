@@ -5,11 +5,10 @@ from getpaid.processor import BaseProcessor
 from getpaid.registry import registry
 from .tools import Plugin
 
-dummy = 'getpaid.backends.dummy'
+dummy = "getpaid.backends.dummy"
 
 
 class TestRegistry(TestCase):
-
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -24,7 +23,7 @@ class TestRegistry(TestCase):
         assert Plugin.slug in registry
 
     def test_get_choices(self):
-        choices = registry.get_choices('USD')
+        choices = registry.get_choices("USD")
         assert len(choices) == 1
         assert choices[0][0] == Plugin.slug
 

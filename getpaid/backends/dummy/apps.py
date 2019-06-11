@@ -5,13 +5,14 @@ from django.utils.translation import ugettext_lazy as _
 
 
 class GetpaidDummyAppConfig(AppConfig):
-    name = 'getpaid.backends.dummy'
-    label = 'getpaid_dummy'
-    verbose_name = _('Dummy payment')
+    name = "getpaid.backends.dummy"
+    label = "getpaid_dummy"
+    verbose_name = _("Dummy payment")
 
     def ready(self):
         if not settings.DEBUG:
-            raise ImproperlyConfigured('Do not use dummy plugin on production!')
+            raise ImproperlyConfigured("Do not use dummy plugin on production!")
 
         from getpaid.registry import registry
+
         registry.register(self.module)

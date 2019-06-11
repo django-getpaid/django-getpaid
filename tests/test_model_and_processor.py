@@ -5,10 +5,10 @@ from django.test import TestCase
 from getpaid.registry import registry
 from .tools import Plugin
 
-dummy = 'getpaid.backends.dummy'
+dummy = "getpaid.backends.dummy"
 
-Order = swapper.load_model('getpaid', 'Order')
-Payment = swapper.load_model('getpaid', 'Payment')
+Order = swapper.load_model("getpaid", "Order")
+Payment = swapper.load_model("getpaid", "Payment")
 
 
 class TestModels(TestCase):
@@ -20,8 +20,11 @@ class TestModels(TestCase):
     def test_model_and_dummy_backend(self):
         order = Order.objects.create()
         payment = Payment.objects.create(
-            order=order, currency=order.currency, amount=order.get_total_amount(),
-            backend=dummy, description=order.get_description()
+            order=order,
+            currency=order.currency,
+            amount=order.get_total_amount(),
+            backend=dummy,
+            description=order.get_description(),
         )
         proc = payment.get_processor()
         assert isinstance(proc, registry[dummy])
@@ -33,13 +36,18 @@ class TestModels(TestCase):
         with self.assertRaises(NotImplementedError):
             payment.fetch_status()
 
-        assert payment.get_template_names() == ['getpaid_dummy_backend/payment_post_form.html']
+        assert payment.get_template_names() == [
+            "getpaid_dummy_backend/payment_post_form.html"
+        ]
 
     def test_model_and_test_backend(self):
         order = Order.objects.create()
         payment = Payment.objects.create(
-            order=order, currency=order.currency, amount=order.get_total_amount(),
-            backend=Plugin.slug, description=order.get_description()
+            order=order,
+            currency=order.currency,
+            amount=order.get_total_amount(),
+            backend=Plugin.slug,
+            description=order.get_description(),
         )
         proc = payment.get_processor()
         assert isinstance(proc, registry[Plugin.slug])

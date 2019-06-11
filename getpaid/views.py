@@ -12,7 +12,7 @@ from .forms import PaymentMethodForm
 
 
 class CreatePaymentView(CreateView):
-    model = swapper.load_model('getpaid', 'Payment')
+    model = swapper.load_model("getpaid", "Payment")
     form_class = PaymentMethodForm
 
     # template_name = "getpaid/payment_post_form.html"
@@ -20,7 +20,7 @@ class CreatePaymentView(CreateView):
     def get_form(self, form_class=None):
         if form_class is None:
             form_class = self.get_form_class()
-        currency = self.kwargs['currency']
+        currency = self.kwargs["currency"]
         return form_class(currency=currency, **self.get_form_kwargs())
 
     def get(self, request, *args, **kwargs):
@@ -28,7 +28,7 @@ class CreatePaymentView(CreateView):
         This view operates only on POST requests from order view where
         you select payment method
         """
-        return http.HttpResponseNotAllowed(['POST'])
+        return http.HttpResponseNotAllowed(["POST"])
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -40,24 +40,24 @@ class CreatePaymentView(CreateView):
         url = payment.get_redirect_url()
         method = payment.get_redirect_method()
         params = payment.get_redirect_params()
-        payment.change_status('in_progress')
-        if method.upper() == 'GET':
+        payment.change_status("in_progress")
+        if method.upper() == "GET":
             if params:
                 url = "{url}?{params}".format(url=url, params=urlencode(params))
             return http.HttpResponseRedirect(url)
-        elif method.upper() == 'POST':
+        elif method.upper() == "POST":
             context = self.get_context_data(
-                form=payment.get_form(params),
-                gateway_url=url
+                form=payment.get_form(params), gateway_url=url
             )
 
             return TemplateResponse(
                 request=self.request,
                 # template=self.get_template_names(),
                 template=payment.get_template_names(view=self),
-                context=context)
+                context=context,
+            )
         else:
-            raise exceptions.ImproperlyConfigured('Only GET and POST supported.')
+            raise exceptions.ImproperlyConfigured("Only GET and POST supported.")
 
     def form_invalid(self, form):
         raise exceptions.PermissionDenied
@@ -68,24 +68,29 @@ class FallbackView(RedirectView):
     FallbackView (in form of either SuccessView or FailureView) handles the
     return from payment broker.
     """
+
     success = None
     permanent = False
 
     def get_redirect_url(self, *args, **kwargs):
-        Payment = swapper.load_model('getpaid', 'Payment')
+        Payment = swapper.load_model("getpaid", "Payment")
 
-        getpaid_settings = getattr(settings, 'GETPAID', {})
-        payment = get_object_or_404(Payment, pk=self.kwargs['pk'])
+        getpaid_settings = getattr(settings, "GETPAID", {})
+        payment = get_object_or_404(Payment, pk=self.kwargs["pk"])
         if self.success:
             payment.on_success()
-            url = getattr(getpaid_settings, 'SUCCESS_URL', None)
+            url = getattr(getpaid_settings, "SUCCESS_URL", None)
         else:
             payment.on_failure()
-            url = getattr(getpaid_settings, 'FAILURE_URL', None)
+            url = getattr(getpaid_settings, "FAILURE_URL", None)
 
         if url is not None:
-            return resolve_url(url, pk=payment.order.pk)  # we may want to return to the Order summary or smth
-        return resolve_url(payment.order.get_redirect_url(payment, success=self.success))
+            return resolve_url(
+                url, pk=payment.order.pk
+            )  # we may want to return to the Order summary or smth
+        return resolve_url(
+            payment.order.get_redirect_url(payment, success=self.success)
+        )
 
 
 class SuccessView(FallbackView):
@@ -98,6 +103,6 @@ class FailureView(FallbackView):
 
 class CallbackView(View):
     def post(self, request, pk, *args, **kwargs):
-        Payment = swapper.load_model('getpaid', 'Payment')
+        Payment = swapper.load_model("getpaid", "Payment")
         payment = get_object_or_404(Payment, pk=pk)
         return payment.handle_callback(request, *args, **kwargs)
