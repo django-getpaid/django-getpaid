@@ -1,6 +1,6 @@
 from django.utils.translation import pgettext_lazy
 
-__version__ = "2.0.0"
+__version__ = "2.0.0-rc.1"
 default_app_config = "getpaid.apps.GetpaidConfig"
 
 
