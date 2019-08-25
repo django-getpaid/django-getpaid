@@ -3,6 +3,7 @@ from django.test import TestCase
 
 from getpaid.processor import BaseProcessor
 from getpaid.registry import registry
+
 from .tools import Plugin
 
 dummy = "getpaid.backends.dummy"

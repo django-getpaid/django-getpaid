@@ -14,6 +14,8 @@
 import os
 import sys
 
+import django
+
 sys.path.append(
     os.path.join(os.path.join(os.path.dirname(__file__), os.pardir), os.pardir)
 )
@@ -30,7 +32,6 @@ sys.path.append(
     )
 )
 
-import django
 
 sys.path.insert(0, os.path.abspath("../example"))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "example.settings")
@@ -63,8 +64,8 @@ source_suffix = ".rst"
 master_doc = "index"
 
 # General information about the project.
-project = u"django-getpaid"
-copyright = u"2012-2013, Krzysztof Dorosz"
+project = "django-getpaid"
+copyright = "2012-2013, Krzysztof Dorosz"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -206,8 +207,8 @@ latex_documents = [
     (
         "index",
         "django-getpaid.tex",
-        u"django-getpaid Documentation",
-        u"Sunscrapers",
+        "django-getpaid Documentation",
+        "Sunscrapers",
         "manual",
     )
 ]
@@ -238,7 +239,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ("index", "django-getpaid", u"django-getpaid Documentation", [u"Sunscrapers"], 1)
+    ("index", "django-getpaid", "django-getpaid Documentation", ["Sunscrapers"], 1)
 ]
 
 # If true, show URL addresses after external links.
@@ -254,8 +255,8 @@ texinfo_documents = [
     (
         "index",
         "django-getpaid",
-        u"django-getpaid Documentation",
-        u"Sunscrapers",
+        "django-getpaid Documentation",
+        "Sunscrapers",
         "django-getpaid",
         "One line description of project.",
         "Miscellaneous",

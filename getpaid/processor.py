@@ -1,4 +1,4 @@
-from abc import abstractmethod, ABC
+from abc import ABC, abstractmethod
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured

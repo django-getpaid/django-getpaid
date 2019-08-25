@@ -3,7 +3,9 @@ from django import http
 from django.views import View
 from django.views.generic import CreateView
 from django.views.generic.detail import DetailView
+
 from getpaid.forms import PaymentMethodForm
+
 from .forms import OrderForm
 from .models import Order
 

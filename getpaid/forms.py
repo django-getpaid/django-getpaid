@@ -3,6 +3,7 @@ from django import forms
 from django.utils.translation import gettext_lazy as _
 
 from getpaid.validators import run_getpaid_validators
+
 from .registry import registry
 
 Order = swapper.load_model("getpaid", "Order")

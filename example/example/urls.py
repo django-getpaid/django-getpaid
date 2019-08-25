@@ -1,5 +1,5 @@
 from django.contrib import admin
-from django.urls import re_path, include
+from django.urls import include, re_path
 from orders.views import HomeView, OrderView
 
 app_name = "getpaid_example"

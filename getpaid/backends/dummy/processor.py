@@ -40,7 +40,7 @@ class PaymentProcessor(BaseProcessor):
             failure_url=reverse(
                 "getpaid:payment-failure", kwargs=dict(pk=self.payment.pk)
             ),
-            **extra_args
+            **extra_args,
         )
 
     def get_redirect_url(self):

@@ -3,6 +3,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.test import TestCase
 
 from getpaid.registry import registry
+
 from .tools import Plugin
 
 dummy = "getpaid.backends.dummy"

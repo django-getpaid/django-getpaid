@@ -1,3 +1,3 @@
-from django.conf.urls import url, include
+from django.conf.urls import include, url
 
 urlpatterns = [url(r"^payments/", include("getpaid.urls", namespace="getpaid"))]
