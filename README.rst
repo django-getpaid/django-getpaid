@@ -53,7 +53,7 @@ Add django-getpaid's URL patterns:
         ...
     ]
 
-Use :class:`~getpaid.models.AbstractOrder` as parent class of your Order model and define minimal set of methods:
+Use ``getpaid.models.AbstractOrder`` as parent class of your Order model and define minimal set of methods:
 
 .. code-block:: python
 
