@@ -15,7 +15,7 @@ Development Lead
 Contributors
 ------------
 
-Please see https://github.com/cypreess/django-getpaid/graphs/contributors
+Please see https://github.com/django-getpaid/django-getpaid/graphs/contributors
 
 Sponsors
 --------
