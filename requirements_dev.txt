@@ -2,6 +2,5 @@
 
 bumpversion==0.5.3
 wheel==0.30.0
-django-model-utils>=2.0
-black
-pre-commit
+black==19.3b0
+pre-commit==1.18.1

@@ -53,7 +53,7 @@ setup(
     url="https://github.com/django-getpaid/django-getpaid",
     packages=["getpaid"],
     include_package_data=True,
-    install_requires=["django-model-utils>=2.0"],
+    install_requires=["django-model-utils>=2.0", "pendulum", "swapper", "requests"],
     license="MIT",
     zip_safe=False,
     keywords="django-getpaid",
