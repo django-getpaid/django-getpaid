@@ -34,4 +34,5 @@ exclude = '''
 multi_line_output = 3
 include_trailing_comma = false
 line_length = 88
-known_third_party = ["django", "factory", "orders", "pendulum", "requests", "swapper"]
+known_first_party = ["getpaid", "factory", "orders"]
+known_third_party = ["django", "pendulum", "requests", "swapper"]
