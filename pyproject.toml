@@ -1,6 +1,18 @@
-[build-system]
-requires = [ "setuptools >= 35.0.2", "wheel >= 0.29.0"]
-build-backend = "setuptools.build_meta"
+[tool.poetry]
+name = "django-getpaid"
+version = "2.0.0-rc.3"
+description = "Multi-broker payment processor for Django"
+authors = ["Dominik Kozaczko <dominik@kozaczko.info>", "django-getpaid team"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.5"
+swapper = "^1.1"
+requests = "^2.22"
+pendulum = "^2.0"
+
+[tool.poetry.dev-dependencies]
+pre-commit = "^1.20"
 
 [tool.black]
 line-length = 88
@@ -36,3 +48,7 @@ include_trailing_comma = false
 line_length = 88
 known_first_party = ["getpaid", "factory", "orders"]
 known_third_party = ["django", "pendulum", "requests", "swapper"]
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
