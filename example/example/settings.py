@@ -12,6 +12,7 @@ GETPAID_PAYMENT_MODEL = "orders.CustomPayment"
 INSTALLED_APPS = [
     "django.contrib.auth",
     "django.contrib.sessions",
+    "django.contrib.contenttypes",
     "getpaid",
     "getpaid.backends.dummy",
     "orders",

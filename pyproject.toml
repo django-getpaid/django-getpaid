@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "django-getpaid"
-version = "2.0.0-rc.3"
+version = "2.0.0"
 description = "Multi-broker payment processor for Django"
 authors = ["Dominik Kozaczko <dominik@kozaczko.info>", "django-getpaid team"]
 license = "MIT"
@@ -10,9 +10,11 @@ python = "^3.5"
 swapper = "^1.1"
 requests = "^2.22"
 pendulum = "^2.0"
+django-model-utils = "^3.2"
 
 [tool.poetry.dev-dependencies]
 pre-commit = "^1.20"
+sphinx = "^2.2"
 
 [tool.black]
 line-length = 88
