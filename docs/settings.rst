@@ -51,12 +51,6 @@ A dictionary containing the settings for getpaid's backends. Keys in this dictio
 are the dotted paths to each backend - just as you put them in ``INSTALLED_APPS``.
 
 Each backend defines its own settings there. Please check the backend's documentation.
-There is one exception - each backend can provide ``POST_TEMPLATE`` setting which
-takes precedence over ``GETPAID_POST_TEMPLATE`` described below. This setting is
-used by processor's default ``get_template_names`` method to override backend's
-``template_name`` attribute that points to a template that is used to render that
-backend's POST form. As this method is rarely used, you'll probably never want
-to use it anyway.
 
 
 Optional settings
@@ -67,7 +61,13 @@ Optional settings
 
 Default: None
 
-This setting is used processor's by default ``get_template_names`` method to
-override backend's ``template_name`` attribute that points to a template that is
-used to render that backend's POST form. As this method is rarely used, you'll
-probably never want to use it anyway.
+This setting is used by processor's default ``get_template_names`` method to
+override backend's ``template_name`` attribute. The template is used in backends
+that use the POST form workflow which is quite rare. Refer to backend's
+documentation to know if this is the case.
+
+If you need to set the template on a per-backend basis, use ``POST_TEMPLATE``
+setting for that backend's config in  ``GETPAID_POST_TEMPLATE`` dictionary.
+The setting precedence is as follows: backend's ``POST_TEMPLATE`` setting ->
+global ``GETPAID_POST_TEMPLATE`` setting -> backend's ``get_template_names``
+method -> backend's default ``template_name`` attribute.

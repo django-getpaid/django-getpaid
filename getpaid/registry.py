@@ -37,6 +37,10 @@ class PluginRegistry(object):
             ] = module_or_proc.processor.PaymentProcessor
 
     def get_choices(self, currency):
+        """
+        Returns list od all backends that support given currency,
+        in Django's CHOICES format.
+        """
         currency = currency.upper()
         return [
             (name, p.display_name)
@@ -56,6 +60,10 @@ class PluginRegistry(object):
         ]
 
     def get_all_supported_currency_choices(self):
+        """
+        Returns list of all currencies that are accepted by at least
+        one of backends, in Django's CHOICES format.
+        """
         currencies = set()
         for backend in self._backends:
             currencies.update(backend.accepted_currencies or [])

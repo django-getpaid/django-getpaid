@@ -199,11 +199,11 @@ class AbstractPayment(models.Model):
                 message=message,
             )
 
-    def on_success(self, amount=None):
+    def on_success(self, amount=None) -> bool:
         """
-        Called when payment receives successful balance income. It defaults to
-        complete payment, but can optionally accept received amount as a parameter
-        to handle partial payments.
+        Called when payment receives successful balance income.
+        By default it completes the payment but optionally it can accept
+        received amount as a parameter to handle partial payments.
 
         Returns boolean value whether payment was fully paid.
         """

@@ -28,7 +28,7 @@ class CreatePaymentView(CreateView):
         This view operates only on POST requests from order view where
         you select payment method
         """
-        return http.HttpResponseNotAllowed(["POST"])
+        return http.HttpResponseNotAllowed(permitted_methods=["POST"])
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -52,7 +52,6 @@ class CreatePaymentView(CreateView):
 
             return TemplateResponse(
                 request=self.request,
-                # template=self.get_template_names(),
                 template=payment.get_template_names(view=self),
                 context=context,
             )

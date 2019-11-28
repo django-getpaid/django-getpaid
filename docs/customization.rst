@@ -22,8 +22,9 @@ Basic Payment API
 
 
 :class:`AbstractPayment` defines a minimal set of fields that are expected by
-:class:`~getpaid.processor.BaseProcessor` API. If you want to have it completely your own way, make sure
-to provide properties linking your fieldnames to expected names.
+:class:`~getpaid.processor.BaseProcessor` API. If you want to have it completely
+your own way, make sure to provide properties linking your fieldnames to expected
+names.
 
 .. autoclass:: AbstractPayment
 

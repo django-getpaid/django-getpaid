@@ -35,8 +35,6 @@ class BaseProcessor(ABC):
         """
         This method handles the callback from payment broker for the purpose
         of updating the payment status in our system.
-        :param args:
-        :param kwargs:
         :return: HttpResponse instance
         """
         raise NotImplementedError
@@ -47,10 +45,19 @@ class BaseProcessor(ABC):
 
     @classmethod
     def get_accepted_currencies(cls):
+        """
+        Used to generate list of accepted currencies. By default returns
+        ``accepted_currencies`` attribute.
+        :return: List of accepted currencies, e.g. ["EUR", "USD"]
+        """
         return cls.accepted_currencies
 
     @classmethod
     def get_logo_url(cls):
+        """
+        By default returns ``logo_url`` attribute.
+        :return: String with url to broker's logo.
+        """
         return cls.logo_url
 
     def fetch_status(self):
@@ -75,6 +82,10 @@ class BaseProcessor(ABC):
         return
 
     def get_template_names(self, view=None):
+        """
+        Return a list of template names to be used for the request. Must return
+        a list.
+        """
         template_name = self.get_setting("POST_TEMPLATE")
         if template_name is None:
             template_name = getattr(settings, "GETPAID_POST_TEMPLATE", None)
