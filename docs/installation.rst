@@ -105,7 +105,13 @@ Put this inside your ``settings.py``::
 (Optional) Provide custom Payment model
 ---------------------------------------
 
-If you want, you can provide your own Payment model. Read more in :doc:`customization`
+If you want, you can provide your own Payment model::
+
+    GETPAID_PAYMENT_MODEL = 'yourapp.CustomPayment'
+
+
+
+Read more in :doc:`customization`
 
 .. note::
 

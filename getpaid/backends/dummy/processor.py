@@ -26,7 +26,7 @@ class PaymentProcessor(BaseProcessor):
         extra_args = {}
         if self.get_setting("confirmation_method", "push").lower() == "push":
             extra_args["callback"] = (
-                reverse("getpaid:callback-detail", kwargs=dict(pk=self.payment.pk)),
+                reverse("getpaid:callback-detail", kwargs={"pk": self.payment.pk}),
             )
 
         return dict(

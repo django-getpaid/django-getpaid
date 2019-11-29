@@ -34,7 +34,7 @@ class BaseProcessor(ABC):
     def handle_callback(self, request, *args, **kwargs):
         """
         This method handles the callback from payment broker for the purpose
-        of updating the payment status in our system.
+        of updating the payment status.
         :return: HttpResponse instance
         """
         raise NotImplementedError
@@ -72,6 +72,15 @@ class BaseProcessor(ABC):
 
     @abstractmethod
     def get_redirect_params(self):
+        """
+        Must return a dictionary containing all the data required by
+        backend to process the payment in appropriate format.
+
+        Refer to your broker's API documentation for info what keys the API
+        expects and what types should the values be in.
+
+        The Payment instance is here: self.payment
+        """
         return {}
 
     def get_redirect_method(self):
@@ -79,6 +88,10 @@ class BaseProcessor(ABC):
 
     @abstractmethod
     def get_redirect_url(self):
+        """
+        Returns URL where the user will be redirected to complete the payment.
+        This URL should be provided in your broker's documentation.
+        """
         return
 
     def get_template_names(self, view=None):

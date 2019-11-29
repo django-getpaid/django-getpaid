@@ -38,7 +38,7 @@ Project leader:
 
 Original author:
 
-* Krzysztof Dorosz <cypreess@gmail.com>.
+* Krzysztof Dorosz <https://github.com/cypreess>
 
 Contributors:
 
@@ -53,10 +53,7 @@ You are welcome to contribute to this project via `github <http://github.com>`_ 
 
 We would like to provide a catalog of plugins for `django-getpaid` - if you create a plugin please let us know.
 
+Similar projects
+================
 
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+* `django-payments <https://github.com/mirumee/django-payments>`_

@@ -3,7 +3,7 @@
 History
 =======
 
-Version 2.0.0 (2019-08-26)
+Version 2.0.0 (2019-11-29)
 --------------------------
 
 * BREAKING: Complete redesign of internal API.

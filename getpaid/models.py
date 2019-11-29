@@ -233,17 +233,17 @@ class AbstractPayment(models.Model):
         """
         self.change_status("failed")
 
-    def get_redirect_params(self):
+    def get_redirect_params(self) -> dict:
         """
         Interfaces processor's ``get_redirect_params``.
 
         Redirect params is a dictionary containing all the data required by
         backend to process the payment in appropriate format.
-        The data is extracted from Paymentand Order.
+        The data is extracted from Payment and Order.
         """
         return self.processor.get_redirect_params()
 
-    def get_redirect_url(self):
+    def get_redirect_url(self) -> str:
         """
         Interfaces processor's ``get_redirect_url``.
 
@@ -251,7 +251,7 @@ class AbstractPayment(models.Model):
         """
         return self.processor.get_redirect_url()
 
-    def get_redirect_method(self):
+    def get_redirect_method(self) -> str:
         """
         Interfaces processor's ``get_redirect_method``.
 
