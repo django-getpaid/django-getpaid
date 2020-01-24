@@ -33,7 +33,7 @@ class PayUTransactionStatus:
     ERROR = 888
 
 
-@deprecated(version='1.8', reason="This plugin is outdated.")
+@deprecated(version='1.8', reason="This plugin is outdated. Please use getpaid.backends.payu_rest")
 class PaymentProcessor(PaymentProcessorBase):
     BACKEND = u'getpaid.backends.payu'
     BACKEND_NAME = _(u'PayU')
