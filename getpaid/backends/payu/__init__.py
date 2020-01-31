@@ -8,12 +8,12 @@ from decimal import Decimal
 import hashlib
 import logging
 
-import six
-from six.moves.urllib.request import Request, urlopen
-from six.moves.urllib.parse import urlencode
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.translation import ugettext_lazy as _
 from deprecated import deprecated
+import six
+from six.moves.urllib.request import Request, urlopen
+from six.moves.urllib.parse import urlencode
 
 from getpaid import signals
 from getpaid.backends import PaymentProcessorBase

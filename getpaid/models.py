@@ -3,10 +3,10 @@ from datetime import datetime
 
 from django.apps import apps
 from django.db import models
-import six
 from django.utils.timezone import utc
 from django.utils.translation import ugettext_lazy as _
 from django.utils.encoding import python_2_unicode_compatible
+import six
 from .abstract_mixin import AbstractMixin
 from getpaid import signals
 from .utils import import_backend_modules

@@ -8,9 +8,9 @@ from decimal import Decimal
 
 from django.core.exceptions import ImproperlyConfigured
 from django.urls import reverse
-import six
 from django.utils.timezone import utc
 from django.utils.translation import ugettext_lazy as _
+import six
 from six.moves.urllib.parse import urlencode
 
 from getpaid import signals
