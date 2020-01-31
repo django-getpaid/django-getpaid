@@ -12,7 +12,7 @@ import requests
 import simplejson as json
 from django.core.exceptions import ImproperlyConfigured
 from django.urls import reverse
-from django.utils import six
+import six
 from django.utils.translation import ugettext_lazy as _
 from six.moves.urllib.parse import urlencode
 

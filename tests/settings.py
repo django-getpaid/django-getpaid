@@ -1,6 +1,7 @@
 # noinspection PyUnresolvedReferences
 import os
 
+import django
 import djcelery
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
@@ -93,6 +94,15 @@ MIDDLEWARE_CLASSES = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+# middleware list for newer djangos
+MIDDLEWARE = MIDDLEWARE_CLASSES
+
+# session auth middleware is not needed since django 1.10
+# see https://docs.djangoproject.com/en/3.0/releases/2.0/#miscellaneous
+if django.VERSION >= (1, 10):
+    MIDDLEWARE.remove('django.contrib.auth.middleware.SessionAuthenticationMiddleware')
+
 
 ROOT_URLCONF = 'example.urls'
 

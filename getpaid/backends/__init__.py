@@ -2,7 +2,7 @@ from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.template.base import Template
 from django.template.context import Context
-from django.utils import six
+import six
 from getpaid.utils import get_backend_settings
 
 

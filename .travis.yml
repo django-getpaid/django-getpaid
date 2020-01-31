@@ -18,6 +18,8 @@ matrix:
       env: TOX_ENV=py36-django-111
     - python: 3.6
       env: TOX_ENV=py36-django-20
+    - python: 3.6
+      env: TOX_ENV=py36-django-22
   fast_finish: true
 
 # command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
