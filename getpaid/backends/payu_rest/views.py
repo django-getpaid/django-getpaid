@@ -1,5 +1,8 @@
 from django.views import View
+from django.views.decorators.csrf import csrf_exempt
 from django import http
+from django.utils.decorators import method_decorator
+
 from getpaid import utils
 
 from . import PaymentProcessor
@@ -9,6 +12,7 @@ def get_request_body(request):  # for easier mocking
     return request.body
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class ConfirmationWebhook(View):
     """
     This view receives payment status updates from PayU.
