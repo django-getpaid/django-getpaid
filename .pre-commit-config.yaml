@@ -1,12 +1,12 @@
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v2.3.0
+    rev: v2.5.0
     hooks:
     - id: check-merge-conflict
     - id: debug-statements
 
 -   repo: https://github.com/asottile/seed-isort-config
-    rev: v1.9.2
+    rev: v2.1.0
     hooks:
     -   id: seed-isort-config
 
@@ -16,8 +16,8 @@ repos:
     -   id: isort
         additional_dependencies: [toml]
 
--   repo: https://github.com/ambv/black
-    rev: 19.3b0
+-   repo: https://github.com/psf/black
+    rev: 19.10b0
     hooks:
     - id: black
       language_version: python3.7

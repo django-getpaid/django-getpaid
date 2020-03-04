@@ -55,3 +55,7 @@ db.sqlite3
 
 # pyenv
 .python-version
+
+# poetry
+/poetry.lock
+
