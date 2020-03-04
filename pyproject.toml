@@ -32,8 +32,8 @@ pytest-django = {version = "^3.8.0", optional = true}
 sphinx = {version = "^2.4.3", optional = true}
 
 [tool.poetry.extras]
-test = ["pytest", "codecov", "coverage", "request-mock", "pytest-cov", "pytest-django"]
 docs = ["sphinx"]
+test = ["pytest", "codecov", "coverage", "request-mock", "pytest-cov", "pytest-django"]
 
 [tool.black]
 line-length = 88

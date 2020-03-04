@@ -115,15 +115,7 @@ If you want, you can provide your own Payment model. Read more in :doc:`customiz
 Add getpaid to urls
 -------------------
 
-For Django 1.11::
-
-    urlpatterns = [
-        # ...
-        url(r'^payments/', include('getpaid.urls')),
-    ]
-
-
-For Django 2.x::
+.. code-block::
 
     urlpatterns = [
         # ...
