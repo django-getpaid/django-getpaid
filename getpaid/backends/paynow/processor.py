@@ -30,18 +30,18 @@ class PaymentProcessor(BaseProcessor):
             )
 
         return dict(
-            payment=self.payment.pk,
-            value=self.payment.amount,
+            amount=int(self.payment.amount * 10),  # w groszach!
             currency=self.payment.currency,
+            externalId=self.payment.pk,
             description=self.payment.description,
-            success_url=reverse(
+            continueUrl=reverse(
                 "getpaid:payment-success", kwargs=dict(pk=self.payment.pk)
             ),
-            failure_url=reverse(
-                "getpaid:payment-failure", kwargs=dict(pk=self.payment.pk)
+            buyer=dict(
+                email="", firstName="", lastName="", phone=dict(prefix="", number="",),
             ),
             **extra_args,
         )
 
     def get_redirect_url(self):
-        return reverse("getpaid:dummy:gateway")  # fake gateway
+        return "www"  # adres paynow

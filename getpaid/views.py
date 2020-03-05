@@ -1,3 +1,4 @@
+import requests
 import swapper
 from django import http
 from django.conf import settings
@@ -14,8 +15,6 @@ from .forms import PaymentMethodForm
 class CreatePaymentView(CreateView):
     model = swapper.load_model("getpaid", "Payment")
     form_class = PaymentMethodForm
-
-    # template_name = "getpaid/payment_post_form.html"
 
     def get_form(self, form_class=None):
         if form_class is None:
@@ -37,7 +36,7 @@ class CreatePaymentView(CreateView):
     def form_valid(self, form):
         payment = form.save()
 
-        url = payment.get_redirect_url()
+        url = payment.get_redirect_url()  # FIXME
         method = payment.get_redirect_method()
         params = payment.get_redirect_params()
         payment.change_status("in_progress")
@@ -52,12 +51,17 @@ class CreatePaymentView(CreateView):
 
             return TemplateResponse(
                 request=self.request,
-                # template=self.get_template_names(),
                 template=payment.get_template_names(view=self),
                 context=context,
             )
+        elif method.upper() == "REST":
+            signature = payment.get_signature(params)
+
+            return http.HttpResponseRedirect(url)
         else:
-            raise exceptions.ImproperlyConfigured("Only GET and POST supported.")
+            raise exceptions.ImproperlyConfigured(
+                "Only GET, POST and REST are supported."
+            )
 
     def form_invalid(self, form):
         raise exceptions.PermissionDenied
@@ -88,9 +92,7 @@ class FallbackView(RedirectView):
             return resolve_url(
                 url, pk=payment.order.pk
             )  # we may want to return to the Order summary or smth
-        return resolve_url(
-            payment.order.get_redirect_url(payment, success=self.success)
-        )
+        return resolve_url(payment.order.get_return_url(payment, success=self.success))
 
 
 class SuccessView(FallbackView):

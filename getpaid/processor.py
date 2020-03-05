@@ -5,6 +5,8 @@ from django.core.exceptions import ImproperlyConfigured
 
 
 class BaseProcessor(ABC):
+    production_url = None
+    sandbox_url = None
     display_name = None
     accepted_currencies = None
     logo_url = None
@@ -17,7 +19,7 @@ class BaseProcessor(ABC):
         self.path = payment.backend
         self.context = {}  # can be used by Payment's customized methods.
         if self.slug is None:
-            self.slug = payment.backend  # no more Mr. Friendly :P
+            self.slug = self.path
         self.config = getattr(settings, "GETPAID_BACKEND_SETTINGS", {}).get(
             self.path, {}
         )
@@ -42,15 +44,15 @@ class BaseProcessor(ABC):
         raise NotImplementedError
 
     @classmethod
-    def get_display_name(cls):
+    def get_display_name(cls) -> str:
         return cls.display_name
 
     @classmethod
-    def get_accepted_currencies(cls):
+    def get_accepted_currencies(cls) -> list:
         return cls.accepted_currencies
 
     @classmethod
-    def get_logo_url(cls):
+    def get_logo_url(cls) -> str:
         return cls.logo_url
 
     def fetch_status(self):
@@ -64,17 +66,22 @@ class BaseProcessor(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_redirect_params(self):
+    def get_redirect_params(self) -> dict:
+        """
+        Gather all the data required by the broker.
+        :return: dict
+        """
         return {}
 
-    def get_redirect_method(self):
+    def get_redirect_method(self) -> str:
         return self.method
 
-    @abstractmethod
     def get_redirect_url(self):
-        return
+        if settings.DEBUG:
+            return self.sandbox_url
+        return self.production_url
 
-    def get_template_names(self, view=None):
+    def get_template_names(self, view=None) -> list:
         template_name = self.get_setting("POST_TEMPLATE")
         if template_name is None:
             template_name = getattr(settings, "GETPAID_POST_TEMPLATE", None)

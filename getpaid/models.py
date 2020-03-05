@@ -15,7 +15,7 @@ class AbstractOrder(models.Model):
     class Meta:
         abstract = True
 
-    def get_redirect_url(self, *args, success=None, **kwargs):
+    def get_return_url(self, *args, success=None, **kwargs):
         """
         Method used to determine the final url the client should see after
         returning from gateway. Client will be redirected to this url after
@@ -83,7 +83,12 @@ class AbstractPayment(models.Model):
         on_delete=models.CASCADE,
         related_name="payments",
     )
-    amount = models.DecimalField(_("amount"), decimal_places=4, max_digits=20)
+    amount = models.DecimalField(
+        _("amount"),
+        decimal_places=4,
+        max_digits=20,
+        help_text=_("Amount in selected currency, normal notation"),
+    )
     currency = models.CharField(_("currency"), max_length=3)
     status = models.CharField(
         _("status"),
@@ -221,9 +226,9 @@ class AbstractPayment(models.Model):
         fully_paid = self.amount_paid >= self.amount
 
         if fully_paid:
-            self.change_status("paid")
+            self.change_status(PaymentStatus.PAID)
         else:
-            self.change_status("partially_paid")
+            self.change_status(PaymentStatus.PARTIAL)
 
         return fully_paid
 
@@ -239,7 +244,7 @@ class AbstractPayment(models.Model):
 
         Redirect params is a dictionary containing all the data required by
         backend to process the payment in appropriate format.
-        The data is extracted from Paymentand Order.
+        The data is extracted from Payment and Order.
         """
         return self.processor.get_redirect_params()
 

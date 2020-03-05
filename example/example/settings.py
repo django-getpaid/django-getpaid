@@ -11,6 +11,8 @@ GETPAID_PAYMENT_MODEL = "orders.CustomPayment"
 
 INSTALLED_APPS = [
     "django.contrib.auth",
+    "django.contrib.admin",
+    "django.contrib.messages",
     "django.contrib.sessions",
     "django.contrib.contenttypes",
     "getpaid",
@@ -18,13 +20,14 @@ INSTALLED_APPS = [
     "orders",
 ]
 
-MIDDLEWARE_CLASSES = [
+MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
 ]
 
 ROOT_URLCONF = "example.urls"
@@ -36,6 +39,7 @@ TEMPLATES = [
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
+                "django.contrib.messages.context_processors.messages",
                 "django.template.context_processors.debug",
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
