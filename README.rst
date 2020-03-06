@@ -25,12 +25,12 @@ The full documentation is at https://django-getpaid.readthedocs.io.
 Quickstart
 ==========
 
-Install django-getpaid and a payment backend:
+Install django-getpaid and at least one payment backend:
 
 .. code-block:: console
 
     pip install django-getpaid
-    pip install django-getpaid-dotpay
+    pip install django-getpaid-paynow
 
 Add them to your ``INSTALLED_APPS``:
 
@@ -39,7 +39,7 @@ Add them to your ``INSTALLED_APPS``:
     INSTALLED_APPS = [
         ...
         'getpaid',
-        'getpaid_dotpay',
+        'getpaid_paynow',  # one of plugins
         ...
     ]
 
@@ -49,7 +49,7 @@ Add django-getpaid's URL patterns:
 
     urlpatterns = [
         ...
-        url(r'^payments/', include('getpaid.urls')),
+        path('payments/', include('getpaid.urls')),
         ...
     ]
 
@@ -81,10 +81,10 @@ Select your Order model in ``settings.py`` and provide settings for payment back
     GETPAID_ORDER_MODEL = 'yourapp.MyCustomOrder'
 
     GETPAID_BACKEND_SETTINGS = {
-        'getpaid_dotpay': {   # dotted import path of the plugin
+        'getpaid_paynow': {   # dotted import path of the plugin
             # refer to backend docs for its real settings
-            'merchant_id': 123456789,
-            'key2': abcdef123456789,
+            "api_key": "9bcdead5-b194-4eb5-a1d5-c1654572e624",
+            "signature_key": "54d22fdb-2a8b-4711-a2e9-0e69a2a91189",
         },
     }
 
@@ -95,6 +95,7 @@ Features
 * support for multiple payment brokers at the same time
 * clean but flexible architecture
 * support for asynchronous status updates - both push and pull
+* support for modern REST-based broker APIs
 * support for using multiple currencies (but one per payment)
 * easy customization with provided base abstract models and swappable mechanic (same as with Django's User model)
 
@@ -104,12 +105,10 @@ Running Tests
 
 Does the code actually work?
 
-::
+.. code-block:: console
 
-    source <YOURVIRTUALENV>/bin/activate
-    (myenv) $ pip install tox
-    (myenv) $ tox -p all
-
+    poetry install
+    poetry run tox
 
 
 Disclaimer
