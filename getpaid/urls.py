@@ -1,30 +1,21 @@
-from django.conf.urls import include, url
+from django.urls import include, path, register_converter
 
 from . import views
+from .converters import CurrencyConverter
 from .registry import registry
+
+register_converter(CurrencyConverter, "currency")
 
 app_name = "getpaid"
 
 urlpatterns = [
-    url(
-        r"^new/(?P<currency>[A-Z]{3})/$",
+    path(
+        "new/<currency:currency>/",
         views.CreatePaymentView.as_view(),
         name="create-payment",
     ),
-    url(
-        r"^success/(?P<pk>[0-9a-f-]+)/$",
-        views.SuccessView.as_view(),
-        name="payment-success",
-    ),
-    url(
-        r"^failure/(?P<pk>[0-9a-f-]+)/$",
-        views.FailureView.as_view(),
-        name="payment-failure",
-    ),
-    url(
-        r"^callback/(?P<pk>[0-9a-f-]+)/$",
-        views.CallbackView.as_view(),
-        name="callback-detail",
-    ),
-    url(r"^backends/", include(registry.urls)),
+    path("success/<uuid:pk>/", views.SuccessView.as_view(), name="payment-success",),
+    path("failure/<uuid:pk>/", views.FailureView.as_view(), name="payment-failure",),
+    path("callback/<uuid:pk>/", views.CallbackView.as_view(), name="callback-detail",),
+    path("backends/", include(registry.urls)),
 ]

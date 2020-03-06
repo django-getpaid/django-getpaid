@@ -24,6 +24,10 @@ class BaseProcessor(ABC):
             self.path, {}
         )
 
+    @classmethod
+    def class_id(cls):
+        return cls.__module__
+
     def get_form(self, post_data):
         """
         Only used if the payment processor requires POST requests.
@@ -55,7 +59,7 @@ class BaseProcessor(ABC):
     def get_logo_url(cls) -> str:
         return cls.logo_url
 
-    def fetch_status(self):
+    def fetch_status(self) -> dict:
         """
         Logic for checking payment status with broker.
 
@@ -76,7 +80,13 @@ class BaseProcessor(ABC):
     def get_redirect_method(self) -> str:
         return self.method
 
-    def get_redirect_url(self):
+    def get_redirect_url(self, params=None):
+        """
+        Provide URL to paywall. If method uses optional ``params`` argument,
+        the resulting URL can be i.e. extracted from them (usually during REST
+        flow) or constructed using them (usually during GET flow). Default
+        implementation returns production or sandbox url based on DEBUG setting.
+        """
         if settings.DEBUG:
             return self.sandbox_url
         return self.production_url
@@ -95,3 +105,18 @@ class BaseProcessor(ABC):
 
     def get_setting(self, name, default=None):
         return self.config.get(name, default)
+
+    def prepare_headers(self, obj: dict = None) -> dict:
+        """
+        Prepares HEADERS dict for REST or POST methods.
+        """
+        raise NotImplemented
+
+    def handle_response(self, response) -> dict:
+        """
+        Analyze direct response from broker, update payment status if applicable,
+        and return dict with extracted and normalized data.
+
+        :param: response is expected to be ``request.response`` object.
+        """
+        raise NotImplemented

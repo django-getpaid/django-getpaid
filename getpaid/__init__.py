@@ -5,6 +5,10 @@ default_app_config = "getpaid.apps.GetpaidConfig"
 
 
 class PaymentStatus:
+    """
+    Internal payment statuses.
+    """
+
     NEW = "new"
     IN_PROGRESS = "in_progress"
     ACCEPTED = "accepted_for_proc"

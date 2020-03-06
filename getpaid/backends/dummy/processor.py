@@ -43,5 +43,5 @@ class PaymentProcessor(BaseProcessor):
             **extra_args,
         )
 
-    def get_redirect_url(self):
+    def get_redirect_url(self, *args, **kwargs):
         return reverse("getpaid:dummy:gateway")  # fake gateway

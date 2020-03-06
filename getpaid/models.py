@@ -97,7 +97,7 @@ class AbstractPayment(models.Model):
         default=PaymentStatus.NEW,
         db_index=True,
     )
-    backend = models.CharField(_("backend"), max_length=50)
+    backend = models.CharField(_("backend"), max_length=100, db_index=True)
     created_on = models.DateTimeField(_("created on"), auto_now_add=True, db_index=True)
     paid_on = models.DateTimeField(
         _("paid on"), blank=True, null=True, default=None, db_index=True
@@ -236,7 +236,7 @@ class AbstractPayment(models.Model):
         """
         Called when payment has failed. By default changes status to 'failed'
         """
-        self.change_status("failed")
+        self.change_status(PaymentStatus.FAILED)
 
     def get_redirect_params(self):
         """
@@ -248,19 +248,21 @@ class AbstractPayment(models.Model):
         """
         return self.processor.get_redirect_params()
 
-    def get_redirect_url(self):
+    def get_redirect_url(self, params=None):
         """
         Interfaces processor's ``get_redirect_url``.
 
         Returns URL where the user will be redirected to complete the payment.
+
+        Takes optional ``params`` which can help with constructing the url.
         """
-        return self.processor.get_redirect_url()
+        return self.processor.get_redirect_url(params)
 
     def get_redirect_method(self):
         """
         Interfaces processor's ``get_redirect_method``.
 
-        Returns the method to be used to complete the payment - 'POST' or 'GET'.
+        Returns the method to be used to complete the payment - 'POST', 'GET', or 'REST.
         """
         return self.processor.get_redirect_method()
 
@@ -315,12 +317,30 @@ class AbstractPayment(models.Model):
         remote_status = self.fetch_status()
         status = remote_status.get("status", None)
         amount = remote_status.get("amount", None)
-        if (status is not None and "paid" in status) or amount is not None:
+        if (
+            status is not None and status in [PaymentStatus.PAID, PaymentStatus.PARTIAL]
+        ) or amount is not None:
             self.on_success(amount)
         elif status == "failed":
             self.on_failure()
         elif status is not None:
             self.change_status(status)
+
+    def prepare_headers(self, obj: dict = None) -> dict:
+        """
+        Interfaces processor's ``prepare_headers``.
+
+        Prepares headers for REST request to broker.
+        """
+        return self.processor.prepare_headers(obj)
+
+    def handle_response(self, response) -> dict:
+        """
+        Interfaces processor's ``handle_response``.
+
+        Validates and dictifies any direct response from broker.
+        """
+        return self.processor.handle_response(response)
 
 
 class Payment(AbstractPayment):

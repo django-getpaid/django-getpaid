@@ -1,6 +1,6 @@
 import importlib
 
-from django.conf.urls import include, url
+from django.urls import include, path
 
 from getpaid.processor import BaseProcessor
 
@@ -32,9 +32,8 @@ class PluginRegistry(object):
         ):
             self._backends[module_or_proc.slug] = module_or_proc
         else:
-            self._backends[
-                module_or_proc.__name__
-            ] = module_or_proc.processor.PaymentProcessor
+            processor = module_or_proc.processor.PaymentProcessor
+            self._backends[processor.slug] = processor
 
     def get_choices(self, currency):
         currency = currency.upper()
@@ -47,8 +46,8 @@ class PluginRegistry(object):
     @property
     def urls(self):
         return [
-            url(
-                r"^{}/".format(p.slug),
+            path(
+                "{}/".format(p.slug),
                 include(("{}.urls".format(name), p.slug), namespace=p.slug),
             )
             for name, p in self._backends.items()

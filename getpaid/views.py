@@ -36,15 +36,14 @@ class CreatePaymentView(CreateView):
     def form_valid(self, form):
         payment = form.save()
 
-        url = payment.get_redirect_url()  # FIXME
         method = payment.get_redirect_method()
         params = payment.get_redirect_params()
         payment.change_status("in_progress")
         if method.upper() == "GET":
-            if params:
-                url = "{url}?{params}".format(url=url, params=urlencode(params))
+            url = payment.get_redirect_url(params)
             return http.HttpResponseRedirect(url)
         elif method.upper() == "POST":
+            url = payment.get_redirect_url(params)
             context = self.get_context_data(
                 form=payment.get_form(params), gateway_url=url
             )
@@ -55,9 +54,14 @@ class CreatePaymentView(CreateView):
                 context=context,
             )
         elif method.upper() == "REST":
-            signature = payment.get_signature(params)
-
-            return http.HttpResponseRedirect(url)
+            api_url = payment.get_redirect_url()
+            headers = payment.prepare_headers(params)
+            response = requests.post(api_url, json=params, headers=headers)
+            if response.status_code == 200:
+                decoded = payment.handle_response(response)
+                url = payment.get_redirect_url(decoded)
+                return http.HttpResponseRedirect(url)
+            return http.HttpResponseRedirect("getpaid:payment-failure")
         else:
             raise exceptions.ImproperlyConfigured(
                 "Only GET, POST and REST are supported."
