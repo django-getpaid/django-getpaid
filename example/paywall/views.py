@@ -1,16 +1,16 @@
 import requests
 from django.views.generic import FormView
 
-from .forms import DummyQuestionForm
+from .forms import QuestionForm
 
 
-class DummyAuthorizationView(FormView):
+class AuthorizationView(FormView):
     """
     This view simulates the behavior of payment broker
     """
 
-    form_class = DummyQuestionForm
-    template_name = "getpaid_dummy_backend/fake_gateway_authorization_form.html"
+    form_class = QuestionForm
+    template_name = "paywall/fake_gateway_authorization_form.html"
     success = None
 
     def get_context_data(self, **kwargs):

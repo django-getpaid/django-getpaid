@@ -2,7 +2,7 @@ from django import forms
 from django.utils.translation import ugettext as _
 
 
-class DummyQuestionForm(forms.Form):
+class QuestionForm(forms.Form):
     """
     This dummy form asks for payment authorization.
     """

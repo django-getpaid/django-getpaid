@@ -1,12 +1,13 @@
 from django.contrib import admin
-from django.urls import include, re_path
+from django.urls import include, path, re_path
 from orders.views import HomeView, OrderView
 
 app_name = "getpaid_example"
 
 urlpatterns = [
-    re_path(r"^admin/", admin.site.urls),
+    path("admin/", admin.site.urls),
     re_path(r"^$", HomeView.as_view(), name="home"),
-    re_path(r"^order/(?P<pk>\d+)/$", OrderView.as_view(), name="order_detail"),
-    re_path(r"^payments/", include("getpaid.urls")),
+    path(r"order/<int:pk>/", OrderView.as_view(), name="order_detail"),
+    path("payments/", include("getpaid.urls")),
+    path("paywall/", include("paywall.urls")),
 ]

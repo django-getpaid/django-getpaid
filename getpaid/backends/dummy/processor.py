@@ -22,10 +22,10 @@ class PaymentProcessor(BaseProcessor):
 
         return HttpResponse("OK")
 
-    def get_redirect_params(self, *args, **kwargs):
+    def get_redirect_params(self, request) -> dict:
         extra_args = {}
         if self.get_setting("confirmation_method", "push").lower() == "push":
-            extra_args["callback"] = (
+            extra_args["callback"] = request.build_absolute_uri(
                 reverse("getpaid:callback-detail", kwargs=dict(pk=self.payment.pk)),
             )
 
@@ -34,14 +34,14 @@ class PaymentProcessor(BaseProcessor):
             value=self.payment.amount,
             currency=self.payment.currency,
             description=self.payment.description,
-            success_url=reverse(
-                "getpaid:payment-success", kwargs=dict(pk=self.payment.pk)
+            success_url=request.build_absolute_uri(
+                reverse("getpaid:payment-success", kwargs=dict(pk=self.payment.pk))
             ),
-            failure_url=reverse(
-                "getpaid:payment-failure", kwargs=dict(pk=self.payment.pk)
+            failure_url=request.build_absolute_uri(
+                reverse("getpaid:payment-failure", kwargs=dict(pk=self.payment.pk))
             ),
             **extra_args,
         )
 
     def get_redirect_url(self, *args, **kwargs):
-        return reverse("getpaid:dummy:gateway")  # fake gateway
+        return self.get_setting("gateway")

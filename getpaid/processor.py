@@ -72,7 +72,7 @@ class BaseProcessor(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_redirect_params(self, request=None) -> dict:
+    def get_redirect_params(self, request) -> dict:
         """
         Gather all the data required by the broker.
         :return: dict

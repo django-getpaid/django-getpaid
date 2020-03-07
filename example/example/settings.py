@@ -1,6 +1,8 @@
 # Minimalistic settings
 import os
 
+from django.urls import reverse_lazy
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = "=================================================="
 
@@ -8,6 +10,13 @@ DEBUG = True
 
 GETPAID_ORDER_MODEL = "orders.Order"
 GETPAID_PAYMENT_MODEL = "orders.CustomPayment"
+
+GETPAID_BACKEND_SETTINGS = {
+    "getpaid.backends.dummy": {
+        "confirmation_method": "push",
+        "gateway": reverse_lazy("paywall:gateway"),
+    },
+}
 
 INSTALLED_APPS = [
     "django.contrib.auth",
@@ -18,6 +27,7 @@ INSTALLED_APPS = [
     "getpaid",
     "getpaid.backends.dummy",
     "orders",
+    "paywall",
 ]
 
 MIDDLEWARE = [

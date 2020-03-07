@@ -30,8 +30,8 @@ Plugins have the format ``getpaid_<backend_name>``::
 
     INSTALLED_APPS = [
         # ...
-        'getpaid',
-        'getpaid_payu',
+        "getpaid",
+        "getpaid_payu",
     ]
 
 
@@ -54,7 +54,7 @@ and implement some of its methods. An example Order could look like this::
         currency = models.CharField(max_length=3, default=settings.DEFAULT_CURRENCY)
 
         def get_user_info(self):
-            return {'email': self.buyer.email}
+            return {"email": self.buyer.email}
 
         def get_total_amount(self):
             return self.total
@@ -76,7 +76,7 @@ and implement some of its methods. An example Order could look like this::
         def get_absolute_url(self):
             # This is a standard method recommended in Django documentation.
             # It should return an URL with order details. Here's an example:
-            return reverse('order-detail', kwargs={'pk': self.pk})
+            return reverse("order-detail", kwargs={"pk": self.pk})
 
         # these are optional:
         def is_ready_for_payment(self):
@@ -89,9 +89,9 @@ and implement some of its methods. An example Order could look like this::
             # Some backends expect you to provide the list of items.
             # This is the default implementation:
             return [{
-                'name': self.get_description(),
-                'quantity': 1,
-                'unit_price': self.get_total_amount(),
+                "name": self.get_description(),
+                "quantity": 1,
+                "unit_price": self.get_total_amount(),
             }]
 
 Tell ``getpaid`` what model handles orders
@@ -99,7 +99,7 @@ Tell ``getpaid`` what model handles orders
 
 Put this inside your ``settings.py``::
 
-    GETPAID_ORDER_MODEL = 'yourapp.CustomOrder'
+    GETPAID_ORDER_MODEL = "yourapp.CustomOrder"
 
 
 (Optional) Provide custom Payment model
@@ -119,7 +119,7 @@ Add getpaid to urls
 
     urlpatterns = [
         # ...
-        path('payments', include('getpaid.urls')),
+        path("payments", include("getpaid.urls")),
     ]
 
 
@@ -129,12 +129,12 @@ Provide config for plugins
 The last step is to provide config for installed plugins inside your ``settings.py``::
 
     GETPAID_BACKEND_SETTINGS = {
-        'getpaid_payu': {   # dotted import path of the plugin
+        "getpaid_payu": {   # dotted import path of the plugin
             # refer to backend docs for its real settings
-            'pos_id': 123456789,
-            'key2': abcdef123456789,
+            "pos_id": "123456789",
+            "key2": "abcdef123456789",
         },
-        'getpaid.backends.dummy': {
-            'confirmation_method': 'push',
+        "getpaid.backends.dummy": {
+            "confirmation_method": "push",
             },
     }

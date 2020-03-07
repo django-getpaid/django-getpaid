@@ -238,7 +238,7 @@ class AbstractPayment(models.Model):
         """
         self.change_status(PaymentStatus.FAILED)
 
-    def get_redirect_params(self, request=None):
+    def get_redirect_params(self, request) -> dict:
         """
         Interfaces processor's ``get_redirect_params``.
 
@@ -248,7 +248,7 @@ class AbstractPayment(models.Model):
         """
         return self.processor.get_redirect_params(request)
 
-    def get_redirect_url(self, params=None):
+    def get_redirect_url(self, params=None) -> str:
         """
         Interfaces processor's ``get_redirect_url``.
 
@@ -258,7 +258,7 @@ class AbstractPayment(models.Model):
         """
         return self.processor.get_redirect_url(params)
 
-    def get_redirect_method(self):
+    def get_redirect_method(self) -> str:
         """
         Interfaces processor's ``get_redirect_method``.
 
