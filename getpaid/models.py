@@ -60,7 +60,7 @@ class AbstractOrder(models.Model):
         """
         raise NotImplementedError
 
-    def get_user_info(self):
+    def get_user_info(self) -> dict:
         """
         This method should return dict with necessary user info.
         For most backends email should be sufficient.
@@ -68,7 +68,7 @@ class AbstractOrder(models.Model):
         """
         raise NotImplementedError
 
-    def get_description(self):
+    def get_description(self) -> str:
         """
         :return: Description of the Order. Should return the value of appropriate field.
         """
@@ -238,7 +238,7 @@ class AbstractPayment(models.Model):
         """
         self.change_status(PaymentStatus.FAILED)
 
-    def get_redirect_params(self):
+    def get_redirect_params(self, request=None):
         """
         Interfaces processor's ``get_redirect_params``.
 
@@ -246,7 +246,7 @@ class AbstractPayment(models.Model):
         backend to process the payment in appropriate format.
         The data is extracted from Payment and Order.
         """
-        return self.processor.get_redirect_params()
+        return self.processor.get_redirect_params(request)
 
     def get_redirect_url(self, params=None):
         """

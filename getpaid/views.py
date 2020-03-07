@@ -5,7 +5,7 @@ from django.conf import settings
 from django.core import exceptions
 from django.shortcuts import get_object_or_404, resolve_url
 from django.template.response import TemplateResponse
-from django.utils.http import urlencode
+from django.urls import reverse
 from django.views import View
 from django.views.generic import CreateView, RedirectView
 
@@ -37,7 +37,7 @@ class CreatePaymentView(CreateView):
         payment = form.save()
 
         method = payment.get_redirect_method()
-        params = payment.get_redirect_params()
+        params = payment.get_redirect_params(request=self.request)
         payment.change_status("in_progress")
         if method.upper() == "GET":
             url = payment.get_redirect_url(params)
@@ -56,12 +56,14 @@ class CreatePaymentView(CreateView):
         elif method.upper() == "REST":
             api_url = payment.get_redirect_url()
             headers = payment.prepare_headers(params)
-            response = requests.post(api_url, json=params, headers=headers)
+            response = requests.post(api_url, data=params, headers=headers)
             if response.status_code == 200:
                 decoded = payment.handle_response(response)
                 url = payment.get_redirect_url(decoded)
                 return http.HttpResponseRedirect(url)
-            return http.HttpResponseRedirect("getpaid:payment-failure")
+            return http.HttpResponseRedirect(
+                reverse("getpaid:payment-failure", str(payment.id))
+            )
         else:
             raise exceptions.ImproperlyConfigured(
                 "Only GET, POST and REST are supported."

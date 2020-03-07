@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "django-getpaid"
-version = "2.0.0-rc.4"
+version = "2.0.0-rc.5"
 description = "Multi-broker payment processor for Django."
 authors = ["Dominik Kozaczko <dominik@kozaczko.info>"]
 license = "MIT"
@@ -23,7 +23,7 @@ tox = "^3.14.5"
 factory-boy = "^2.12.0"
 ipdb = "^0.13.1"
 pre-commit = "^2.1.1"
-pytest = {version = "^5.3.5", optional = true}
+pytest = {version = "^5.3.5", optional=true}
 codecov = {version="^2.0.16", optional=true}
 coverage = {version="^5.0.3", optional=true}
 requests-mock = {version="^1.7.0", optional=true}

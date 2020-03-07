@@ -1,7 +1,9 @@
 from abc import ABC, abstractmethod
+from urllib.parse import urljoin, urlparse
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
+from django.urls import reverse
 
 
 class BaseProcessor(ABC):
@@ -70,12 +72,19 @@ class BaseProcessor(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_redirect_params(self) -> dict:
+    def get_redirect_params(self, request=None) -> dict:
         """
         Gather all the data required by the broker.
         :return: dict
         """
-        return {}
+        return {
+            "success_url": request.build_absolute_uri(
+                reverse("getpaid:payment-success", kwargs={"pk": self.payment.pk})
+            ),
+            "failure_url": request.build_absolute_uri(
+                reverse("getpaid:payment-failure", kwargs={"pk": self.payment.pk})
+            ),
+        }
 
     def get_redirect_method(self) -> str:
         return self.method
