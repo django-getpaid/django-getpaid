@@ -22,7 +22,7 @@ class PaymentProcessor(BaseProcessor):
 
         return HttpResponse("OK")
 
-    def get_redirect_params(self):
+    def get_redirect_params(self, *args, **kwargs):
         extra_args = {}
         if self.get_setting("confirmation_method", "push").lower() == "push":
             extra_args["callback"] = (

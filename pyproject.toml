@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "django-getpaid"
-version = "2.0.0-rc.5"
+version = "2.0.0-rc.6"
 description = "Multi-broker payment processor for Django."
 authors = ["Dominik Kozaczko <dominik@kozaczko.info>"]
 license = "MIT"

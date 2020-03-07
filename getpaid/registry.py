@@ -33,7 +33,7 @@ class PluginRegistry(object):
             self._backends[module_or_proc.slug] = module_or_proc
         else:
             processor = module_or_proc.processor.PaymentProcessor
-            self._backends[processor.slug] = processor
+            self._backends[module_or_proc.__name__] = processor
 
     def get_choices(self, currency):
         currency = currency.upper()

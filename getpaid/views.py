@@ -38,8 +38,9 @@ class CreatePaymentView(CreateView):
 
         method = payment.get_redirect_method()
         params = payment.get_redirect_params(request=self.request)
-        payment.change_status("in_progress")
+
         if method.upper() == "GET":
+            payment.change_status("in_progress")
             url = payment.get_redirect_url(params)
             return http.HttpResponseRedirect(url)
         elif method.upper() == "POST":
@@ -58,11 +59,12 @@ class CreatePaymentView(CreateView):
             headers = payment.prepare_headers(params)
             response = requests.post(api_url, data=params, headers=headers)
             if response.status_code == 200:
+                payment.change_status("in_progress")
                 decoded = payment.handle_response(response)
                 url = payment.get_redirect_url(decoded)
                 return http.HttpResponseRedirect(url)
             return http.HttpResponseRedirect(
-                reverse("getpaid:payment-failure", str(payment.id))
+                reverse("getpaid:payment-failure", kwargs={"pk": str(payment.pk)})
             )
         else:
             raise exceptions.ImproperlyConfigured(
