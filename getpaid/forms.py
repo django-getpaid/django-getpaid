@@ -27,17 +27,17 @@ class PaymentMethodForm(forms.ModelForm):
             "currency": forms.HiddenInput,
         }
 
-    def __init__(self, *args, currency=None, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.initial["currency"] = currency
         order = self.initial.get("order")
+        currency = getattr(order, "currency", None) or self.data.get("currency")
         if order is not None:
             self.initial["amount"] = order.get_total_amount()
             self.initial["description"] = order.get_description()
         backends = registry.get_choices(currency)
         self.fields["backend"] = forms.ChoiceField(
             choices=backends,
-            initial=backends[0][0] if len(backends) else "",
+            initial=backends[0][0] if len(backends) == 1 else "",
             label=_("Payment method"),
             widget=forms.RadioSelect,
         )

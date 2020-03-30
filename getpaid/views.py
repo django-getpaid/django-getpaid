@@ -16,12 +16,6 @@ class CreatePaymentView(CreateView):
     model = swapper.load_model("getpaid", "Payment")
     form_class = PaymentMethodForm
 
-    def get_form(self, form_class=None):
-        if form_class is None:
-            form_class = self.get_form_class()
-        currency = self.kwargs["currency"]
-        return form_class(currency=currency, **self.get_form_kwargs())
-
     def get(self, request, *args, **kwargs):
         """
         This view operates only on POST requests from order view where
@@ -29,22 +23,18 @@ class CreatePaymentView(CreateView):
         """
         return http.HttpResponseNotAllowed(["POST"])
 
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        return kwargs
-
     def form_valid(self, form):
         payment = form.save()
 
-        method = payment.get_redirect_method()
-        params = payment.get_redirect_params(request=self.request)
+        method = payment.get_paywall_method()
+        params = payment.get_paywall_params(request=self.request)
 
         if method.upper() == "GET":
             payment.change_status("in_progress")
-            url = payment.get_redirect_url(params)
+            url = payment.get_paywall_url(params)
             return http.HttpResponseRedirect(url)
         elif method.upper() == "POST":
-            url = payment.get_redirect_url(params)
+            url = payment.get_paywall_url(params)
             context = self.get_context_data(
                 form=payment.get_form(params), gateway_url=url
             )
@@ -55,13 +45,13 @@ class CreatePaymentView(CreateView):
                 context=context,
             )
         elif method.upper() == "REST":
-            api_url = payment.get_redirect_url()
-            headers = payment.prepare_headers(params)
+            api_url = payment.get_paywall_url()
+            headers = payment.prepare_paywall_headers(params)
             response = requests.post(api_url, data=params, headers=headers)
             if response.status_code == 200:
                 payment.change_status("in_progress")
-                decoded = payment.handle_response(response)
-                url = payment.get_redirect_url(decoded)
+                decoded = payment.handle_paywall_response(response)
+                url = payment.get_paywall_url(decoded)
                 return http.HttpResponseRedirect(url)
             return http.HttpResponseRedirect(
                 reverse("getpaid:payment-failure", kwargs={"pk": str(payment.pk)})
@@ -115,4 +105,4 @@ class CallbackView(View):
     def post(self, request, pk, *args, **kwargs):
         Payment = swapper.load_model("getpaid", "Payment")
         payment = get_object_or_404(Payment, pk=pk)
-        return payment.handle_callback(request, *args, **kwargs)
+        return payment.handle_paywall_callback(request, *args, **kwargs)

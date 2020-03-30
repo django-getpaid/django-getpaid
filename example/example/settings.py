@@ -3,6 +3,8 @@ import os
 
 from django.urls import reverse_lazy
 
+os.environ["PYTHONBREAKPOINT"] = "ipdb.set_trace"
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = "=================================================="
 
@@ -11,11 +13,13 @@ DEBUG = True
 GETPAID_ORDER_MODEL = "orders.Order"
 GETPAID_PAYMENT_MODEL = "orders.CustomPayment"
 
-GETPAID_BACKEND_SETTINGS = {
-    "getpaid.backends.dummy": {
-        "confirmation_method": "push",
-        "gateway": reverse_lazy("paywall:gateway"),
-    },
+GETPAID = {
+    "BACKENDS": {
+        "getpaid.backends.dummy": {
+            "confirmation_method": "push",
+            "gateway": reverse_lazy("paywall:gateway"),
+        },
+    }
 }
 
 INSTALLED_APPS = [

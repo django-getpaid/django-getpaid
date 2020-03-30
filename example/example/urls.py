@@ -7,7 +7,7 @@ app_name = "getpaid_example"
 urlpatterns = [
     path("admin/", admin.site.urls),
     re_path(r"^$", HomeView.as_view(), name="home"),
-    path(r"order/<int:pk>/", OrderView.as_view(), name="order_detail"),
+    path("order/<int:pk>/", OrderView.as_view(), name="order_detail"),
     path("payments/", include("getpaid.urls")),
     path("paywall/", include("paywall.urls")),
 ]

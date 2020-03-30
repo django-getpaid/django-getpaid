@@ -13,7 +13,7 @@ class PaymentProcessor(BaseProcessor):
     method = "POST"
     template_name = "getpaid_dummy_backend/payment_post_form.html"
 
-    def handle_callback(self, request, *args, **kwargs):
+    def handle_paywall_callback(self, request, *args, **kwargs):
         payload = json.loads(request.data)
         if payload["status"] == "OK":
             self.payment.on_success()
@@ -22,11 +22,11 @@ class PaymentProcessor(BaseProcessor):
 
         return HttpResponse("OK")
 
-    def get_redirect_params(self, request) -> dict:
+    def get_paywall_params(self, request) -> dict:
         extra_args = {}
         if self.get_setting("confirmation_method", "push").lower() == "push":
             extra_args["callback"] = request.build_absolute_uri(
-                reverse("getpaid:callback-detail", kwargs=dict(pk=self.payment.pk)),
+                reverse("getpaid:callback-detail", kwargs={"pk": self.payment.pk}),
             )
 
         return dict(
@@ -43,5 +43,5 @@ class PaymentProcessor(BaseProcessor):
             **extra_args,
         )
 
-    def get_redirect_url(self, *args, **kwargs):
+    def get_paywall_url(self, *args, **kwargs):
         return self.get_setting("gateway")

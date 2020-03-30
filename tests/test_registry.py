@@ -29,4 +29,5 @@ class TestRegistry(TestCase):
         assert choices[0][0] == Plugin.slug
 
     def test_url(self):
+        # dummy plugin contains one example endpoint
         assert len(registry.urls) > 0

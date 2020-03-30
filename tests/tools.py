@@ -6,8 +6,8 @@ class Plugin(BaseProcessor):
     accepted_currencies = ["EUR", "USD"]
     slug = "test_plugin"
 
-    def get_redirect_url(self, *args, **kwargs):
+    def get_paywall_url(self, *args, **kwargs):
         return "test"
 
-    def get_redirect_params(self, *args, **kwargs):
+    def get_paywall_params(self, *args, **kwargs):
         return {}

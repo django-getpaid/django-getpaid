@@ -148,7 +148,10 @@ class AbstractPayment(models.Model):
 
         This method relays the call to Order. It is here simply because
         you can change the Order's fieldname when customizing Payment model.
+        In that case you need to overwrite this method so that it properly
+        returns a list.
         """
+        # TODO: type/interface annotation
         return self.order.get_items()
 
     def get_processor(self):
@@ -238,33 +241,33 @@ class AbstractPayment(models.Model):
         """
         self.change_status(PaymentStatus.FAILED)
 
-    def get_redirect_params(self, request) -> dict:
+    def get_paywall_params(self, request) -> dict:
         """
-        Interfaces processor's ``get_redirect_params``.
+        Interfaces processor's ``get_paywall_params``.
 
         Redirect params is a dictionary containing all the data required by
         backend to process the payment in appropriate format.
         The data is extracted from Payment and Order.
         """
-        return self.processor.get_redirect_params(request)
+        return self.processor.get_paywall_params(request)
 
-    def get_redirect_url(self, params=None) -> str:
+    def get_paywall_url(self, params=None) -> str:
         """
-        Interfaces processor's ``get_redirect_url``.
+        Interfaces processor's ``get_paywall_url``.
 
         Returns URL where the user will be redirected to complete the payment.
 
         Takes optional ``params`` which can help with constructing the url.
         """
-        return self.processor.get_redirect_url(params)
+        return self.processor.get_paywall_url(params)
 
-    def get_redirect_method(self) -> str:
+    def get_paywall_method(self) -> str:
         """
-        Interfaces processor's ``get_redirect_method``.
+        Interfaces processor's ``get_paywall_method``.
 
         Returns the method to be used to complete the payment - 'POST', 'GET', or 'REST.
         """
-        return self.processor.get_redirect_method()
+        return self.processor.get_paywall_method()
 
     def get_form(self, *args, **kwargs):
         """
@@ -284,9 +287,9 @@ class AbstractPayment(models.Model):
         """
         return self.processor.get_template_names(view=view)
 
-    def handle_callback(self, request, *args, **kwargs):
+    def handle_paywall_callback(self, request, *args, **kwargs):
         """
-        Interfaces processor's ``handle_callback``.
+        Interfaces processor's ``handle_paywall_callback``.
 
         Called when 'PUSH' flow is used for a backend. In this scenario
         broker's server will send a request to our server with information
@@ -298,16 +301,16 @@ class AbstractPayment(models.Model):
 
         :return: HttpResponse instance
         """
-        return self.processor.handle_callback(request, *args, **kwargs)
+        return self.processor.handle_paywall_callback(request, *args, **kwargs)
 
     def fetch_status(self):
         """
-        Interfaces processor's ``fetch_status``.
+        Interfaces processor's ``fetch_payment_status``.
 
         Used during 'PULL' flow. Fetches status from broker's service
         and translates it to a value from ``PAYMENT_STATUS_CHOICES``.
         """
-        return self.processor.fetch_status()
+        return self.processor.fetch_payment_status()
 
     def fetch_and_update_status(self):
         """
@@ -326,21 +329,43 @@ class AbstractPayment(models.Model):
         elif status is not None:
             self.change_status(status)
 
-    def prepare_headers(self, obj: dict = None) -> dict:
+    def prepare_paywall_headers(self, obj: dict = None) -> dict:
         """
-        Interfaces processor's ``prepare_headers``.
+        Interfaces processor's ``prepare_paywall_headers``.
 
         Prepares headers for REST request to broker.
         """
-        return self.processor.prepare_headers(obj)
+        return self.processor.prepare_paywall_headers(obj)
 
-    def handle_response(self, response) -> dict:
+    def handle_paywall_response(self, response) -> dict:
         """
-        Interfaces processor's ``handle_response``.
+        Interfaces processor's ``handle_paywall_response``.
 
         Validates and dictifies any direct response from broker.
         """
-        return self.processor.handle_response(response)
+        return self.processor.handle_paywall_response(response)
+
+    def refund(self, amount=None):
+        """
+        Interfaces processor's ``refund``.
+
+        :param: amount - optional refund amount - if not given, refunds paid value.
+        :returns: the result of processor's ``refund`` method that should return the amount refunded.
+
+        """
+        if self.status not in [PaymentStatus.PAID, PaymentStatus.PARTIAL]:
+            raise ValueError("Only paid paymets can be refunded.")
+        if amount is None:
+            amount = self.amount_paid
+        if amount:
+            if amount > self.amount_paid:
+                raise ValueError("Cannot refund more than what was paid.")
+            self.amount_refunded = self.processor.refund(amount)
+            self.amount_paid -= self.amount_refunded
+            self.refunded_on = pendulum.now()
+            self.save()  # explicit is better than implicit
+            self.change_status(PaymentStatus.REFUNDED)
+        return self.amount_refunded
 
 
 class Payment(AbstractPayment):
