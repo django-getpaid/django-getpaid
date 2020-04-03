@@ -27,6 +27,9 @@ class PluginRegistry(object):
         return iter(self._backends)
 
     def register(self, module_or_proc):
+        """
+        Register module containing PaymentProcessor class or a PaymentProcessor directly.
+        """
         if hasattr(module_or_proc, "__base__") and issubclass(
             module_or_proc, BaseProcessor
         ):
@@ -36,6 +39,9 @@ class PluginRegistry(object):
             self._backends[module_or_proc.__name__] = processor
 
     def get_choices(self, currency):
+        """
+        Get plugins that support given currency, in CHOICES format.
+        """
         currency = currency.upper()
         return [
             (name, p.display_name)
@@ -45,6 +51,9 @@ class PluginRegistry(object):
 
     @property
     def urls(self):
+        """
+        Provide URL structure for all registered plugins that have urls defined.
+        """
         return [
             path(
                 "{}/".format(p.slug),
@@ -55,6 +64,10 @@ class PluginRegistry(object):
         ]
 
     def get_all_supported_currency_choices(self):
+        """
+        Get all currencies that are supported by at least one plugin,
+        in CHOICES format.
+        """
         currencies = set()
         for backend in self._backends:
             currencies.update(backend.accepted_currencies or [])

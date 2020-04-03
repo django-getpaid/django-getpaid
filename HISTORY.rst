@@ -3,10 +3,13 @@
 History
 =======
 
-Version 2.0.0 (2019-08-26)
---------------------------
+Version 2.0.0 (in development)
+------------------------------
 
 * BREAKING: Complete redesign of internal API.
-* Payment becomes swappable model - like Django's User model
+* Payment and Order become swappable model - like Django's User model
 * Payment acts as customizable interface to PaymentProcessor
-* see documentation for full list
+* Broker plugins separated from main repo for easier updates.
+
+
+See :doc:`prehistory <HISTORY_OLD>`

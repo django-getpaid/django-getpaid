@@ -1,3 +1,5 @@
+from importlib import import_module
+
 import requests
 import swapper
 from django import http
@@ -36,7 +38,7 @@ class CreatePaymentView(CreateView):
         elif method.upper() == "POST":
             url = payment.get_paywall_url(params)
             context = self.get_context_data(
-                form=payment.get_form(params), gateway_url=url
+                form=payment.get_form(params), paywall_url=url
             )
 
             return TemplateResponse(
@@ -76,15 +78,19 @@ class FallbackView(RedirectView):
 
     def get_redirect_url(self, *args, **kwargs):
         Payment = swapper.load_model("getpaid", "Payment")
-
-        getpaid_settings = getattr(settings, "GETPAID", {})
+        fallback_settings = getattr(settings, "GETPAID", {})
         payment = get_object_or_404(Payment, pk=self.kwargs["pk"])
+
         if self.success:
             payment.on_success()
-            url = getattr(getpaid_settings, "SUCCESS_URL", None)
+            url = payment.processor.get_setting(
+                "SUCCESS_URL", getattr(fallback_settings, "SUCCESS_URL", None)
+            )
         else:
             payment.on_failure()
-            url = getattr(getpaid_settings, "FAILURE_URL", None)
+            url = payment.processor.get_setting(
+                "FAILURE_URL", getattr(fallback_settings, "FAILURE_URL", None)
+            )
 
         if url is not None:
             # we may want to return to Order summary or smth

@@ -22,6 +22,17 @@ Documentation
 
 The full documentation is at https://django-getpaid.readthedocs.io.
 
+Features
+========
+
+* support for multiple payment brokers at the same time
+* clean but flexible architecture
+* support for asynchronous status updates - both push and pull
+* support for modern REST-based broker APIs
+* support for multiple currencies (but one per payment)
+* easy customization with provided base abstract models and swappable mechanic (same as with Django's User model)
+
+
 Quickstart
 ==========
 
@@ -43,7 +54,7 @@ Add them to your ``INSTALLED_APPS``:
         ...
     ]
 
-Add django-getpaid's URL patterns:
+Add getpaid to URL patterns:
 
 .. code-block:: python
 
@@ -60,21 +71,24 @@ Use ``getpaid.models.AbstractOrder`` as parent class of your Order model and def
     from getpaid.models import AbstractOrder
 
     class MyCustomOrder(AbstractOrder):
-        # fields
+        amount = models.DecimalField(decimal_places=2, max_digits=8)
+        description = models.CharField(max_length=128)
+        buyer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+
         def get_absolute_url(self):
-            return reverse('order-detail', kwargs=dict(pk=self.pk))
+            return reverse('order-detail', kwargs={"pk": self.pk})
 
         def get_total_amount(self):
             return self.amount
 
         def get_user_info(self):
-            return dict(email=self.buyer.email)
+            return {"email": self.buyer.email}
 
         def get_description(self):
             return self.description
 
 
-Select your Order model in ``settings.py`` and provide settings for payment backends:
+Inform getpaid of your Order model in ``settings.py`` and provide settings for payment backends:
 
 .. code-block:: python
 
@@ -88,17 +102,15 @@ Select your Order model in ``settings.py`` and provide settings for payment back
         },
     }
 
+And... provide some business logic ;)
 
-Features
-========
-
-* support for multiple payment brokers at the same time
-* clean but flexible architecture
-* support for asynchronous status updates - both push and pull
-* support for modern REST-based broker APIs
-* support for using multiple currencies (but one per payment)
-* easy customization with provided base abstract models and swappable mechanic (same as with Django's User model)
-
+Your pre-payment view should use ``getpaid.forms.PaymentMethodForm`` `bound <https://docs.djangoproject.com/en/3.0/ref/forms/api/#ref-forms-api-bound-unbound>`_
+with payment data. During binding the form will generate a list of plugins
+(payment methods) supporting your currency and hide rest of the fields.
+Then this form should be POSTed to ``{% url 'getpaid:create-payment' %}`` to create
+new payment. You should be automatically redirected to paywall. After payment
+you should by default return to order-detail page but this behavior can be
+changed by plugin's config.
 
 Running Tests
 =============
@@ -111,14 +123,11 @@ Does the code actually work?
     poetry run tox
 
 
-Disclaimer
-==========
-
-This project has nothing in common with `getpaid <http://code.google.com/p/getpaid/>`_ plone project.
-
-
 Credits
 =======
+
+Created by `Krzysztof Dorosz <https://github.com/cypreess>`_.
+Redesigned and rewritten by `Dominik Kozaczko <https://github.com/dekoza>`_.
 
 Proudly sponsored by `SUNSCRAPERS <http://sunscrapers.com/>`_
 
@@ -129,3 +138,9 @@ Tools used in rendering this package:
 
 .. _Cookiecutter: https://github.com/audreyr/cookiecutter
 .. _`cookiecutter-djangopackage`: https://github.com/pydanny/cookiecutter-djangopackage
+
+
+Disclaimer
+==========
+
+This project has nothing in common with `getpaid <http://code.google.com/p/getpaid/>`_ plone project.

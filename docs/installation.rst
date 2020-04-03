@@ -18,7 +18,7 @@ We do not recommend using development version as it may contain bugs.
 Plugins installation
 --------------------
 
-There should be several plugins available in our repo. Each follow this
+There should be several plugins available in our repo. Each follows this
 schema: ``django-getpaid-<backend_name>``
 For example if you want to install payNow integration, run:
 
@@ -30,7 +30,7 @@ For example if you want to install payNow integration, run:
 Enabling app and plugin
 -----------------------
 
-Next, add ``'getpaid'`` and any plugin to ``INSTALLED_APPS`` in your ``settings.py``.
+Next, add ``"getpaid"`` and any plugin to ``INSTALLED_APPS`` in your ``settings.py``.
 Plugins have the format ``getpaid_<backend_name>``:
 
 .. code-block:: python
@@ -155,3 +155,25 @@ For each installed plugin you can configure it in ``settings.py``:
         }
     }
 
+
+Prepare business logic
+----------------------
+
+The logic for building an order is up to you. You can eg. use a cart application.
+You can look at the `example sourcecode`_ if you need inspiration.
+
+In the Order summary view you should provide ``PaymentMethodForm`` to the template,
+and use ``<form action="{% url 'getpaid:create-payment' %}" method="post">`` as
+the wrapper. This will show only those payment methods that support you currency.
+Remember to use ``{% csrf_token %}`` tag. See `example view sourcecode`_
+and `example template`_ for reference.
+
+Next steps
+----------
+
+If you're not satisfied with provided Payment model or the
+PaymentMethodForm, please see :doc:`customization docs<customization>`.
+
+.. _example sourcecode: https://github.com/django-getpaid/django-getpaid/tree/master/example
+.. _example view sourcecode: https://github.com/django-getpaid/django-getpaid/blob/master/example/orders/views.py#L25
+.. _example template: https://github.com/django-getpaid/django-getpaid/blob/master/example/orders/templates/orders/order_detail.html#L13

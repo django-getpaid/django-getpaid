@@ -8,6 +8,9 @@ Django-getpaid was designed to be very customizable. In this document you'll
 read about the Payment API which lets you customize most of the mechanics
 of ``django-getpaid``.
 
+Since most Payment methods act as interface to PaymentProcessor, you can use
+this to add extra layer between the Payment and the PaymentProcessor.
+
 Basic Order API
 ===============
 
@@ -26,6 +29,7 @@ Basic Payment API
 to provide properties linking your fieldnames to expected names.
 
 .. autoclass:: AbstractPayment
+   :members:
 
    .. attribute:: id
 
@@ -70,18 +74,4 @@ to provide properties linking your fieldnames to expected names.
    .. attribute:: description
 
       Payment description (max 128 chars).
-
-   .. automethod:: get_items()
-   .. automethod:: get_processor()
-   .. automethod:: change_status()
-   .. automethod:: on_success()
-   .. automethod:: on_failure()
-   .. automethod:: get_redirect_method()
-   .. automethod:: get_redirect_params()
-   .. automethod:: get_redirect_url()
-   .. automethod:: get_form()
-   .. automethod:: get_template_names
-   .. automethod:: handle_callback
-   .. automethod:: fetch_status
-   .. automethod:: fetch_and_update_status
 

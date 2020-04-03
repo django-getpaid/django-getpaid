@@ -22,6 +22,10 @@ Contents:
    installation
    settings
    customization
+   plugins
+   registry
+   roadmap
+   changelog
 
 
 Development team

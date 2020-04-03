@@ -17,6 +17,7 @@ django-model-utils = "^4.0.0"
 pendulum = "^2.0.5"
 #django = "~2.2 || ~3.0"
 swapper = "^1.1.2"
+sphinx-rtd-theme = "^0.4.3"
 
 [tool.poetry.dev-dependencies]
 tox = "^3.14.5"

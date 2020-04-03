@@ -43,6 +43,7 @@ class AbstractOrder(models.Model):
         There are backends that require some sort of item list to be attached
         to the payment. But it's up to you if the list is real or contains only
         one item called "Payment for stuff in {myshop}" ;)
+
         :return: List of {"name": str, "quantity": Decimal, "unit_price": Decimal} dicts.
         """
         return [
@@ -56,6 +57,7 @@ class AbstractOrder(models.Model):
     def get_total_amount(self):
         """
         This method must return the total value of the Order.
+
         :return: Decimal object
         """
         raise NotImplementedError
@@ -87,7 +89,9 @@ class AbstractPayment(models.Model):
         _("amount required"),
         decimal_places=2,
         max_digits=20,
-        help_text=_("Amount in selected currency, normal notation"),
+        help_text=_(
+            "Amount required to fulfill the payment; in selected currency, normal notation"
+        ),
     )
     currency = models.CharField(_("currency"), max_length=3)
     status = models.CharField(
@@ -103,10 +107,18 @@ class AbstractPayment(models.Model):
         _("paid on"), blank=True, null=True, default=None, db_index=True
     )
     amount_locked = models.DecimalField(
-        _("amount paid"), decimal_places=2, max_digits=20, default=0
+        _("amount paid"),
+        decimal_places=2,
+        max_digits=20,
+        default=0,
+        help_text=_("Amount locked with this payment, ready to charge."),
     )
     amount_paid = models.DecimalField(
-        _("amount paid"), decimal_places=2, max_digits=20, default=0
+        _("amount paid"),
+        decimal_places=2,
+        max_digits=20,
+        default=0,
+        help_text=_("Amount actually paid."),
     )
     refunded_on = models.DateTimeField(
         _("refunded on"), blank=True, null=True, default=None, db_index=True
@@ -368,25 +380,26 @@ class AbstractPayment(models.Model):
 
     def charge_locked(self, amount=None):
         """
-        Check if payment can be locked and call processor's method.
+        Charges the locked payment.
         This method is used eg. in flows that pre-authorize payment during
-        order placement and charge money upon shipping.
+        order placement and charge money just before shipping.
         """
         if self.status != PaymentStatus.ACCEPTED:
-            raise ValueError("Only accepted payments can be locked.")
+            raise ValueError("Only accepted payments can be charged.")
         if amount is None:
             amount = self.amount_locked
         if amount > self.amount_locked:
             raise ValueError("Cannot charge more than is locked.")
         amount_charged = self.processor.charge_locked(amount)
         if amount_charged:
+            self.amount_locked -= amount_charged
             self.on_success(amount_charged)
         return amount_charged
 
     def release(self):
         """
         Release locked payment. This can happen if pre-authorized payment cannot
-        be fullfilled (eg. the ordered product is no longer available for some reason).
+        be fulfilled (eg. the ordered product is no longer available for some reason).
         """
         if self.status != PaymentStatus.ACCEPTED:
             raise ValueError("Only accepted (locked) payments can be released.")

@@ -42,32 +42,51 @@ The model to represent a Payment. See :doc:`customization`.
 Backend settings
 ================
 
-``GETPAID_BACKEND_SETTINGS``
-----------------------------
+To provide configuration for payment backends, place them inside ``GETPAID_BACKEND_SETTINGS``
+dictionary. Use plugin's dotted path - just as you put it in  ``INSTALLED_APPS``
+- as a key for the config dict. See this example::
 
-Default: ``{}`` (Empty dictionary)
+    GETPAID_BACKEND_SETTINGS = {
+        "getpaid.backends.dummy": {
+            "confirmation_method": "push",
+            "gateway": reverse_lazy("paywall:gateway"),
+        },
+        "getpaid_paynow": {
+            "api_key": "9bcdead5-b194-4eb5-a1d5-c1654572e624",
+            "signature_key": "54d22fdb-2a8b-4711-a2e9-0e69a2a91189",
+        },
+    }
 
-A dictionary containing the settings for getpaid's backends. Keys in this dictionary
-are the dotted paths to each backend - just as you put them in ``INSTALLED_APPS``.
 
-Each backend defines its own settings there. Please check the backend's documentation.
-There is one exception - each backend can provide ``POST_TEMPLATE`` setting which
-takes precedence over ``GETPAID_POST_TEMPLATE`` described below. This setting is
-used by processor's default ``get_template_names`` method to override backend's
-``template_name`` attribute that points to a template that is used to render that
-backend's POST form. As this method is rarely used, you'll probably never want
-to use it anyway.
+Each backend defines its own settings this way. Please check the backend's documentation.
 
 
 Optional settings
 =================
 
-``GETPAID_POST_TEMPLATE``
--------------------------
+A place for optional settings is ``GETPAID`` dictionary, empty by default.
+It can contain these keys:
+
+``POST_TEMPLATE``
+-----------------
 
 Default: None
 
-This setting is used processor's by default ``get_template_names`` method to
-override backend's ``template_name`` attribute that points to a template that is
-used to render that backend's POST form. As this method is rarely used, you'll
-probably never want to use it anyway.
+This setting is used by processor's default :meth:`~getpaid.processor.BaseProcessor.get_template_names`
+method to override backend's :attr:`~getpaid.processor.BaseProcessor.template_name`.
+The template is used to render that backend's POST form.
+This setting can be used to provide a global default for such cases if you use more
+plugins requiring such template. You can also use ``POST_TEMPLATE`` key in
+:ref:`backend's config<Backend settings>` to override the template just for one backend.
+
+
+``SUCCESS_URL``
+---------------
+
+Default: ``"getpaid:payment-success"``
+
+``FAILURE_URL``
+---------------
+
+Default: ``"getpaid:payment-failure"``
+

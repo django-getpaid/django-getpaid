@@ -6,14 +6,14 @@ from django.urls import reverse
 
 
 class BaseProcessor(ABC):
-    production_url = None
-    sandbox_url = None
-    display_name = None
-    accepted_currencies = None
-    logo_url = None
-    slug = None  # for friendly urls
-    method = "GET"
-    template_name = None
+    production_url = None  #: Base URL of production environment.
+    sandbox_url = None  #: Base URL of sandbox environment.
+    display_name = None  #: The name of the provider for the ``choices``.
+    accepted_currencies = None  #: List of accepted currency codes (ISO 4217).
+    logo_url = None  #: Logo URL - can be used in templates.
+    slug = None  #: For friendly urls
+    method = "GET"  #: Method of operation. One of GET, POST or REST.
+    template_name = None  #: Template used in the POST method flow.
 
     def __init__(self, payment):
         self.payment = payment
@@ -21,9 +21,10 @@ class BaseProcessor(ABC):
         self.context = {}  # can be used by Payment's customized methods.
         if self.slug is None:
             self.slug = self.path
-        self.config = (
-            getattr(settings, "GETPAID", {}).get("BACKENDS", {}).get(self.path, {})
+        self.config = getattr(settings, "GETPAID_BACKEND_SETTINGS", {}).get(
+            self.path, {}
         )
+        self.optional_config = getattr(settings, "GETPAID", {})
 
     @classmethod
     def class_id(cls):
@@ -73,7 +74,7 @@ class BaseProcessor(ABC):
     def get_template_names(self, view=None) -> list:
         template_name = self.get_setting("POST_TEMPLATE")
         if template_name is None:
-            template_name = getattr(settings, "GETPAID_POST_TEMPLATE", None)
+            template_name = self.optional_config.get("POST_TEMPLATE")
         if template_name is None:
             template_name = self.template_name
         if template_name is None and hasattr(view, "get_template_names"):
@@ -99,7 +100,11 @@ class BaseProcessor(ABC):
 
     def prepare_paywall_headers(self, obj: dict = None) -> dict:
         """
-        Prepares HEADERS dict for REST or POST methods.
+        Prepares HEADERS dict for REST or POST methods. This is where you will
+        probably calculate the signature of ``obj``.
+
+        :param dict obj: Serialized payment object that you can use to calculate signature.
+        :return: Dictionary of headers that must be attached to a request to paywall.
         """
         raise NotImplemented
 
@@ -108,7 +113,7 @@ class BaseProcessor(ABC):
         Analyze direct response from broker, update payment status if applicable,
         and return dict with extracted and normalized data.
 
-        :param: response is expected to be ``request.response`` object.
+        :param response: is expected to be :py:mod:`request.response` object.
         """
         raise NotImplemented
 
@@ -116,8 +121,7 @@ class BaseProcessor(ABC):
         """
         This method handles the callback from payment broker for the purpose
         of asynchronously updating the payment status in our system.
-        :param args:
-        :param kwargs:
+
         :return: HttpResponse instance
         """
         raise NotImplementedError

@@ -13,13 +13,11 @@ DEBUG = True
 GETPAID_ORDER_MODEL = "orders.Order"
 GETPAID_PAYMENT_MODEL = "orders.CustomPayment"
 
-GETPAID = {
-    "BACKENDS": {
-        "getpaid.backends.dummy": {
-            "confirmation_method": "push",
-            "gateway": reverse_lazy("paywall:gateway"),
-        },
-    }
+GETPAID_BACKEND_SETTINGS = {
+    "getpaid.backends.dummy": {
+        "confirmation_method": "push",
+        "gateway": reverse_lazy("paywall:gateway"),
+    },
 }
 
 INSTALLED_APPS = [
