@@ -87,9 +87,8 @@ class FallbackView(RedirectView):
             url = getattr(getpaid_settings, "FAILURE_URL", None)
 
         if url is not None:
-            return resolve_url(
-                url, pk=payment.order.pk
-            )  # we may want to return to the Order summary or smth
+            # we may want to return to Order summary or smth
+            return resolve_url(url, pk=payment.order.pk)
         return resolve_url(payment.order.get_return_url(payment, success=self.success))
 
 

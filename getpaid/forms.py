@@ -20,9 +20,9 @@ class PaymentMethodForm(forms.ModelForm):
 
     class Meta:
         model = swapper.load_model("getpaid", "Payment")
-        fields = ["order", "amount", "description", "currency", "backend"]
+        fields = ["order", "amount_required", "description", "currency", "backend"]
         widgets = {
-            "amount": forms.HiddenInput,
+            "amount_required": forms.HiddenInput,
             "description": forms.HiddenInput,
             "currency": forms.HiddenInput,
         }
@@ -32,7 +32,7 @@ class PaymentMethodForm(forms.ModelForm):
         order = self.initial.get("order")
         currency = getattr(order, "currency", None) or self.data.get("currency")
         if order is not None:
-            self.initial["amount"] = order.get_total_amount()
+            self.initial["amount_required"] = order.get_total_amount()
             self.initial["description"] = order.get_description()
         backends = registry.get_choices(currency)
         self.fields["backend"] = forms.ChoiceField(

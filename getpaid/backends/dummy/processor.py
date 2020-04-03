@@ -31,7 +31,7 @@ class PaymentProcessor(BaseProcessor):
 
         return dict(
             payment=self.payment.pk,
-            value=self.payment.amount,
+            value=self.payment.amount_required,
             currency=self.payment.currency,
             description=self.payment.description,
             success_url=request.build_absolute_uri(

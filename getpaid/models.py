@@ -83,9 +83,9 @@ class AbstractPayment(models.Model):
         on_delete=models.CASCADE,
         related_name="payments",
     )
-    amount = models.DecimalField(
-        _("amount"),
-        decimal_places=4,
+    amount_required = models.DecimalField(
+        _("amount required"),
+        decimal_places=2,
         max_digits=20,
         help_text=_("Amount in selected currency, normal notation"),
     )
@@ -99,11 +99,14 @@ class AbstractPayment(models.Model):
     )
     backend = models.CharField(_("backend"), max_length=100, db_index=True)
     created_on = models.DateTimeField(_("created on"), auto_now_add=True, db_index=True)
-    paid_on = models.DateTimeField(
+    last_payment_on = models.DateTimeField(
         _("paid on"), blank=True, null=True, default=None, db_index=True
     )
+    amount_locked = models.DecimalField(
+        _("amount paid"), decimal_places=2, max_digits=20, default=0
+    )
     amount_paid = models.DecimalField(
-        _("amount paid"), decimal_places=4, max_digits=20, default=0
+        _("amount paid"), decimal_places=2, max_digits=20, default=0
     )
     refunded_on = models.DateTimeField(
         _("refunded on"), blank=True, null=True, default=None, db_index=True
@@ -207,6 +210,10 @@ class AbstractPayment(models.Model):
                 message=message,
             )
 
+    @property
+    def fully_paid(self):
+        return self.amount_paid >= self.amount_required
+
     def on_success(self, amount=None):
         """
         Called when payment receives successful balance income. It defaults to
@@ -217,49 +224,27 @@ class AbstractPayment(models.Model):
         """
         if getattr(settings, "USE_TZ", False):
             timezone = getattr(settings, "TIME_ZONE", "local")
-            self.paid_on = pendulum.now(timezone)
+            self.last_payment_on = pendulum.now(timezone)
         else:
-            self.paid_on = pendulum.now("UTC")
+            self.last_payment_on = pendulum.now("UTC")
 
         if amount:
             self.amount_paid = amount
         else:
-            self.amount_paid = self.amount
+            self.amount_paid = self.amount_required
 
-        fully_paid = self.amount_paid >= self.amount
-
-        if fully_paid:
+        if self.fully_paid:
             self.change_status(PaymentStatus.PAID)
         else:
             self.change_status(PaymentStatus.PARTIAL)
 
-        return fully_paid
+        return self.fully_paid
 
     def on_failure(self):
         """
         Called when payment has failed. By default changes status to 'failed'
         """
         self.change_status(PaymentStatus.FAILED)
-
-    def get_paywall_params(self, request) -> dict:
-        """
-        Interfaces processor's ``get_paywall_params``.
-
-        Redirect params is a dictionary containing all the data required by
-        backend to process the payment in appropriate format.
-        The data is extracted from Payment and Order.
-        """
-        return self.processor.get_paywall_params(request)
-
-    def get_paywall_url(self, params=None) -> str:
-        """
-        Interfaces processor's ``get_paywall_url``.
-
-        Returns URL where the user will be redirected to complete the payment.
-
-        Takes optional ``params`` which can help with constructing the url.
-        """
-        return self.processor.get_paywall_url(params)
 
     def get_paywall_method(self) -> str:
         """
@@ -278,6 +263,16 @@ class AbstractPayment(models.Model):
         """
         return self.processor.get_form(*args, **kwargs)
 
+    def get_paywall_url(self, params=None) -> str:
+        """
+        Interfaces processor's ``get_paywall_url``.
+
+        Returns URL where the user will be redirected to complete the payment.
+
+        Takes optional ``params`` which can help with constructing the url.
+        """
+        return self.processor.get_paywall_url(params)
+
     def get_template_names(self, view=None):
         """
         Interfaces processor's ``get_template_names``.
@@ -286,6 +281,32 @@ class AbstractPayment(models.Model):
         returns 'POST'.
         """
         return self.processor.get_template_names(view=view)
+
+    def get_paywall_params(self, request) -> dict:
+        """
+        Interfaces processor's ``get_paywall_params``.
+
+        Returns a dictionary containing all the data required by
+        backend to process the payment in appropriate format.
+        The data is extracted from Payment and Order.
+        """
+        return self.processor.get_paywall_params(request)
+
+    def prepare_paywall_headers(self, obj: dict = None) -> dict:
+        """
+        Interfaces processor's ``prepare_paywall_headers``.
+
+        Prepares headers for REST request to broker.
+        """
+        return self.processor.prepare_paywall_headers(obj)
+
+    def handle_paywall_response(self, response) -> dict:
+        """
+        Interfaces processor's ``handle_paywall_response``.
+
+        Validates and dictifies any direct response from broker.
+        """
+        return self.processor.handle_paywall_response(response)
 
     def handle_paywall_callback(self, request, *args, **kwargs):
         """
@@ -324,26 +345,56 @@ class AbstractPayment(models.Model):
             status is not None and status in [PaymentStatus.PAID, PaymentStatus.PARTIAL]
         ) or amount is not None:
             self.on_success(amount)
-        elif status == "failed":
+        elif status == PaymentStatus.FAILED:
             self.on_failure()
         elif status is not None:
             self.change_status(status)
+        return status
 
-    def prepare_paywall_headers(self, obj: dict = None) -> dict:
+    def lock(self, amount=None):
         """
-        Interfaces processor's ``prepare_paywall_headers``.
+        Used to lock payment for future charge.
+        Returns locked amount.
+        """
+        if amount is None:
+            amount = self.amount_required
+        amount_locked = self.processor.lock(amount)
+        if amount_locked:
+            self.amount_locked = amount_locked
+            self.change_status(PaymentStatus.ACCEPTED)
+        else:
+            self.on_failure()
+        return amount_locked
 
-        Prepares headers for REST request to broker.
+    def charge_locked(self, amount=None):
         """
-        return self.processor.prepare_paywall_headers(obj)
+        Check if payment can be locked and call processor's method.
+        This method is used eg. in flows that pre-authorize payment during
+        order placement and charge money upon shipping.
+        """
+        if self.status != PaymentStatus.ACCEPTED:
+            raise ValueError("Only accepted payments can be locked.")
+        if amount is None:
+            amount = self.amount_locked
+        if amount > self.amount_locked:
+            raise ValueError("Cannot charge more than is locked.")
+        amount_charged = self.processor.charge_locked(amount)
+        if amount_charged:
+            self.on_success(amount_charged)
+        return amount_charged
 
-    def handle_paywall_response(self, response) -> dict:
+    def release(self):
         """
-        Interfaces processor's ``handle_paywall_response``.
+        Release locked payment. This can happen if pre-authorized payment cannot
+        be fullfilled (eg. the ordered product is no longer available for some reason).
+        """
+        if self.status != PaymentStatus.ACCEPTED:
+            raise ValueError("Only accepted (locked) payments can be released.")
 
-        Validates and dictifies any direct response from broker.
-        """
-        return self.processor.handle_paywall_response(response)
+        released_amount = self.processor.release()
+        self.amount_locked -= released_amount
+        self.change_status(PaymentStatus.REFUNDED)
+        return released_amount
 
     def refund(self, amount=None):
         """
@@ -356,15 +407,16 @@ class AbstractPayment(models.Model):
         if self.status not in [PaymentStatus.PAID, PaymentStatus.PARTIAL]:
             raise ValueError("Only paid paymets can be refunded.")
         if amount is None:
-            amount = self.amount_paid
+            amount = self.amount_locked
         if amount:
-            if amount > self.amount_paid:
+            if amount > self.amount_locked:
                 raise ValueError("Cannot refund more than what was paid.")
             self.amount_refunded = self.processor.refund(amount)
-            self.amount_paid -= self.amount_refunded
+            self.amount_locked -= self.amount_refunded
             self.refunded_on = pendulum.now()
-            self.save()  # explicit is better than implicit
-            self.change_status(PaymentStatus.REFUNDED)
+            self.save()
+            if self.amount_locked == 0:
+                self.change_status(PaymentStatus.REFUNDED)
         return self.amount_refunded
 
 

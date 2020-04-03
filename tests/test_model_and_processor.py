@@ -24,7 +24,7 @@ class TestModels(TestCase):
         payment = Payment.objects.create(
             order=order,
             currency=order.currency,
-            amount=order.get_total_amount(),
+            amount_required=order.get_total_amount(),
             backend=dummy,
             description=order.get_description(),
         )
@@ -38,7 +38,7 @@ class TestModels(TestCase):
         assert payment.get_paywall_method() == proc.get_paywall_method()
 
         with self.assertRaises(NotImplementedError):
-            payment.fetch_payment_status()
+            payment.fetch_status()
 
         assert payment.get_template_names() == [
             "getpaid_dummy_backend/payment_post_form.html"
@@ -49,7 +49,7 @@ class TestModels(TestCase):
         payment = Payment.objects.create(
             order=order,
             currency=order.currency,
-            amount=order.get_total_amount(),
+            amount_required=order.get_total_amount(),
             backend=Plugin.slug,
             description=order.get_description(),
         )

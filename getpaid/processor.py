@@ -29,14 +29,8 @@ class BaseProcessor(ABC):
     def class_id(cls):
         return cls.__module__
 
-    def get_form(self, post_data):
-        """
-        Only used if the payment processor requires POST requests.
-        Generates a form only containing hidden input fields.
-        """
-        from . import forms
-
-        return forms.PaymentHiddenInputsPostForm(items=post_data)
+    def get_setting(self, name, default=None):
+        return self.config.get(name, default)
 
     @classmethod
     def get_display_name(cls) -> str:
@@ -50,15 +44,31 @@ class BaseProcessor(ABC):
     def get_logo_url(cls) -> str:
         return cls.logo_url
 
-    def fetch_payment_status(self) -> dict:
-        """
-        Logic for checking payment status with broker.
+    def get_paywall_method(self) -> str:
+        return self.method
 
-        Should return dict with either "amount" or "status" keys.
-        If "status" key is used, it should be one of getpaid.models.PAYMENT_STATUS_CHOICES
-        If both keys are present, "status" takes precedence.
+    def get_form(self, post_data):
         """
-        raise NotImplementedError
+        Only used if the payment processor requires POST requests.
+        Generates a form only containing hidden input fields.
+        """
+        from . import forms
+
+        return forms.PaymentHiddenInputsPostForm(items=post_data)
+
+    def get_paywall_baseurl(self):
+        if settings.DEBUG:
+            return self.sandbox_url
+        return self.production_url
+
+    def get_paywall_url(self, params=None):
+        """
+        Provide URL to paywall. If method uses optional ``params`` argument,
+        the resulting URL can be i.e. extracted from them (usually during REST
+        flow) or constructed using them (usually during GET flow). Default
+        implementation returns production or sandbox url based on DEBUG setting.
+        """
+        return self.get_paywall_baseurl()
 
     def get_template_names(self, view=None) -> list:
         template_name = self.get_setting("POST_TEMPLATE")
@@ -71,12 +81,6 @@ class BaseProcessor(ABC):
         if template_name is None:
             raise ImproperlyConfigured("Couldn't determine template name!")
         return [template_name]
-
-    def get_setting(self, name, default=None):
-        return self.config.get(name, default)
-
-    def get_paywall_method(self) -> str:
-        return self.method
 
     @abstractmethod
     def get_paywall_params(self, request) -> dict:
@@ -92,20 +96,6 @@ class BaseProcessor(ABC):
                 reverse("getpaid:payment-failure", kwargs={"pk": self.payment.pk})
             ),
         }
-
-    def get_paywall_baseurl(self):
-        if settings.DEBUG:
-            return self.sandbox_url
-        return self.production_url
-
-    def get_paywall_url(self, params=None):
-        """
-        Provide URL to paywall. If method uses optional ``params`` argument,
-        the resulting URL can be i.e. extracted from them (usually during REST
-        flow) or constructed using them (usually during GET flow). Default
-        implementation returns production or sandbox url based on DEBUG setting.
-        """
-        return self.get_paywall_baseurl()
 
     def prepare_paywall_headers(self, obj: dict = None) -> dict:
         """
@@ -131,6 +121,42 @@ class BaseProcessor(ABC):
         :return: HttpResponse instance
         """
         raise NotImplementedError
+
+    def fetch_payment_status(
+        self,
+    ) -> dict:  # TODO use interface annotation to specify the dict layout
+        """
+        Logic for checking payment status with broker.
+
+        Should return dict with either "amount" or "status" keys.
+        If "status" key is used, it should be one of getpaid.models.PAYMENT_STATUS_CHOICES
+        If both keys are present, "status" takes precedence.
+        """
+        raise NotImplementedError
+
+    def lock(self, amount=None):
+        """
+        Lock given amount for future charge.
+        Returns amount locked amount.
+        """
+        raise NotImplemented
+
+    def charge_locked(self, amount=None):
+        """
+        Check if payment can be locked and call processor's method.
+        This method is used eg. in flows that pre-authorize payment during
+        order placement and charge money upon shipping.
+        Returns charged amount.
+        """
+        raise NotImplemented
+
+    def release(self):
+        """
+        Release locked payment. This can happen if pre-authorized payment cannot
+        be fullfilled (eg. the ordered product is no longer available for some reason).
+        Returns released amount.
+        """
+        raise NotImplemented
 
     def refund(self, amount):
         """
