@@ -14,7 +14,7 @@ class PaymentProcessor(BaseProcessor):
     template_name = "getpaid_dummy_backend/payment_post_form.html"
 
     def handle_paywall_callback(self, request, *args, **kwargs):
-        payload = json.loads(request.data)
+        payload = json.loads(request.body)
         if payload["status"] == "OK":
             self.payment.on_success()
         else:
@@ -35,10 +35,10 @@ class PaymentProcessor(BaseProcessor):
             currency=self.payment.currency,
             description=self.payment.description,
             success_url=request.build_absolute_uri(
-                reverse("getpaid:payment-success", kwargs=dict(pk=self.payment.pk))
+                reverse("getpaid:payment-success", kwargs={"pk": self.payment.pk})
             ),
             failure_url=request.build_absolute_uri(
-                reverse("getpaid:payment-failure", kwargs=dict(pk=self.payment.pk))
+                reverse("getpaid:payment-failure", kwargs={"pk": self.payment.pk})
             ),
             **extra_args,
         )

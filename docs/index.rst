@@ -9,6 +9,8 @@ Welcome to django-getpaid's documentation!
 * support for using multiple currencies (but one per payment)
 * easy customization with provided base abstract models and swappable mechanic (same as with Django's User model)
 
+We would like to provide a :doc:`catalog<catalog>` of plugins for ``django-getpaid`` - if you create a plugin please let us know.
+
 **Disclaimer:** this project has nothing in common with `getpaid <http://code.google.com/p/getpaid/>`_ plone project.
 
 This project uses `semantic versioning <http://semver.org/>`_.
@@ -20,6 +22,7 @@ Contents:
    :maxdepth: 2
 
    installation
+   catalog
    settings
    customization
    plugins
@@ -37,7 +40,7 @@ Project leader:
 
 Original author:
 
-* Krzysztof Dorosz <cypreess@gmail.com>.
+* Krzysztof Dorosz <https://github.com/cypreess>.
 
 Contributors:
 
@@ -49,8 +52,6 @@ Sponsors:
 * `Sunscrapers <https://sunscrapers.com/>`_
 
 You are welcome to contribute to this project via `github <http://github.com>`_ fork & pull request.
-
-We would like to provide a catalog of plugins for `django-getpaid` - if you create a plugin please let us know.
 
 
 Indices and tables

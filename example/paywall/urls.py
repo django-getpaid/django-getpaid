@@ -4,4 +4,6 @@ from . import views
 
 app_name = "paywall"
 
-urlpatterns = [path("fake_gateway/", views.AuthorizationView.as_view(), name="gateway")]
+urlpatterns = [
+    path("fake_gateway/", views.AuthorizationView.as_view(), name="gateway"),
+]

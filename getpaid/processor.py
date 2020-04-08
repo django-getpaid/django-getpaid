@@ -87,16 +87,11 @@ class BaseProcessor(ABC):
     def get_paywall_params(self, request) -> dict:
         """
         Gather all the data required by the broker.
-        :return: dict
+
+        :param request:
+        :return: Dict of all params accepted by paywall API.
         """
-        return {
-            "success_url": request.build_absolute_uri(
-                reverse("getpaid:payment-success", kwargs={"pk": self.payment.pk})
-            ),
-            "failure_url": request.build_absolute_uri(
-                reverse("getpaid:payment-failure", kwargs={"pk": self.payment.pk})
-            ),
-        }
+        raise NotImplemented
 
     def prepare_paywall_headers(self, obj: dict = None) -> dict:
         """

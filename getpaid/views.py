@@ -1,5 +1,3 @@
-from importlib import import_module
-
 import requests
 import swapper
 from django import http
@@ -9,6 +7,7 @@ from django.shortcuts import get_object_or_404, resolve_url
 from django.template.response import TemplateResponse
 from django.urls import reverse
 from django.views import View
+from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import CreateView, RedirectView
 
 from .forms import PaymentMethodForm
@@ -78,24 +77,11 @@ class FallbackView(RedirectView):
 
     def get_redirect_url(self, *args, **kwargs):
         Payment = swapper.load_model("getpaid", "Payment")
-        fallback_settings = getattr(settings, "GETPAID", {})
         payment = get_object_or_404(Payment, pk=self.kwargs["pk"])
 
-        if self.success:
-            payment.on_success()
-            url = payment.processor.get_setting(
-                "SUCCESS_URL", getattr(fallback_settings, "SUCCESS_URL", None)
-            )
-        else:
-            payment.on_failure()
-            url = payment.processor.get_setting(
-                "FAILURE_URL", getattr(fallback_settings, "FAILURE_URL", None)
-            )
-
-        if url is not None:
-            # we may want to return to Order summary or smth
-            return resolve_url(url, pk=payment.order.pk)
-        return resolve_url(payment.order.get_return_url(payment, success=self.success))
+        return payment.get_return_redirect_url(
+            request=self.request, success=self.success
+        )
 
 
 class SuccessView(FallbackView):
@@ -111,3 +97,6 @@ class CallbackView(View):
         Payment = swapper.load_model("getpaid", "Payment")
         payment = get_object_or_404(Payment, pk=pk)
         return payment.handle_paywall_callback(request, *args, **kwargs)
+
+
+callback = csrf_exempt(CallbackView.as_view())

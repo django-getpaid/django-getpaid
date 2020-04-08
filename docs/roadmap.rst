@@ -12,3 +12,5 @@ future
 ------
 
 * cookiecutter for plugins
+* django-rest-framework helpers
+* async/await support

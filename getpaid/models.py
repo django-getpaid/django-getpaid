@@ -5,6 +5,7 @@ import pendulum
 import swapper
 from django.conf import settings
 from django.db import models
+from django.shortcuts import resolve_url
 from django.utils.translation import ugettext_lazy as _
 
 from . import FraudStatus, PaymentStatus, signals
@@ -431,6 +432,23 @@ class AbstractPayment(models.Model):
             if self.amount_locked == 0:
                 self.change_status(PaymentStatus.REFUNDED)
         return self.amount_refunded
+
+    def get_return_redirect_url(self, request, success):
+        fallback_settings = getattr(settings, "GETPAID", {})
+
+        if success:
+            url = self.processor.get_setting(
+                "SUCCESS_URL", getattr(fallback_settings, "SUCCESS_URL", None)
+            )
+        else:
+            url = self.processor.get_setting(
+                "FAILURE_URL", getattr(fallback_settings, "FAILURE_URL", None)
+            )
+
+        if url is not None:
+            # we may want to return to Order summary or smth
+            return resolve_url(url, pk=self.order.pk)
+        return resolve_url(self.order.get_return_url(self, success=success))
 
 
 class Payment(AbstractPayment):
