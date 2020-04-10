@@ -309,7 +309,7 @@ class AbstractPayment(models.Model):
         """
         Interfaces processor's ``prepare_paywall_headers``.
 
-        Prepares headers for REST request to broker.
+        Prepares headers for REST request to paywall.
         """
         return self.processor.prepare_paywall_headers(obj)
 
@@ -317,7 +317,7 @@ class AbstractPayment(models.Model):
         """
         Interfaces processor's ``handle_paywall_response``.
 
-        Validates and dictifies any direct response from broker.
+        Validates and dictifies any direct response from paywall.
         """
         return self.processor.handle_paywall_response(response)
 
@@ -325,13 +325,13 @@ class AbstractPayment(models.Model):
         """
         Interfaces processor's ``handle_paywall_callback``.
 
-        Called when 'PUSH' flow is used for a backend. In this scenario
-        broker's server will send a request to our server with information
-        about the state of Payment. Broker can send several such requests during
-        Payment's lifetime. Backend should analyze this request and return
-        appropriate response that can be understood by broker's service.
+        Called when 'PUSH' flow is used for a backend. In this scenario paywall
+        will send a request to our server with information about the state of
+        Payment. Broker can send several such requests during Payment's lifetime.
+        Backend should analyze this request and return appropriate response that
+        can be understood by paywall.
 
-        :param request: Request sent by payment broker.
+        :param request: Request sent by paywall.
 
         :return: HttpResponse instance
         """
@@ -341,8 +341,8 @@ class AbstractPayment(models.Model):
         """
         Interfaces processor's ``fetch_payment_status``.
 
-        Used during 'PULL' flow. Fetches status from broker's service
-        and translates it to a value from ``PAYMENT_STATUS_CHOICES``.
+        Used during 'PULL' flow. Fetches status from paywall and translates it to
+        a value from ``PAYMENT_STATUS_CHOICES``.
         """
         return self.processor.fetch_payment_status()
 
@@ -447,8 +447,12 @@ class AbstractPayment(models.Model):
 
         if url is not None:
             # we may want to return to Order summary or smth
-            return resolve_url(url, pk=self.order.pk)
+            kwargs = self.get_return_redirect_kwargs(request, success)
+            return resolve_url(url, **kwargs)
         return resolve_url(self.order.get_return_url(self, success=success))
+
+    def get_return_redirect_kwargs(self, request, success):
+        return {"pk": self.order_id}
 
 
 class Payment(AbstractPayment):

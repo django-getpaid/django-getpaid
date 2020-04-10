@@ -26,7 +26,9 @@ class PaymentProcessor(BaseProcessor):
         extra_args = {}
         if self.get_setting("confirmation_method", "push").lower() == "push":
             extra_args["callback"] = request.build_absolute_uri(
-                reverse("getpaid:callback-detail", kwargs={"pk": self.payment.pk}),
+                reverse(
+                    f"getpaid:{self.slug}:callback", kwargs={"pk": self.payment.pk}
+                ),
             )
 
         return dict(

@@ -1,5 +1,7 @@
 from django.urls import path
 
-from .views import DummyCallbackView
+from .views import callback
 
-urlpatterns = [path("dummy_callback/", DummyCallbackView.as_view(), name="dummy")]
+urlpatterns = [
+    path("callback/<uuid:pk>/", callback, name="callback"),
+]

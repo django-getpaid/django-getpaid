@@ -1,9 +1,8 @@
 import requests
 import swapper
 from django import http
-from django.conf import settings
 from django.core import exceptions
-from django.shortcuts import get_object_or_404, resolve_url
+from django.shortcuts import get_object_or_404
 from django.template.response import TemplateResponse
 from django.urls import reverse
 from django.views import View
@@ -66,10 +65,15 @@ class CreatePaymentView(CreateView):
         raise exceptions.PermissionDenied
 
 
+new_payment = CreatePaymentView.as_view()
+
+
 class FallbackView(RedirectView):
     """
-    FallbackView (in form of either SuccessView or FailureView) handles the
-    return from payment broker.
+    This view (in form of either SuccessView or FailureView) can be used as
+    general return view from paywall after completing/rejecting the payment.
+    Final url is returned by :meth:`getpaid.models.AbstractPayment.get_return_redirect_url`
+    which allows for customization.
     """
 
     success = None
@@ -88,15 +92,26 @@ class SuccessView(FallbackView):
     success = True
 
 
+success = SuccessView.as_view()
+
+
 class FailureView(FallbackView):
     success = False
 
 
-class CallbackView(View):
+failure = FailureView.as_view()
+
+
+class CallbackDetailView(View):
+    """
+    This view can be used if paywall supports setting callback url with payment data.
+    The flow is then passed to :meth:`getpaid.models.AbstractPayment.handle_paywall_callback`.
+    """
+
     def post(self, request, pk, *args, **kwargs):
         Payment = swapper.load_model("getpaid", "Payment")
         payment = get_object_or_404(Payment, pk=pk)
         return payment.handle_paywall_callback(request, *args, **kwargs)
 
 
-callback = csrf_exempt(CallbackView.as_view())
+callback = csrf_exempt(CallbackDetailView.as_view())
