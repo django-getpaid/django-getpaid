@@ -6,6 +6,7 @@ flake8>=2.1.0
 tox>=1.7.0
 codecov>=2.0.0
 django-model-utils>=2.0
+requests
 
 # Additional test requirements go here
 factory_boy

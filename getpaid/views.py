@@ -1,10 +1,7 @@
-import requests
 import swapper
 from django import http
 from django.core import exceptions
 from django.shortcuts import get_object_or_404
-from django.template.response import TemplateResponse
-from django.urls import reverse
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import CreateView, RedirectView
@@ -26,40 +23,7 @@ class CreatePaymentView(CreateView):
     def form_valid(self, form):
         payment = form.save()
 
-        method = payment.get_paywall_method()
-        params = payment.get_paywall_params(request=self.request)
-
-        if method.upper() == "GET":
-            payment.change_status("in_progress")
-            url = payment.get_paywall_url(params)
-            return http.HttpResponseRedirect(url)
-        elif method.upper() == "POST":
-            url = payment.get_paywall_url(params)
-            context = self.get_context_data(
-                form=payment.get_form(params), paywall_url=url
-            )
-
-            return TemplateResponse(
-                request=self.request,
-                template=payment.get_template_names(view=self),
-                context=context,
-            )
-        elif method.upper() == "REST":
-            api_url = payment.get_paywall_url()
-            headers = payment.prepare_paywall_headers(params)
-            response = requests.post(api_url, data=params, headers=headers)
-            if response.status_code in payment.processor.ok_statuses:
-                payment.change_status("in_progress")
-                decoded = payment.handle_paywall_response(response)
-                url = payment.get_paywall_url(decoded)
-                return http.HttpResponseRedirect(url)
-            return http.HttpResponseRedirect(
-                reverse("getpaid:payment-failure", kwargs={"pk": str(payment.pk)})
-            )
-        else:
-            raise exceptions.ImproperlyConfigured(
-                "Only GET, POST and REST are supported."
-            )
+        return payment.process(request=self.request, view=self)
 
     def form_invalid(self, form):
         raise exceptions.PermissionDenied

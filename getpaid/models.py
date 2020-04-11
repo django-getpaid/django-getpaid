@@ -1,5 +1,4 @@
 import uuid
-from abc import ABC
 from importlib import import_module
 
 import pendulum
@@ -142,6 +141,7 @@ class AbstractPayment(models.Model):
         db_index=True,
     )
     fraud_message = models.TextField(_("fraud message"), blank=True)
+
     _processor = None
 
     class Meta:
@@ -195,6 +195,14 @@ class AbstractPayment(models.Model):
             module = import_module(self.backend)
             processor = getattr(module, "PaymentProcessor")
         return processor(self)
+
+    def process(self, request, view) -> str:
+        """
+        Interfaces processor's :meth:`~getpaid.processor.BaseProcessor.process_payment`
+
+        :return: redirection url.
+        """
+        return self.processor.process_payment(request=request, view=view)
 
     def change_status(self, new_status):
         """
@@ -273,14 +281,6 @@ class AbstractPayment(models.Model):
         """
         self.change_status(PaymentStatus.FAILED)
 
-    def get_paywall_method(self) -> str:
-        """
-        Interfaces processor's ``get_paywall_method``.
-
-        Returns the method to be used to complete the payment - 'POST', 'GET', or 'REST.
-        """
-        return self.processor.get_paywall_method()
-
     def get_form(self, *args, **kwargs):
         """
         Interfaces processor's ``get_form``.
@@ -290,16 +290,6 @@ class AbstractPayment(models.Model):
         """
         return self.processor.get_form(*args, **kwargs)
 
-    def get_paywall_url(self, params=None) -> str:
-        """
-        Interfaces processor's ``get_paywall_url``.
-
-        Returns URL where the user will be redirected to complete the payment.
-
-        Takes optional ``params`` which can help with constructing the url.
-        """
-        return self.processor.get_paywall_url(params)
-
     def get_template_names(self, view=None):
         """
         Interfaces processor's ``get_template_names``.
@@ -308,32 +298,6 @@ class AbstractPayment(models.Model):
         returns 'POST'.
         """
         return self.processor.get_template_names(view=view)
-
-    def get_paywall_params(self, request) -> dict:
-        """
-        Interfaces processor's ``get_paywall_params``.
-
-        Returns a dictionary containing all the data required by
-        backend to process the payment in appropriate format.
-        The data is extracted from Payment and Order.
-        """
-        return self.processor.get_paywall_params(request)
-
-    def prepare_paywall_headers(self, obj: dict = None) -> dict:
-        """
-        Interfaces processor's ``prepare_paywall_headers``.
-
-        Prepares headers for REST request to paywall.
-        """
-        return self.processor.prepare_paywall_headers(obj)
-
-    def handle_paywall_response(self, response) -> dict:
-        """
-        Interfaces processor's ``handle_paywall_response``.
-
-        Validates, processes and dictifies a response from paywall.
-        """
-        return self.processor.handle_paywall_response(response)
 
     def handle_paywall_callback(self, request, *args, **kwargs):
         """
@@ -380,7 +344,7 @@ class AbstractPayment(models.Model):
 
     def lock(self, amount=None):
         """
-        Used to lock payment for future charge.
+        Used to lock payment for future charge. Used in flows with manual charging.
         Returns locked amount.
         """
         if amount is None:
@@ -420,8 +384,9 @@ class AbstractPayment(models.Model):
             raise ValueError("Only accepted (locked) payments can be released.")
 
         released_amount = self.processor.release()
-        self.amount_locked -= released_amount
-        self.change_status(PaymentStatus.REFUNDED)
+        if released_amount:
+            self.amount_locked -= released_amount
+            self.change_status(PaymentStatus.REFUNDED)
         return released_amount
 
     def start_refund(self, amount=None):
@@ -455,6 +420,8 @@ class AbstractPayment(models.Model):
         self.save()
         if self.amount_paid == 0:
             self.change_status(PaymentStatus.REFUNDED)
+        else:
+            self.change_status(PaymentStatus.PARTIAL)
         return self.amount_refunded
 
     def get_return_redirect_url(self, request, success):

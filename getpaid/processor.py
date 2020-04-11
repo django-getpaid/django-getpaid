@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 
 from django.conf import settings
-from django.core.exceptions import ImproperlyConfigured
 
 
 class BaseProcessor(ABC):
@@ -11,10 +10,8 @@ class BaseProcessor(ABC):
     accepted_currencies = None  #: List of accepted currency codes (ISO 4217).
     logo_url = None  #: Logo URL - can be used in templates.
     slug = None  #: For friendly urls
-    method = None  #: Method of operation. One of GET, POST or REST.
-    template_name = None  #: Template used in the POST method flow.
     ok_statuses = [
-        200
+        200,
     ]  #: List of potentially successful HTTP status codes returned by paywall when creating payment
 
     def __init__(self, payment):
@@ -50,71 +47,18 @@ class BaseProcessor(ABC):
     def get_logo_url(cls) -> str:
         return cls.logo_url
 
-    def get_paywall_method(self) -> str:
-        return self.method
-
-    def get_form(self, post_data):
-        """
-        Only used if the payment processor requires POST requests.
-        Generates a form only containing hidden input fields.
-        """
-        from . import forms
-
-        return forms.PaymentHiddenInputsPostForm(items=post_data)
-
-    def get_paywall_baseurl(self):
+    @classmethod
+    def get_paywall_baseurl(cls):
         if settings.DEBUG:
-            return self.sandbox_url
-        return self.production_url
-
-    def get_paywall_url(self, params=None):
-        """
-        Provide URL to paywall. If method uses optional ``params`` argument,
-        the resulting URL can be i.e. extracted from them (usually during REST
-        flow) or constructed using them (usually during GET flow). Default
-        implementation returns production or sandbox url based on DEBUG setting.
-        """
-        return self.get_paywall_baseurl()
-
-    def get_template_names(self, view=None) -> list:
-        template_name = self.get_setting("POST_TEMPLATE")
-        if template_name is None:
-            template_name = self.optional_config.get("POST_TEMPLATE")
-        if template_name is None:
-            template_name = self.template_name
-        if template_name is None and hasattr(view, "get_template_names"):
-            return view.get_template_names()
-        if template_name is None:
-            raise ImproperlyConfigured("Couldn't determine template name!")
-        return [template_name]
+            return cls.sandbox_url
+        return cls.production_url
 
     @abstractmethod
-    def get_paywall_params(self, request) -> dict:
+    def process_payment(self, request, view) -> str:
         """
-        Gather all the data required by the paywall.
+        Do what it takes to get the url redirecting user to paywall.
 
-        :param request: request creating the payment
-        :return: Dict of all params accepted by paywall API.
-        """
-        raise NotImplemented
-
-    def prepare_paywall_headers(self, obj: dict = None) -> dict:
-        """
-        Prepares HEADERS dict for REST or POST methods. This is where you will
-        probably calculate the signature of ``obj``.
-
-        :param dict obj: Serialized payment object that you can use to calculate signature.
-        :return: Dictionary of headers that must be attached to a request to paywall.
-        """
-        raise NotImplemented
-
-    def handle_paywall_response(self, response) -> dict:
-        """
-        Analyze response from paywall, update payment status if applicable,
-        and return dict with extracted and normalized data.
-
-        :param response: is expected to be :py:mod:`request.response` object.
-        :return: dict with keys: redirect_url, status
+        :return: url to paywall for payment confirmation.
         """
         raise NotImplemented
 
@@ -127,9 +71,8 @@ class BaseProcessor(ABC):
         """
         raise NotImplementedError
 
-    def fetch_payment_status(
-        self,
-    ) -> dict:  # TODO use interface annotation to specify the dict layout
+    def fetch_payment_status(self) -> dict:
+        # TODO use interface annotation to specify the dict layout
         """
         Logic for checking payment status with paywall.
 

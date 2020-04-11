@@ -35,12 +35,17 @@ class PaymentMethodForm(forms.ModelForm):
             self.initial["amount_required"] = order.get_total_amount()
             self.initial["description"] = order.get_description()
         backends = registry.get_choices(currency)
-        self.fields["backend"] = forms.ChoiceField(
+        params = dict(
             choices=backends,
             initial=backends[0][0] if len(backends) == 1 else "",
             label=_("Payment method"),
             widget=forms.RadioSelect,
         )
+        if len(backends) == 1:
+            params["initial"] = backends[0][0]
+            params["widget"] = forms.HiddenInput
+
+        self.fields["backend"] = forms.ChoiceField(**params)
 
     def clean_order(self):
         if hasattr(self.cleaned_data["order"], "is_ready_for_payment"):

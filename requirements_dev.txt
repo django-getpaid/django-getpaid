@@ -5,3 +5,4 @@ wheel==0.30.0
 django-model-utils>=2.0
 black
 pre-commit
+requests

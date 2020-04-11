@@ -6,8 +6,5 @@ class Plugin(BaseProcessor):
     accepted_currencies = ["EUR", "USD"]
     slug = "test_plugin"
 
-    def get_paywall_url(self, *args, **kwargs):
-        return "test"
-
-    def get_paywall_params(self, *args, **kwargs):
-        return {}
+    def process_payment(self, *args, **kwargs):
+        return ""
