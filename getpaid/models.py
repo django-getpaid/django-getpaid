@@ -1,4 +1,5 @@
 import uuid
+from abc import ABC
 from importlib import import_module
 
 import pendulum
@@ -63,7 +64,7 @@ class AbstractOrder(models.Model):
         """
         raise NotImplementedError
 
-    def get_user_info(self) -> dict:
+    def get_buyer_info(self) -> dict:
         """
         This method should return dict with necessary user info.
         For most backends email should be sufficient.
@@ -158,6 +159,13 @@ class AbstractPayment(models.Model):
             self._processor = self.get_processor()
         return self._processor
 
+    def get_unique_id(self):
+        """
+        Return unique identifier for this payment. Most paywalls call this
+        "external id". Default: str(self.id) which is uuid4.
+        """
+        return str(self.id)
+
     def get_items(self):
         """
         Some backends require the list of items to be added to Payment.
@@ -169,6 +177,9 @@ class AbstractPayment(models.Model):
         """
         # TODO: type/interface annotation
         return self.order.get_items()
+
+    def get_buyer_info(self):
+        return self.order.get_buyer_info()
 
     def get_processor(self):
         """
@@ -191,6 +202,7 @@ class AbstractPayment(models.Model):
         You should always change payment status via this method.
         Otherwise the signal will not be emitted.
         """
+        saved = False
         if self.status != new_status:
             # do anything only when status is really changed
             old_status = self.status
@@ -202,6 +214,8 @@ class AbstractPayment(models.Model):
                 old_status=old_status,
                 new_status=new_status,
             )
+            saved = True
+        return saved
 
     def change_fraud_status(self, new_status, message=""):
         """
@@ -241,7 +255,7 @@ class AbstractPayment(models.Model):
         else:
             self.last_payment_on = pendulum.now("UTC")
 
-        if amount:
+        if amount is not None:
             self.amount_paid = amount
         else:
             self.amount_paid = self.amount_required
@@ -317,7 +331,7 @@ class AbstractPayment(models.Model):
         """
         Interfaces processor's ``handle_paywall_response``.
 
-        Validates and dictifies any direct response from paywall.
+        Validates, processes and dictifies a response from paywall.
         """
         return self.processor.handle_paywall_response(response)
 
@@ -410,27 +424,37 @@ class AbstractPayment(models.Model):
         self.change_status(PaymentStatus.REFUNDED)
         return released_amount
 
-    def refund(self, amount=None):
+    def start_refund(self, amount=None):
         """
-        Interfaces processor's ``refund``.
+        Initializes refund flow.
 
         :param: amount - optional refund amount - if not given, refunds paid value.
-        :returns: the result of processor's ``refund`` method that should return the amount refunded.
-
         """
         if self.status not in [PaymentStatus.PAID, PaymentStatus.PARTIAL]:
             raise ValueError("Only paid paymets can be refunded.")
         if amount is None:
-            amount = self.amount_locked
+            amount = self.amount_paid
         if amount:
-            if amount > self.amount_locked:
+            if amount > self.amount_paid:
                 raise ValueError("Cannot refund more than what was paid.")
-            self.amount_refunded = self.processor.refund(amount)
-            self.amount_locked -= self.amount_refunded
-            self.refunded_on = pendulum.now()
-            self.save()
-            if self.amount_locked == 0:
-                self.change_status(PaymentStatus.REFUNDED)
+            self.change_status(PaymentStatus.REFUND_STARTED)
+            self.processor.refund(amount)
+
+    def finish_refund(self, amount=None):
+        """
+        Finishes refund flow after paywall confirms the refund status.
+        """
+        if self.status != PaymentStatus.REFUND_STARTED:
+            raise ValueError("Trying to finalize refund that was not started.")
+        if amount is None:
+            amount = self.amount_paid
+
+        self.amount_refunded = amount
+        self.amount_paid -= self.amount_refunded
+        self.refunded_on = pendulum.now()
+        self.save()
+        if self.amount_paid == 0:
+            self.change_status(PaymentStatus.REFUNDED)
         return self.amount_refunded
 
     def get_return_redirect_url(self, request, success):

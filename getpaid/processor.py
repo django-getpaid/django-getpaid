@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
-from django.urls import reverse
 
 
 class BaseProcessor(ABC):
@@ -12,8 +11,11 @@ class BaseProcessor(ABC):
     accepted_currencies = None  #: List of accepted currency codes (ISO 4217).
     logo_url = None  #: Logo URL - can be used in templates.
     slug = None  #: For friendly urls
-    method = "GET"  #: Method of operation. One of GET, POST or REST.
+    method = None  #: Method of operation. One of GET, POST or REST.
     template_name = None  #: Template used in the POST method flow.
+    ok_statuses = [
+        200
+    ]  #: List of potentially successful HTTP status codes returned by paywall when creating payment
 
     def __init__(self, payment):
         self.payment = payment
@@ -31,7 +33,10 @@ class BaseProcessor(ABC):
         return cls.__module__
 
     def get_setting(self, name, default=None):
-        return self.config.get(name, default)
+        value = self.config.get(name, default)
+        if value is None:
+            value = self.optional_config.get(name, None)
+        return value
 
     @classmethod
     def get_display_name(cls) -> str:
@@ -86,9 +91,9 @@ class BaseProcessor(ABC):
     @abstractmethod
     def get_paywall_params(self, request) -> dict:
         """
-        Gather all the data required by the broker.
+        Gather all the data required by the paywall.
 
-        :param request:
+        :param request: request creating the payment
         :return: Dict of all params accepted by paywall API.
         """
         raise NotImplemented
@@ -105,16 +110,17 @@ class BaseProcessor(ABC):
 
     def handle_paywall_response(self, response) -> dict:
         """
-        Analyze direct response from broker, update payment status if applicable,
+        Analyze response from paywall, update payment status if applicable,
         and return dict with extracted and normalized data.
 
         :param response: is expected to be :py:mod:`request.response` object.
+        :return: dict with keys: redirect_url, status
         """
         raise NotImplemented
 
     def handle_paywall_callback(self, request, *args, **kwargs):
         """
-        This method handles the callback from payment broker for the purpose
+        This method handles the callback from paywall for the purpose
         of asynchronously updating the payment status in our system.
 
         :return: HttpResponse instance
@@ -125,7 +131,7 @@ class BaseProcessor(ABC):
         self,
     ) -> dict:  # TODO use interface annotation to specify the dict layout
         """
-        Logic for checking payment status with broker.
+        Logic for checking payment status with paywall.
 
         Should return dict with either "amount" or "status" keys.
         If "status" key is used, it should be one of getpaid.models.PAYMENT_STATUS_CHOICES

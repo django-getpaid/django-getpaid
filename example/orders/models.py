@@ -37,7 +37,7 @@ class Order(AbstractOrder):
     def get_description(self):
         return self.name
 
-    def get_user_info(self):
+    def get_buyer_info(self):
         return {"email": "test@example.com"}
 
 

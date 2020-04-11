@@ -48,7 +48,7 @@ class CreatePaymentView(CreateView):
             api_url = payment.get_paywall_url()
             headers = payment.prepare_paywall_headers(params)
             response = requests.post(api_url, data=params, headers=headers)
-            if response.status_code == 200:
+            if response.status_code in payment.processor.ok_statuses:
                 payment.change_status("in_progress")
                 decoded = payment.handle_paywall_response(response)
                 url = payment.get_paywall_url(decoded)

@@ -5,7 +5,16 @@ description = "Multi-broker payment processor for Django."
 authors = ["Dominik Kozaczko <dominik@kozaczko.info>"]
 license = "MIT"
 readme = "README.rst"
+documentation = "https://django-getpaid.readthedocs.io/"
 repository = "https://github.com/django-getpaid/django-getpaid"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Framework :: Django",
+    "Framework :: Django :: 2.2",
+    "Framework :: Django :: 3.0",
+    "Topic :: Office/Business :: Financial",
+    "Topic :: Office/Business :: Financial :: Point-Of-Sale"
+]
 packages = [
     { include = "getpaid" }
 ]
@@ -17,7 +26,6 @@ django-model-utils = "^4.0.0"
 pendulum = "^2.0.5"
 #django = "~2.2 || ~3.0"
 swapper = "^1.1.2"
-sphinx-rtd-theme = "^0.4.3"
 
 [tool.poetry.dev-dependencies]
 tox = "^3.14.5"
@@ -31,10 +39,11 @@ requests-mock = {version="^1.7.0", optional=true}
 pytest-cov = {version = "^2.8.1", optional = true}
 pytest-django = {version = "^3.8.0", optional = true}
 sphinx = {version = "^3", optional = true}
+sphinx-rtd-theme = {version = "^0.4.3", optional = true}
 black = "^19.10b0"
 
 [tool.poetry.extras]
-docs = ["sphinx"]
+docs = ["sphinx", "sphinx-rtd-theme"]
 test = ["pytest", "codecov", "coverage", "request-mock", "pytest-cov", "pytest-django"]
 
 [tool.black]
@@ -67,7 +76,7 @@ exclude = '''
 
 [tool.isort]
 multi_line_output = 3
-include_trailing_comma = false
+include_trailing_comma = true
 line_length = 88
 known_first_party = ["getpaid"]
 known_third_party = ["django", "factory", "orders", "pendulum", "requests", "swapper"]

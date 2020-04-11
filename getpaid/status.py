@@ -29,6 +29,7 @@ class PaymentStatus:
     PARTIAL = "partially_paid"
     CANCELLED = "cancelled"
     FAILED = "failed"
+    REFUND_STARTED = "refund_started"
     REFUNDED = "refunded"
 
     CHOICES = (
@@ -39,6 +40,7 @@ class PaymentStatus:
         (PAID, pgettext_lazy("payment status", "paid")),
         (CANCELLED, pgettext_lazy("payment status", "cancelled")),
         (FAILED, pgettext_lazy("payment status", "failed")),
+        (REFUND_STARTED, pgettext_lazy("payment status", "refund started")),
         (REFUNDED, pgettext_lazy("payment status", "refunded")),
     )
 

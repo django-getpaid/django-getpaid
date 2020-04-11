@@ -61,7 +61,7 @@ could look like this example:
         total = models.DecimalField()
         currency = models.CharField(max_length=3, default=settings.DEFAULT_CURRENCY)
 
-        def get_user_info(self):
+        def get_buyer_info(self):
             return {"email": self.buyer.email}
 
         def get_total_amount(self):

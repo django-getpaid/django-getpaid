@@ -81,7 +81,7 @@ Use ``getpaid.models.AbstractOrder`` as parent class of your Order model and def
         def get_total_amount(self):
             return self.amount
 
-        def get_user_info(self):
+        def get_buyer_info(self):
             return {"email": self.buyer.email}
 
         def get_description(self):
