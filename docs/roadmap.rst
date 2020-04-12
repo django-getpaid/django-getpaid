@@ -1,16 +1,12 @@
 Planned features
 ================
 
-2.1
----
+These features are planned for future versions (in no particular order):
 
+* paywall communication log (all responses and callbacks)
 * Subscriptions handling
 * Complete type annotations
-
-
-future
-------
-
 * cookiecutter for plugins
 * django-rest-framework helpers
 * async/await support
+* admin actions to PULL payment statuses

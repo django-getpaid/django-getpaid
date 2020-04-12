@@ -80,13 +80,32 @@ plugins requiring such template. You can also use ``POST_TEMPLATE`` key in
 :ref:`backend's config<Backend settings>` to override the template just for one backend.
 
 
+``POST_FORM_CLASS``
+-------------------
+
+Default: None
+
+This setting is used by backends that use POST flow.
+This setting can be used to provide a global default for such cases if you use more
+plugins requiring such template. You can also use ``POST_FORM_CLASS`` key in
+:ref:`backend's config<Backend settings>` to override the template just for one backend.
+Use full dotted path name.
+
+
 ``SUCCESS_URL``
 ---------------
 
 Default: ``"getpaid:payment-success"``
+
+Allows setting custom view name for successful returns from paywall.
+Again, this can also be set on a per-backend basis.
+
+If the view requires kwargs to be resolved, you need to override
 
 ``FAILURE_URL``
 ---------------
 
 Default: ``"getpaid:payment-failure"``
 
+Allows setting custom view name for fail returns from paywall.
+Again, this can also be set on a per-backend basis.

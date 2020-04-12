@@ -4,9 +4,11 @@ Welcome to django-getpaid's documentation!
 **django-getpaid** is a multi-broker payment processor for Django. Main features include:
 
 * support for multiple payment brokers at the same time
-* clean but flexible architecture
+* very flexible architecture
 * support for asynchronous status updates - both push and pull
-* support for using multiple currencies (but one per payment)
+* support for modern REST-based broker APIs
+* support for multiple currencies (but one per payment)
+* support for global and per-plugin validators
 * easy customization with provided base abstract models and swappable mechanic (same as with Django's User model)
 
 We would like to provide a :doc:`catalog<catalog>` of plugins for ``django-getpaid`` - if you create a plugin please let us know.

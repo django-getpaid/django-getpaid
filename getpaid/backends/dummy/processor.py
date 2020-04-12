@@ -9,6 +9,7 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.template.response import TemplateResponse
 from django.urls import reverse
 
+from getpaid.post_forms import PaymentHiddenInputsPostForm
 from getpaid.processor import BaseProcessor
 
 
@@ -17,27 +18,11 @@ class PaymentProcessor(BaseProcessor):
     display_name = "Dummy"
     accepted_currencies = ["PLN", "EUR"]
     method = "POST"
-    template_name = "getpaid_dummy_backend/payment_post_form.html"
+    post_form_class = PaymentHiddenInputsPostForm
+    post_template_name = "getpaid_dummy_backend/payment_post_form.html"
 
     def get_paywall_method(self):
         return self.get_setting("method") or self.method
-
-    def get_template_names(self, view=None) -> list:
-        template_name = self.get_setting("POST_TEMPLATE")
-        if template_name is None:
-            template_name = self.optional_config.get("POST_TEMPLATE")
-        if template_name is None:
-            template_name = self.template_name
-        if template_name is None and hasattr(view, "get_template_names"):
-            return view.get_template_names()
-        if template_name is None:
-            raise ImproperlyConfigured("Couldn't determine template name!")
-        return [template_name]
-
-    def get_form(self, post_data):
-        from getpaid.forms import PaymentHiddenInputsPostForm
-
-        return PaymentHiddenInputsPostForm(items=post_data)
 
     def prepare_paywall_headers(self, params):
         token = uuid.uuid4()  # do some authentication stuff

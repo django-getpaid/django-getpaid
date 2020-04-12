@@ -63,8 +63,11 @@ class AuthorizationView(FormView):
         return super().form_valid(form)
 
 
+authorization_view = csrf_exempt(AuthorizationView.as_view())
+
+
 @csrf_exempt
-def register_payment(request):
+def rest_register_payment(request):
     legal_fields = [
         "payment",
         "value",

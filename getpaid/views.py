@@ -22,7 +22,6 @@ class CreatePaymentView(CreateView):
 
     def form_valid(self, form):
         payment = form.save()
-
         return payment.process(request=self.request, view=self)
 
     def form_invalid(self, form):

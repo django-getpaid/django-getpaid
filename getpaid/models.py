@@ -3,6 +3,7 @@ from importlib import import_module
 
 import pendulum
 import swapper
+from django import forms
 from django.conf import settings
 from django.db import models
 from django.shortcuts import resolve_url
@@ -13,6 +14,14 @@ from .registry import registry
 
 
 class AbstractOrder(models.Model):
+    """
+    Please consider setting either primary or secondary key of your Orders to
+    UUIDField. This way you will hide your volume which is valuable business
+    information that should be kept hidden. If you set it as secondary key,
+    remember to use ``dbindex=True`` (primary keys are indexed by default).
+    Read more: https://docs.djangoproject.com/en/3.0/ref/models/fields/#uuidfield
+    """
+
     class Meta:
         abstract = True
 
@@ -29,14 +38,22 @@ class AbstractOrder(models.Model):
     def get_absolute_url(self):
         """
         Standard method recommended in Django docs. It should return
-        the URL to see details of particular Order.
+        the URL to see details of particular Payment (or usually - Order).
         """
         raise NotImplementedError
 
     def is_ready_for_payment(self):
-        """Most of the validation is made in PaymentMethodForm using but if you
-        need any extra validation. For example you most probably want to disable
-        making another payment for order that is already paid."""
+        """Most of the validation is made in PaymentMethodForm but if you need
+        any extra validation. For example you most probably want to disable
+        making another payment for order that is already paid.
+
+        You can raise :class:`~django.forms.ValidationError` if you want more
+        verbose error message.
+        """
+        if self.payments.exclude(
+            status__in=[PaymentStatus.FAILED, PaymentStatus.CANCELLED]
+        ).exists():
+            raise forms.ValidationError(_("Non-failed Payments exist for this Order."))
         return True
 
     def get_items(self):
@@ -257,6 +274,7 @@ class AbstractPayment(models.Model):
 
         Returns boolean value whether payment was fully paid.
         """
+        saved = False
         if getattr(settings, "USE_TZ", False):
             timezone = getattr(settings, "TIME_ZONE", "local")
             self.last_payment_on = pendulum.now(timezone)
@@ -264,14 +282,17 @@ class AbstractPayment(models.Model):
             self.last_payment_on = pendulum.now("UTC")
 
         if amount is not None:
-            self.amount_paid = amount
+            self.amount_paid += amount
         else:
             self.amount_paid = self.amount_required
 
         if self.fully_paid:
-            self.change_status(PaymentStatus.PAID)
+            saved = self.change_status(PaymentStatus.PAID)
         else:
-            self.change_status(PaymentStatus.PARTIAL)
+            saved = self.change_status(PaymentStatus.PARTIAL)
+
+        if not saved:
+            self.save()
 
         return self.fully_paid
 
@@ -279,7 +300,7 @@ class AbstractPayment(models.Model):
         """
         Called when payment has failed. By default changes status to 'failed'
         """
-        self.change_status(PaymentStatus.FAILED)
+        return self.change_status(PaymentStatus.FAILED)
 
     def get_form(self, *args, **kwargs):
         """
@@ -342,20 +363,11 @@ class AbstractPayment(models.Model):
             self.change_status(status)
         return status
 
-    def lock(self, amount=None):
+    def lock(self, request=None, amount=None, **kwargs):
         """
-        Used to lock payment for future charge. Used in flows with manual charging.
-        Returns locked amount.
+        Interfaces processor's :meth:`~getpaid.processor.BaseProcessor.lock`.
         """
-        if amount is None:
-            amount = self.amount_required
-        amount_locked = self.processor.lock(amount)
-        if amount_locked:
-            self.amount_locked = amount_locked
-            self.change_status(PaymentStatus.ACCEPTED)
-        else:
-            self.on_failure()
-        return amount_locked
+        return self.processor.lock(request=request, amount=amount, **kwargs)
 
     def charge_locked(self, amount=None):
         """
@@ -425,16 +437,10 @@ class AbstractPayment(models.Model):
         return self.amount_refunded
 
     def get_return_redirect_url(self, request, success):
-        fallback_settings = getattr(settings, "GETPAID", {})
-
         if success:
-            url = self.processor.get_setting(
-                "SUCCESS_URL", getattr(fallback_settings, "SUCCESS_URL", None)
-            )
+            url = self.processor.get_setting("SUCCESS_URL")
         else:
-            url = self.processor.get_setting(
-                "FAILURE_URL", getattr(fallback_settings, "FAILURE_URL", None)
-            )
+            url = self.processor.get_setting("FAILURE_URL")
 
         if url is not None:
             # we may want to return to Order summary or smth
@@ -443,7 +449,7 @@ class AbstractPayment(models.Model):
         return resolve_url(self.order.get_return_url(self, success=success))
 
     def get_return_redirect_kwargs(self, request, success):
-        return {"pk": self.order_id}
+        return {"pk": self.id}
 
 
 class Payment(AbstractPayment):
