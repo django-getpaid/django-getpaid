@@ -227,20 +227,20 @@ class AbstractPayment(models.Model):
         You should always change payment status via this method.
         Otherwise the signal will not be emitted.
         """
-        saved = False
-        if self.status != new_status:
-            # do anything only when status is really changed
-            old_status = self.status
-            self.status = new_status
-            self.save()
-            signals.payment_status_changed.send(
-                sender=self.__class__,
-                instance=self,
-                old_status=old_status,
-                new_status=new_status,
-            )
-            saved = True
-        return saved
+
+        if (self.status in PaymentStatus.unmovable) or (self.status == new_status):
+            return False
+        # do anything only when status is really changed
+        old_status = self.status
+        self.status = new_status
+        self.save()
+        signals.payment_status_changed.send(
+            sender=self.__class__,
+            instance=self,
+            old_status=old_status,
+            new_status=new_status,
+        )
+        return True
 
     def change_fraud_status(self, new_status, message=""):
         """

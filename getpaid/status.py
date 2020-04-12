@@ -45,3 +45,5 @@ class PaymentStatus:
     )
 
     values = [s[0] for s in CHOICES]
+
+    unmovable = (PAID, FAILED, CANCELLED, REFUNDED)
