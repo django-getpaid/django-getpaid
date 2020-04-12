@@ -1,6 +1,7 @@
 import swapper
 from django.shortcuts import get_object_or_404
 from django.views import View
+from django.views.decorators.csrf import csrf_exempt
 
 
 class CallbackView(View):
@@ -14,4 +15,4 @@ class CallbackView(View):
         return payment.handle_paywall_callback(request, *args, **kwargs)
 
 
-callback = CallbackView.as_view()
+callback = csrf_exempt(CallbackView.as_view())

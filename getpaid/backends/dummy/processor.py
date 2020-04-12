@@ -48,7 +48,7 @@ class PaymentProcessor(BaseProcessor):
 
             return TemplateResponse(
                 request=request,
-                template=self.get_template_names(view=self),
+                template=self.get_template_names(view=view),
                 context=context,
             )
         elif method.upper() == "REST":

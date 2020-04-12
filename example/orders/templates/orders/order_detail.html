@@ -9,7 +9,7 @@
 <p>
 
   {% if order.status == 'W' %}
-    <h2>Choose payment type:</h2>
+    {% if payment_form.fields.backend.choices|length > 1 %}<h2>Choose payment type:</h2>{% endif %}
     <form action="{% url 'getpaid:create-payment' %}" method="post">
       {% csrf_token %}
       {{ payment_form.as_p }}

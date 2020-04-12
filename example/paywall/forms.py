@@ -12,3 +12,5 @@ class QuestionForm(forms.Form):
     )
 
     callback = forms.CharField(widget=forms.HiddenInput)
+    success_url = forms.CharField(widget=forms.HiddenInput)
+    failure_url = forms.CharField(widget=forms.HiddenInput)
