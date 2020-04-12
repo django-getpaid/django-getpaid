@@ -3,16 +3,19 @@
 import uuid
 
 import django.db.models.deletion
+import swapper
 from django.db import migrations, models
 
 
-class Migration(migrations.Migration):
+def get_dependencies():
+    app_name, _, model_name = swapper.get_model_name("getpaid", "Order").rpartition(".")
+    return [(app_name, "0001_initial")]
 
+
+class Migration(migrations.Migration):
     initial = True
 
-    dependencies = [
-        ("orders", "0001_initial"),
-    ]
+    dependencies = get_dependencies()
 
     operations = [
         migrations.CreateModel(
@@ -161,7 +164,7 @@ class Migration(migrations.Migration):
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="payments",
-                        to="orders.Order",
+                        to=swapper.get_model_name("getpaid", "Order"),
                         verbose_name="order",
                     ),
                 ),
@@ -171,7 +174,7 @@ class Migration(migrations.Migration):
                 "verbose_name_plural": "Payments",
                 "ordering": ["-created_on"],
                 "abstract": False,
-                "swappable": "GETPAID_PAYMENT_MODEL",
+                "swappable": swapper.swappable_setting("getpaid", "Payment"),
             },
         ),
     ]
