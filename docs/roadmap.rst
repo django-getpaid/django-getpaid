@@ -3,6 +3,7 @@ Planned features
 
 These features are planned for future versions (in no particular order):
 
+* translations
 * paywall communication log (all responses and callbacks)
 * Subscriptions handling
 * Complete type annotations

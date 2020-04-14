@@ -58,6 +58,15 @@ class BaseProcessor(ABC):
             return cls.sandbox_url
         return cls.production_url
 
+    @staticmethod
+    def get_our_baseurl(request=None):
+        """
+        Little helper function to get base url for our site.
+        Note that this way 'https' is enforced on production environment.
+        """
+        scheme = "http" if settings.DEBUG else "https"
+        return f"{scheme}://{get_current_site(request).domain}/"
+
     def get_template_names(self, view=None) -> list:
         template_name = self.get_setting("POST_TEMPLATE")
         if template_name is None:
@@ -99,28 +108,20 @@ class BaseProcessor(ABC):
         return form_class(items=form_data)
 
     @abstractmethod
-    def process_payment(self, request, view) -> str:
+    def prepare_transaction(self, request, view=None, **kwargs) -> str:
         """
-        Do what it takes to get the url redirecting user to paywall.
+        Prepare Response for the view asking to prepare transaction.
 
-        :return: url to paywall for payment confirmation.
+        :return: HttpResponse instance
         """
         raise NotImplemented
 
-    def get_our_baseurl(self, request=None):
-        """
-        Little helper function to get base url for our site.
-        Note that this way 'https' is enforced on production environment.
-        """
-        scheme = "http" if settings.DEBUG else "https"
-        return f"{scheme}://{get_current_site(request).domain}/"
-
-    def handle_paywall_callback(self, request, *args, **kwargs):
+    def handle_paywall_callback(self, request, **kwargs):
         """
         This method handles the callback from paywall for the purpose
         of asynchronously updating the payment status in our system.
 
-        :return: HttpResponse instance
+        :return: HttpResponse instance that will be presented as answer to the callback.
         """
         raise NotImplementedError
 
@@ -135,16 +136,7 @@ class BaseProcessor(ABC):
         """
         raise NotImplementedError
 
-    def lock(self, request=None, **kwargs):
-        """
-        (Optional)
-        Sends lock (pre-auth) request to paywall. Returns dict containing parsed response.
-
-        :return: dict with keys: 'url', 'raw_response'
-        """
-        raise NotImplemented
-
-    def charge_locked(self, amount=None):
+    def charge(self, amount=None, **kwargs):
         """
         (Optional)
         Check if payment can be locked and call processor's method.
@@ -154,7 +146,7 @@ class BaseProcessor(ABC):
         """
         raise NotImplemented
 
-    def release(self):
+    def release_lock(self, **kwargs):
         """
         (Optional)
         Release locked payment. This can happen if pre-authorized payment cannot
@@ -163,10 +155,18 @@ class BaseProcessor(ABC):
         """
         raise NotImplemented
 
-    def refund(self, amount):
+    def start_refund(self, amount=None, **kwargs):
         """
         Refunds the given amount.
 
         Returns the amount that was actually refunded.
+        """
+        raise NotImplemented
+
+    def cancel_refund(self):
+        """
+        Cancels started refund.
+
+        Returns True/False if the cancel succeeded.
         """
         raise NotImplemented

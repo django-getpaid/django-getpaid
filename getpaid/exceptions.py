@@ -1,0 +1,2 @@
+class ChargeFailure(Exception):
+    pass

@@ -23,22 +23,21 @@ class PaymentStatus:
     """
 
     NEW = "new"
-    IN_PROGRESS = "in_progress"
-    ACCEPTED = "accepted_for_proc"
+    PREPARED = "prepared"
+    PRE_AUTH = "pre-auth"
+    IN_CHARGE = "charge_started"
     PAID = "paid"
     PARTIAL = "partially_paid"
-    CANCELLED = "cancelled"
     FAILED = "failed"
     REFUND_STARTED = "refund_started"
     REFUNDED = "refunded"
 
     CHOICES = (
         (NEW, pgettext_lazy("payment status", "new")),
-        (IN_PROGRESS, pgettext_lazy("payment status", "in progress")),
-        (ACCEPTED, pgettext_lazy("payment status", "accepted for processing")),
+        (PREPARED, pgettext_lazy("payment status", "in progress")),
+        (PRE_AUTH, pgettext_lazy("payment status", "accepted for processing")),
         (PARTIAL, pgettext_lazy("payment status", "partially paid")),
         (PAID, pgettext_lazy("payment status", "paid")),
-        (CANCELLED, pgettext_lazy("payment status", "cancelled")),
         (FAILED, pgettext_lazy("payment status", "failed")),
         (REFUND_STARTED, pgettext_lazy("payment status", "refund started")),
         (REFUNDED, pgettext_lazy("payment status", "refunded")),
@@ -46,4 +45,6 @@ class PaymentStatus:
 
     values = [s[0] for s in CHOICES]
 
-    unmovable = (PAID, FAILED, CANCELLED, REFUNDED)
+    unmovable = (FAILED, CANCELLED, REFUNDED)
+
+    # TODO: upgrade using django-fsm

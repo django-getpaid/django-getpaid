@@ -1,15 +1,18 @@
 import uuid
 from importlib import import_module
 
-import pendulum
 import swapper
 from django import forms
-from django.conf import settings
-from django.db import models
+from django.db import models, transaction
 from django.shortcuts import resolve_url
+from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
+from django_fsm import ConcurrentTransitionMixin, FSMField, can_proceed, transition
 
-from . import FraudStatus, PaymentStatus, signals
+from . import FraudStatus as fs
+from . import PaymentStatus as ps
+from . import signals
+from .exceptions import ChargeFailure
 from .registry import registry
 
 
@@ -50,9 +53,7 @@ class AbstractOrder(models.Model):
         You can raise :class:`~django.forms.ValidationError` if you want more
         verbose error message.
         """
-        if self.payments.exclude(
-            status__in=[PaymentStatus.FAILED, PaymentStatus.CANCELLED]
-        ).exists():
+        if self.payments.exclude(status__in=[ps.FAILED, ps.CANCELLED]).exists():
             raise forms.ValidationError(_("Non-failed Payments exist for this Order."))
         return True
 
@@ -95,7 +96,7 @@ class AbstractOrder(models.Model):
         raise NotImplementedError
 
 
-class AbstractPayment(models.Model):
+class AbstractPayment(ConcurrentTransitionMixin, models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     order = models.ForeignKey(
         swapper.get_model_name("getpaid", "Order"),
@@ -112,12 +113,8 @@ class AbstractPayment(models.Model):
         ),
     )
     currency = models.CharField(_("currency"), max_length=3)
-    status = models.CharField(
-        _("status"),
-        max_length=20,
-        choices=PaymentStatus.CHOICES,
-        default=PaymentStatus.NEW,
-        db_index=True,
+    status = FSMField(
+        _("status"), choices=ps.CHOICES, default=ps.NEW, db_index=True, protected=True,
     )
     backend = models.CharField(_("backend"), max_length=100, db_index=True)
     created_on = models.DateTimeField(_("created on"), auto_now_add=True, db_index=True)
@@ -150,12 +147,13 @@ class AbstractPayment(models.Model):
     description = models.CharField(
         _("description"), max_length=128, blank=True, default=""
     )
-    fraud_status = models.CharField(
+    fraud_status = FSMField(
         _("fraud status"),
         max_length=20,
-        choices=FraudStatus.CHOICES,
-        default=FraudStatus.UNKNOWN,
+        choices=fs.CHOICES,
+        default=fs.UNKNOWN,
         db_index=True,
+        protected=True,
     )
     fraud_message = models.TextField(_("fraud message"), blank=True)
 
@@ -213,94 +211,9 @@ class AbstractPayment(models.Model):
             processor = getattr(module, "PaymentProcessor")
         return processor(self)
 
-    def process(self, request, view) -> str:
-        """
-        Interfaces processor's :meth:`~getpaid.processor.BaseProcessor.process_payment`
-
-        :return: redirection url.
-        """
-        return self.processor.process_payment(request=request, view=view)
-
-    def change_status(self, new_status):
-        """
-        Used for changing the status of the Payment.
-        You should always change payment status via this method.
-        Otherwise the signal will not be emitted.
-        """
-
-        if (self.status in PaymentStatus.unmovable) or (self.status == new_status):
-            return False
-        # do anything only when status is really changed
-        old_status = self.status
-        self.status = new_status
-        self.save()
-        signals.payment_status_changed.send(
-            sender=self.__class__,
-            instance=self,
-            old_status=old_status,
-            new_status=new_status,
-        )
-        return True
-
-    def change_fraud_status(self, new_status, message=""):
-        """
-        Used for changing fraud status of the Payment.
-        You should always change payment fraud status via this method.
-        Otherwise the signal will not be emitted.
-        """
-        if self.fraud_status != new_status:
-            # do anything only when status is really changed
-            old_status = self.fraud_status
-            self.fraud_status = new_status
-            self.fraud_message = message
-            self.save()
-            signals.payment_fraud_changed.send(
-                sender=self.__class__,
-                instance=self,
-                old_status=old_status,
-                new_status=new_status,
-                message=message,
-            )
-
     @property
     def fully_paid(self):
         return self.amount_paid >= self.amount_required
-
-    def on_success(self, amount=None):
-        """
-        Called when payment receives successful balance income. It defaults to
-        complete payment, but can optionally accept received amount as a parameter
-        to handle partial payments.
-
-        Returns boolean value whether payment was fully paid.
-        """
-        saved = False
-        if getattr(settings, "USE_TZ", False):
-            timezone = getattr(settings, "TIME_ZONE", "local")
-            self.last_payment_on = pendulum.now(timezone)
-        else:
-            self.last_payment_on = pendulum.now("UTC")
-
-        if amount is not None:
-            self.amount_paid += amount
-        else:
-            self.amount_paid = self.amount_required
-
-        if self.fully_paid:
-            saved = self.change_status(PaymentStatus.PAID)
-        else:
-            saved = self.change_status(PaymentStatus.PARTIAL)
-
-        if not saved:
-            self.save()
-
-        return self.fully_paid
-
-    def on_failure(self):
-        """
-        Called when payment has failed. By default changes status to 'failed'
-        """
-        return self.change_status(PaymentStatus.FAILED)
 
     def get_form(self, *args, **kwargs):
         """
@@ -320,7 +233,7 @@ class AbstractPayment(models.Model):
         """
         return self.processor.get_template_names(view=view)
 
-    def handle_paywall_callback(self, request, *args, **kwargs):
+    def handle_paywall_callback(self, request, **kwargs):
         """
         Interfaces processor's ``handle_paywall_callback``.
 
@@ -334,7 +247,7 @@ class AbstractPayment(models.Model):
 
         :return: HttpResponse instance
         """
-        return self.processor.handle_paywall_callback(request, *args, **kwargs)
+        return self.processor.handle_paywall_callback(request, **kwargs)
 
     def fetch_status(self):
         """
@@ -350,91 +263,12 @@ class AbstractPayment(models.Model):
         Used during 'PULL' flow to automatically fetch and update
         Payment's status.
         """
-        remote_status = self.fetch_status()
-        status = remote_status.get("status", None)
-        amount = remote_status.get("amount", None)
-        if (
-            status is not None and status in [PaymentStatus.PAID, PaymentStatus.PARTIAL]
-        ) or amount is not None:
-            self.on_success(amount)
-        elif status == PaymentStatus.FAILED:
-            self.on_failure()
-        elif status is not None:
-            self.change_status(status)
-        return status
-
-    def lock(self, request=None, amount=None, **kwargs):
-        """
-        Interfaces processor's :meth:`~getpaid.processor.BaseProcessor.lock`.
-        """
-        return self.processor.lock(request=request, amount=amount, **kwargs)
-
-    def charge_locked(self, amount=None):
-        """
-        Charges the locked payment.
-        This method is used eg. in flows that pre-authorize payment during
-        order placement and charge money just before shipping.
-        """
-        if self.status != PaymentStatus.ACCEPTED:
-            raise ValueError("Only accepted payments can be charged.")
-        if amount is None:
-            amount = self.amount_locked
-        if amount > self.amount_locked:
-            raise ValueError("Cannot charge more than is locked.")
-        amount_charged = self.processor.charge_locked(amount)
-        if amount_charged:
-            self.amount_locked -= amount_charged
-            self.on_success(amount_charged)
-        return amount_charged
-
-    def release(self):
-        """
-        Release locked payment. This can happen if pre-authorized payment cannot
-        be fulfilled (eg. the ordered product is no longer available for some reason).
-        """
-        if self.status != PaymentStatus.ACCEPTED:
-            raise ValueError("Only accepted (locked) payments can be released.")
-
-        released_amount = self.processor.release()
-        if released_amount:
-            self.amount_locked -= released_amount
-            self.change_status(PaymentStatus.REFUNDED)
-        return released_amount
-
-    def start_refund(self, amount=None):
-        """
-        Initializes refund flow.
-
-        :param: amount - optional refund amount - if not given, refunds paid value.
-        """
-        if self.status not in [PaymentStatus.PAID, PaymentStatus.PARTIAL]:
-            raise ValueError("Only paid paymets can be refunded.")
-        if amount is None:
-            amount = self.amount_paid
-        if amount:
-            if amount > self.amount_paid:
-                raise ValueError("Cannot refund more than what was paid.")
-            self.change_status(PaymentStatus.REFUND_STARTED)
-            self.processor.refund(amount)
-
-    def finish_refund(self, amount=None):
-        """
-        Finishes refund flow after paywall confirms the refund status.
-        """
-        if self.status != PaymentStatus.REFUND_STARTED:
-            raise ValueError("Trying to finalize refund that was not started.")
-        if amount is None:
-            amount = self.amount_paid
-
-        self.amount_refunded = amount
-        self.amount_paid -= self.amount_refunded
-        self.refunded_on = pendulum.now()
-        self.save()
-        if self.amount_paid == 0:
-            self.change_status(PaymentStatus.REFUNDED)
-        else:
-            self.change_status(PaymentStatus.PARTIAL)
-        return self.amount_refunded
+        status_report = self.fetch_status()
+        callback_name = status_report.get("callback")
+        callback = getattr(self, callback_name)
+        amount = status_report.get("amount", None)
+        status_report["callback_result"] = callback(amount=amount)
+        return status_report
 
     def get_return_redirect_url(self, request, success):
         if success:
@@ -450,6 +284,159 @@ class AbstractPayment(models.Model):
 
     def get_return_redirect_kwargs(self, request, success):
         return {"pk": self.id}
+
+    # Actions / FSM transitions
+
+    @transition(field=status, source=ps.NEW, target=ps.PREPARED)
+    def prepare_transaction(self, request=None, amount=None, view=None, **kwargs):
+        """
+        Interfaces processor's :meth:`~getpaid.processor.BaseProcessor.prepare_transaction`.
+        """
+        return self.processor.prepare_transaction(
+            request=request, amount=amount, view=None, **kwargs
+        )
+
+    @transition(field=status, source=ps.PREPARED, target=ps.PRE_AUTH)
+    def confirm_lock(self, amount=None, **kwargs):
+        """
+        Used to confirm that certain amount has been locked (pre-authed).
+        """
+        if amount is None:
+            amount = self.amount_required
+        self.amount_locked = amount
+
+    @transition(field=status, source=ps.PRE_AUTH, target=ps.IN_CHARGE)
+    def start_charge(self, amount=None, **kwargs):
+        """
+        Used when charge action results in paywall sending callback.
+        Interfaces processor's :meth:`~getpaid.processor.BaseProcessor.charge`.
+        """
+        if amount is None:
+            amount = self.amount_locked
+        if amount > self.amount_locked:
+            raise ValueError("Cannot charge more than locked value.")
+        return self.processor.charge(amount=amount, **kwargs)
+
+    @transition(field=status, source=ps.PRE_AUTH, target=ps.PARTIAL, on_error=ps.FAILED)
+    def direct_charge(self, amount=None, **kwargs):
+        """
+        Interfaces processor's :meth:`~getpaid.processor.BaseProcessor.charge`.
+        """
+        if amount is None:
+            amount = self.amount_locked
+        result = self.processor.charge(amount=amount, **kwargs)
+        if "amount_charged" in result or result.get("success", False):
+            self.amount_paid = result.get("amount_charged", amount)
+            self.amount_locked -= self.amount_paid
+        elif result.get("async"):
+            return result
+        else:
+            raise ChargeFailure("Error occurred while trying to charge locked amount.")
+        return result
+
+    @transition(
+        field=status,
+        source=[ps.PRE_AUTH, ps.PREPARED, ps.IN_CHARGE],
+        target=ps.PARTIAL,
+    )
+    def confirm_payment(self, amount=None, **kwargs):
+        """
+        Used when receiving callback confirmation.
+        """
+        if amount is None:
+            amount = self.amount_locked
+        self.amount_paid = amount
+
+    def _check_fully_paid(self):
+        return self.fully_paid
+
+    @transition(
+        field=status, source=ps.PARTIAL, target=ps.PAID, conditions=[_check_fully_paid]
+    )
+    def mark_as_paid(self):
+        """
+        Marks payment as fully paid if condition is met.
+        """
+
+    @transition(field=status, source=ps.PRE_AUTH, target=ps.REFUNDED)
+    def release_lock(self, **kwargs):
+        """
+        Interfaces processor's :meth:`~getpaid.processor.BaseProcessor.charge`.
+        """
+        self.amount_refunded = self.amount_locked
+        self.amount_locked = 0
+        return self.processor.release_lock(**kwargs)
+
+    @transition(field=status, source=[ps.PAID, ps.PARTIAL], target=ps.REFUND_STARTED)
+    def start_refund(self, amount=None, **kwargs):
+        """
+        Interfaces processor's :meth:`~getpaid.processor.BaseProcessor.charge`.
+        """
+        if amount is None:
+            amount = self.amount_paid
+        if amount > self.amount_paid:
+            raise ValueError("Cannot refund more than amount paid.")
+        return self.processor.start_refund(amount=amount, **kwargs)
+
+    @transition(field=status, source=ps.REFUND_STARTED, target=ps.PARTIAL)
+    def cancel_refund(self):
+        """
+        Interfaces processor's :meth:`~getpaid.processor.BaseProcessor.charge`.
+        """
+        return self.processor.cancel_refund()
+
+    @transition(field=status, source=ps.REFUND_STARTED, target=ps.PARTIAL)
+    def confirm_refund(self, amount=None, **kwargs):
+        """
+        Used when receiving callback confirmation.
+        """
+        if amount is None:
+            amount = self.amount_paid
+        self.amount_refunded += amount
+        self.amount_paid -= amount
+        self.refunded_on = now()
+
+    def _is_full_refund(self):
+        return self.amount_refunded == self.amount_paid
+
+    @transition(
+        field=status,
+        source=ps.PARTIAL,
+        target=ps.REFUNDED,
+        conditions=[_is_full_refund],
+    )
+    def mark_as_refunded(self):
+        """
+        Verify if refund was partial or full.
+        """
+
+    @transition(field=status, source=[ps.PRE_AUTH, ps.PREPARED], target=ps.FAILED)
+    def fail(self):
+        """
+        Sets Payment as failed.
+        """
+
+    # Fraud-related actions. The "uber-private" ones should be used only by processor.
+
+    @transition(field=fraud_status, source=fs.UNKNOWN, target=fs.REJECTED)
+    def ___mark_as_fraud(self, message=""):
+        self.fraud_message = message
+
+    @transition(field=fraud_status, source=fs.UNKNOWN, target=fs.ACCEPTED)
+    def ___mark_as_legit(self, message=""):
+        self.fraud_message = message
+
+    @transition(field=fraud_status, source=fs.UNKNOWN, target=fs.CHECK)
+    def ___mark_for_check(self, message=""):
+        self.fraud_message = message
+
+    @transition(field=fraud_status, source=fs.CHECK, target=fs.REJECTED)
+    def mark_as_fraud(self, message=""):
+        self.fraud_message += f"\n==MANUAL REJECT==\n{message}"
+
+    @transition(field=fraud_status, source=fs.CHECK, target=fs.ACCEPTED)
+    def mark_as_legit(self, message=""):
+        self.fraud_message += f"\n==MANUAL ACCEPT==\n{message}"
 
 
 class Payment(AbstractPayment):
