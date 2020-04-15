@@ -11,7 +11,7 @@ class FraudStatus:
         (UNKNOWN, pgettext_lazy("fraud status", "unknown")),
         (ACCEPTED, pgettext_lazy("fraud status", "accepted")),
         (REJECTED, pgettext_lazy("fraud status", "rejected")),
-        (CHECK, pgettext_lazy("fraud status", "check")),
+        (CHECK, pgettext_lazy("fraud status", "needs manual verification")),
     )
 
     values = [s[0] for s in CHOICES]
@@ -26,8 +26,8 @@ class PaymentStatus:
     PREPARED = "prepared"
     PRE_AUTH = "pre-auth"
     IN_CHARGE = "charge_started"
-    PAID = "paid"
     PARTIAL = "partially_paid"
+    PAID = "paid"
     FAILED = "failed"
     REFUND_STARTED = "refund_started"
     REFUNDED = "refunded"
@@ -35,16 +35,11 @@ class PaymentStatus:
     CHOICES = (
         (NEW, pgettext_lazy("payment status", "new")),
         (PREPARED, pgettext_lazy("payment status", "in progress")),
-        (PRE_AUTH, pgettext_lazy("payment status", "accepted for processing")),
+        (PRE_AUTH, pgettext_lazy("payment status", "pre-authed")),
+        (IN_CHARGE, pgettext_lazy("payment status", "charge process started")),
         (PARTIAL, pgettext_lazy("payment status", "partially paid")),
         (PAID, pgettext_lazy("payment status", "paid")),
         (FAILED, pgettext_lazy("payment status", "failed")),
         (REFUND_STARTED, pgettext_lazy("payment status", "refund started")),
         (REFUNDED, pgettext_lazy("payment status", "refunded")),
     )
-
-    values = [s[0] for s in CHOICES]
-
-    unmovable = (FAILED, CANCELLED, REFUNDED)
-
-    # TODO: upgrade using django-fsm

@@ -1,19 +1,28 @@
+import logging
 import uuid
 from importlib import import_module
 
 import swapper
 from django import forms
-from django.db import models, transaction
+from django.db import models
+from django.db.transaction import atomic
 from django.shortcuts import resolve_url
 from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
-from django_fsm import ConcurrentTransitionMixin, FSMField, can_proceed, transition
+from django_fsm import (
+    ConcurrentTransitionMixin,
+    FSMField,
+    TransitionNotAllowed,
+    can_proceed,
+    transition,
+)
 
 from . import FraudStatus as fs
 from . import PaymentStatus as ps
-from . import signals
-from .exceptions import ChargeFailure
+from .exceptions import ChargeFailure, GetPaidException
 from .registry import registry
+
+logger = logging.getLogger(__name__)
 
 
 class AbstractOrder(models.Model):
@@ -168,11 +177,34 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
     def __str__(self):
         return "Payment #{self.id}".format(self=self)
 
+    # First some helpful properties and internals
+
     @property
     def processor(self):
         if self._processor is None:
             self._processor = self.get_processor()
         return self._processor
+
+    @property
+    def fully_paid(self):
+        return self.amount_paid >= self.amount_required
+
+    def get_processor(self):
+        """
+        Returns the processor instance for the backend that
+        was chosen for this Payment. By default it takes it from global
+        backend registry and tries to import it when it's not there.
+        You most probably don't want to mess with this.
+        """
+        if self.backend in registry:
+            processor = registry[self.backend]
+        else:
+            # last resort if backend has been removed from INSTALLED_APPS
+            module = import_module(self.backend)
+            processor = getattr(module, "PaymentProcessor")
+        return processor(self)
+
+    # Then some customization enablers
 
     def get_unique_id(self):
         """
@@ -195,25 +227,6 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
 
     def get_buyer_info(self):
         return self.order.get_buyer_info()
-
-    def get_processor(self):
-        """
-        Returns the processor instance for the backend that
-        was chosen for this Payment. By default it takes it from global
-        backend registry and tries to import it when it's not there.
-        You most probably don't want to mess with this.
-        """
-        if self.backend in registry:
-            processor = registry[self.backend]
-        else:
-            # last resort if backend has been removed from INSTALLED_APPS
-            module = import_module(self.backend)
-            processor = getattr(module, "PaymentProcessor")
-        return processor(self)
-
-    @property
-    def fully_paid(self):
-        return self.amount_paid >= self.amount_required
 
     def get_form(self, *args, **kwargs):
         """
@@ -258,6 +271,7 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         """
         return self.processor.fetch_payment_status()
 
+    @atomic
     def fetch_and_update_status(self):
         """
         Used during 'PULL' flow to automatically fetch and update
@@ -265,9 +279,25 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         """
         status_report = self.fetch_status()
         callback_name = status_report.get("callback")
-        callback = getattr(self, callback_name)
-        amount = status_report.get("amount", None)
-        status_report["callback_result"] = callback(amount=amount)
+        if callback_name:
+            callback = getattr(self, callback_name)
+            amount = status_report.get("amount", None)
+            try:
+                if can_proceed(callback):
+                    status_report["callback_result"] = callback(amount=amount)
+                    self.save()
+                    status_report["saved"] = True
+                else:
+                    logger.debug(
+                        f"Cannot run fetch+update callback {callback_name}.",
+                        extra={
+                            "payment_id": self.id,
+                            "payment_status": self.status,
+                            "callback": callback_name,
+                        },
+                    )
+            except (GetPaidException, TransitionNotAllowed) as e:
+                status_report["exception"] = e
         return status_report
 
     def get_return_redirect_url(self, request, success):
@@ -287,7 +317,6 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
 
     # Actions / FSM transitions
 
-    @transition(field=status, source=ps.NEW, target=ps.PREPARED)
     def prepare_transaction(self, request=None, amount=None, view=None, **kwargs):
         """
         Interfaces processor's :meth:`~getpaid.processor.BaseProcessor.prepare_transaction`.
@@ -296,7 +325,24 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
             request=request, amount=amount, view=None, **kwargs
         )
 
-    @transition(field=status, source=ps.PREPARED, target=ps.PRE_AUTH)
+    @transition(field=status, source=ps.NEW, target=ps.PREPARED, on_error=ps.FAILED)
+    def prepare_lock(self, request, amount=None, **kwargs):
+        """
+        Interfaces processor's :meth:`~getpaid.processor.BaseProcessor.prepare_lock`.
+        """
+        if amount is None:
+            amount = self.amount_required
+        return self.processor.prepare_lock(
+            request=request, amount=amount, view=None, **kwargs
+        )
+
+    @transition(field=status, source=ps.NEW, target=ps.PREPARED)
+    def confirm_prepared(self):
+        """
+        Used to confirm that paywall registered POSTed form.
+        """
+
+    @transition(field=status, source=[ps.NEW, ps.PREPARED], target=ps.PRE_AUTH)
     def confirm_lock(self, amount=None, **kwargs):
         """
         Used to confirm that certain amount has been locked (pre-authed).
@@ -305,34 +351,46 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
             amount = self.amount_required
         self.amount_locked = amount
 
-    @transition(field=status, source=ps.PRE_AUTH, target=ps.IN_CHARGE)
-    def start_charge(self, amount=None, **kwargs):
+    @atomic
+    def charge(self, amount=None, **kwargs):
         """
-        Used when charge action results in paywall sending callback.
         Interfaces processor's :meth:`~getpaid.processor.BaseProcessor.charge`.
         """
         if amount is None:
             amount = self.amount_locked
         if amount > self.amount_locked:
             raise ValueError("Cannot charge more than locked value.")
-        return self.processor.charge(amount=amount, **kwargs)
-
-    @transition(field=status, source=ps.PRE_AUTH, target=ps.PARTIAL, on_error=ps.FAILED)
-    def direct_charge(self, amount=None, **kwargs):
-        """
-        Interfaces processor's :meth:`~getpaid.processor.BaseProcessor.charge`.
-        """
-        if amount is None:
-            amount = self.amount_locked
         result = self.processor.charge(amount=amount, **kwargs)
         if "amount_charged" in result or result.get("success", False):
             self.amount_paid = result.get("amount_charged", amount)
             self.amount_locked -= self.amount_paid
-        elif result.get("async"):
-            return result
+            self.confirm_payment()
+            if can_proceed(self.mark_as_paid):
+                self.mark_as_paid()
+            else:
+                logger.debug(
+                    "Cannot mark as paid.",
+                    extra={"payment_id": self.id, "payment_status": self.status,},
+                )
+        elif result.get("async", False):
+            if can_proceed(self.confirm_charge_sent):
+                self.confirm_charge_sent()
+            else:
+                logger.debug(
+                    "Cannot confirm charge sent.",
+                    extra={"payment_id": self.id, "payment_status": self.status,},
+                )
         else:
             raise ChargeFailure("Error occurred while trying to charge locked amount.")
+        self.save()
         return result
+
+    @transition(field=status, source=ps.PRE_AUTH, target=ps.IN_CHARGE)
+    def confirm_charge_sent(self):
+        """
+        Used during async charge cycle - after you send charge request,
+        the confirmation will be sent to callback endpoint.
+        """
 
     @transition(
         field=status,
@@ -410,13 +468,16 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         Verify if refund was partial or full.
         """
 
-    @transition(field=status, source=[ps.PRE_AUTH, ps.PREPARED], target=ps.FAILED)
+    @transition(
+        field=status, source=[ps.NEW, ps.PRE_AUTH, ps.PREPARED], target=ps.FAILED
+    )
     def fail(self):
         """
         Sets Payment as failed.
         """
 
-    # Fraud-related actions. The "uber-private" ones should be used only by processor.
+    # Finally: Fraud-related actions.
+    # The "uber-private" ones should be used only by processor.
 
     @transition(field=fraud_status, source=fs.UNKNOWN, target=fs.REJECTED)
     def ___mark_as_fraud(self, message=""):

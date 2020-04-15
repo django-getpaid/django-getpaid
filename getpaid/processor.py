@@ -107,6 +107,8 @@ class BaseProcessor(ABC):
 
         return form_class(items=form_data)
 
+    # Communication with outer world
+
     @abstractmethod
     def prepare_transaction(self, request, view=None, **kwargs) -> str:
         """
@@ -135,6 +137,15 @@ class BaseProcessor(ABC):
         If both keys are present, "status" takes precedence.
         """
         raise NotImplementedError
+
+    def prepare_lock(self, request=None, view=None, **kwargs):
+        """
+        (Optional)
+        If paywall supports locking (pre-auth) mechanism, define it here.
+
+        :return: dict with 'url' key and any other additional info required by Processor
+        """
+        raise NotImplemented
 
     def charge(self, amount=None, **kwargs):
         """
