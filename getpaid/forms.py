@@ -39,7 +39,7 @@ class PaymentMethodForm(forms.ModelForm):
         params = dict(
             choices=backends,
             initial=backends[0][0] if len(backends) == 1 else "",
-            label=_("Payment method"),
+            label=_("Payment backend"),
             widget=forms.RadioSelect,
         )
         if len(backends) == 1:

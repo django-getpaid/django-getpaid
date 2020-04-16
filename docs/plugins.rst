@@ -3,13 +3,13 @@ Creating payment plugins
 ========================
 .. py:currentmodule:: getpaid.processor
 
-In order to create a plugin for a payment broker, first you need
-write a ``PaymentProcessor`` subclass of :class:`BaseProcessor`
+In order to create a plugin for a payment broker, first you need to
+write a subclass of :class:`BaseProcessor` named ``PaymentProcessor``
 and place it in ``processor.py`` in your app.
 
-The only method you must to provide is :py:meth:`~BaseProcessor.get_paywall_params`
-method that prepares a dict of values required by the paywall. All other methods
-depend on the exact type of your payment provider and the flow they use.
+The only method you have to provide is :py:meth:`~getpaid.processor.BaseProcessor.prepare_transaction`
+that needs to return a :class:`~django.http.HttpResponse` subclass (eg. HttpResponseRedirect or TemplateResponse).
+The use of all other methods depends directly on how the paywall operates.
 
 To make your plugin available for the rest of the framework, you need to register it.
 The most convenient way to do so is ``apps.py``:

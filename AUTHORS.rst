@@ -5,12 +5,12 @@ Credits
 Original Author
 ---------------
 
-* Krzysztof Dorosz <cypreess@gmail.com>
+* `Krzysztof Dorosz <https://github.com/cypreess>`_
 
 Development Lead
 ----------------
 
-* Dominik Kozaczko <dominik@kozaczko.info>
+* `Dominik Kozaczko <https://github.com/dekoza>`_
 
 Contributors
 ------------

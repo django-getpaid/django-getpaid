@@ -39,9 +39,9 @@ to provide properties linking your fieldnames to expected names.
 
       ForeignKey to (swappable) Order model.
 
-   .. attribute:: amount
+   .. attribute:: amount_required
 
-      Decimal value with 4 decimal places. Total value of the Order.
+      Decimal value with 4 decimal places. Total value of the Order that needs to be paid.
 
    .. attribute:: currency
 
@@ -49,7 +49,7 @@ to provide properties linking your fieldnames to expected names.
 
    .. attribute:: status
 
-      Status of the Payment - one of ``PAYMENT_STATUS_CHOICES``
+      Status of the Payment - one of ``PAYMENT_STATUS_CHOICES``. This field is managed using django-fsm.
 
    .. attribute:: backend
 
@@ -59,19 +59,35 @@ to provide properties linking your fieldnames to expected names.
 
       Datetime of Payment creation - automated.
 
-   .. attribute:: paid_on
+   .. attribute:: last_payment_on
 
       Datetime the Payment has been completed. Defaults to NULL.
 
    .. attribute:: amount_paid
 
-      Amount paid for backends supporting partial payments.
+      Amount actually paid by the buyer. Should be equal amount_required if backend does not support partial payments.
+      Will be smaller than that after partial refund is done.
+
+   .. attribute:: amount_locked
+
+      Amount that has been pre-authed by the buyer. Needs to be charged to finalize payment or released if the transaction cannot be fulfilled.
+
+   .. attribute:: amount_refunded
+
+      Amount that was refunded. Technically this should be equal to amount_required - amount_paid.
 
    .. attribute:: external_id
 
-      ID of the payment on broker's system. Optional.
+      ID of the payment on paywall's system. Optional.
 
    .. attribute:: description
 
       Payment description (max 128 chars).
 
+   .. attribute:: fraud_status
+
+      Field representing the result of fraud check (only on supported backends).
+
+   .. attribute:: fraud_message
+
+      Message provided along with the fraud status.

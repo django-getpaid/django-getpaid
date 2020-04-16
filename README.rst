@@ -42,7 +42,7 @@ Install django-getpaid and at least one payment backend:
 .. code-block:: console
 
     pip install django-getpaid
-    pip install django-getpaid-paynow
+    pip install django-getpaid-payu
 
 Add them to your ``INSTALLED_APPS``:
 
@@ -51,7 +51,7 @@ Add them to your ``INSTALLED_APPS``:
     INSTALLED_APPS = [
         ...
         'getpaid',
-        'getpaid_paynow',  # one of plugins
+        'getpaid_payu',  # one of plugins
         ...
     ]
 
@@ -65,7 +65,8 @@ Add getpaid to URL patterns:
         ...
     ]
 
-Use ``getpaid.models.AbstractOrder`` as parent class of your Order model and define minimal set of methods:
+Define an :class:`Order` model by subclassing :class:``getpaid.models.AbstractOrder``
+and define some required methods:
 
 .. code-block:: python
 
@@ -96,32 +97,40 @@ Inform getpaid of your Order model in ``settings.py`` and provide settings for p
     GETPAID_ORDER_MODEL = 'yourapp.MyCustomOrder'
 
     GETPAID_BACKEND_SETTINGS = {
-        'getpaid_paynow': {   # dotted import path of the plugin
-            # refer to backend docs for its real settings
-            "api_key": "9bcdead5-b194-4eb5-a1d5-c1654572e624",
-            "signature_key": "54d22fdb-2a8b-4711-a2e9-0e69a2a91189",
+        "getpaid_payu": {
+            # take these from your merchant panel:
+            "pos_id": 12345,
+            "second_key": "91ae651578c5b5aa93f2d38a9be8ce11",
+            "client_id": 12345,
+            "client_secret": "12f071174cb7eb79d4aac5bc2f07563f",
         },
     }
 
-And... provide some business logic ;)
+Write a view that will create the Payment.
 
 Your pre-payment view should use ``getpaid.forms.PaymentMethodForm`` `bound <https://docs.djangoproject.com/en/3.0/ref/forms/api/#ref-forms-api-bound-unbound>`_
 with payment data. During binding the form will generate a list of plugins
 (payment methods) supporting your currency and hide rest of the fields.
+
 Then this form should be POSTed to ``{% url 'getpaid:create-payment' %}`` to create
-new payment. You should be automatically redirected to paywall. After payment
-you should by default return to order-detail page but this behavior can be
-changed by plugin's config.
+new payment. You should be either asked for confirmation or automatically redirected
+to paywall (depends on chosen plugin). After making the payment you should by
+default be redirected to order-detail page but this behavior can be changed by
+finetuning :doc:`settings`.
 
 Running Tests
 =============
-
-Does the code actually work?
 
 .. code-block:: console
 
     poetry install
     poetry run tox
+
+
+Alternatives
+============
+
+* `django-payments<https://github.com/mirumee/django-payments>`_
 
 
 Credits
@@ -132,13 +141,6 @@ Redesigned and rewritten by `Dominik Kozaczko <https://github.com/dekoza>`_.
 
 Proudly sponsored by `SUNSCRAPERS <http://sunscrapers.com/>`_
 
-Tools used in rendering this package:
-
-*  Cookiecutter_
-*  `cookiecutter-djangopackage`_
-
-.. _Cookiecutter: https://github.com/audreyr/cookiecutter
-.. _`cookiecutter-djangopackage`: https://github.com/pydanny/cookiecutter-djangopackage
 
 
 Disclaimer
