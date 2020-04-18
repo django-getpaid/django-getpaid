@@ -108,15 +108,36 @@ Inform getpaid of your Order model in ``settings.py`` and provide settings for p
 
 Write a view that will create the Payment.
 
-Your pre-payment view should use ``getpaid.forms.PaymentMethodForm`` `bound <https://docs.djangoproject.com/en/3.0/ref/forms/api/#ref-forms-api-bound-unbound>`_
-with payment data. During binding the form will generate a list of plugins
-(payment methods) supporting your currency and hide rest of the fields.
+An example view and its hookup to urls.py can look like this::
 
-Then this form should be POSTed to ``{% url 'getpaid:create-payment' %}`` to create
-new payment. You should be either asked for confirmation or automatically redirected
-to paywall (depends on chosen plugin). After making the payment you should by
-default be redirected to order-detail page but this behavior can be changed by
-finetuning :doc:`settings`.
+    # orders/views.py
+    class OrderView(DetailView):
+        model = Order
+
+        def get_context_data(self, **kwargs):
+            context = super(OrderView, self).get_context_data(**kwargs)
+            context["payment_form"] = PaymentMethodForm(
+                initial={"order": self.object, "currency": self.object.currency}
+            )
+            return context
+
+    # main urls.py
+
+    urlpatterns = [
+        # ...
+        path("order/<int:pk>/", OrderView.as_view(), name="order_detail"),
+    ]
+
+You'll also need a template (``order_detail.html`` in this case) for this view.
+Here's the important part::
+
+    <h2>Choose payment broker:</h2>
+    <form action="{% url 'getpaid:create-payment' %}" method="post">
+      {% csrf_token %}
+      {{ payment_form.as_p }}
+      <input type="submit" value="Checkout">
+    </form>
+
 
 Running Tests
 =============

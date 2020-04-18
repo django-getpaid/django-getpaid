@@ -15,20 +15,20 @@ Get it from PyPI
 We do not recommend using development version as it may contain bugs.
 
 
-Plugins installation
---------------------
+Install at least one plugin
+---------------------------
 
 There should be several plugins available in our repo. Each follows this
 schema: ``django-getpaid-<backend_name>``
-For example if you want to install payNow integration, run:
+For example if you want to install PayU integration, run:
 
 .. code-block:: shell
 
-    pip install django-getpaid-paynow
+    pip install django-getpaid-payu
 
 
-Enabling app and plugin
------------------------
+Enable app and plugin
+---------------------
 
 Next, add ``"getpaid"`` and any plugin to ``INSTALLED_APPS`` in your ``settings.py``.
 Plugins have the format ``getpaid_<backend_name>``:
@@ -38,12 +38,12 @@ Plugins have the format ``getpaid_<backend_name>``:
     INSTALLED_APPS = [
         # ...
         "getpaid",
-        "getpaid_paynow",
+        "getpaid_payu",
     ]
 
 
-Creating Order model
---------------------
+Create Order model
+------------------
 
 You need to create your own model for an order. It needs to inherit from
 ``getpaid.models.AbstractOrder`` and you need to implement some methods. It
@@ -114,7 +114,7 @@ Put this inside your ``settings.py``::
 (Optional) Provide custom Payment model
 ---------------------------------------
 
-If you want, you can provide your own Payment model. Read more in :doc:`customization`
+If you want, you can provide your own Payment model. Read more in :doc:`customization`.
 
 .. note::
 
@@ -142,10 +142,12 @@ For each installed plugin you can configure it in ``settings.py``:
 
     GETPAID = {
         "BACKENDS":{
-            "getpaid_paynow": {   # dotted import path of the plugin
-                # refer to backend docs
-                "api_key": "4f36b5cd-9b0e-42fa-872d-37f8db0a3503",
-                "signature_key": "f80947e4-b9a6-4bd4-a51d-6f9df8b13b16",
+            "getpaid_payu": {   # dotted import path of the plugin
+                # refer to backend docs and take these from your merchant panel:
+                "pos_id": 12345,
+                "second_key": "91ae651578c5b5aa93f2d38a9be8ce11",
+                "client_id": 12345,
+                "client_secret": "12f071174cb7eb79d4aac5bc2f07563f",
             },
 
             # this plugin is meant only for testing purposes
@@ -156,17 +158,49 @@ For each installed plugin you can configure it in ``settings.py``:
     }
 
 
-Prepare business logic
-----------------------
+Prepare views and business logic
+--------------------------------
 
-The logic for building an order is up to you. You can eg. use a cart application.
-You can look at the `example sourcecode`_ if you need inspiration.
+The logic for building an order is up to you. You can eg. use a cart application
+to gather all Items for your Order.
 
-In the Order summary view you should provide ``PaymentMethodForm`` to the template,
-and use ``<form action="{% url 'getpaid:create-payment' %}" method="post">`` as
-the wrapper. This will show only those payment methods that support you currency.
-Remember to use ``{% csrf_token %}`` tag. See `example view sourcecode`_
-and `example template`_ for reference.
+An example view and its hookup to urls.py can look like this::
+
+    # orders/views.py
+    class OrderView(DetailView):
+        model = Order
+
+        def get_context_data(self, **kwargs):
+            context = super(OrderView, self).get_context_data(**kwargs)
+            context["payment_form"] = PaymentMethodForm(
+                initial={"order": self.object, "currency": self.object.currency}
+            )
+            return context
+
+    # main urls.py
+
+    urlpatterns = [
+        # ...
+        path("order/<int:pk>/", OrderView.as_view(), name="order_detail"),
+    ]
+
+You'll also need a template (``order_detail.html`` in this case) for this view.
+Here's the important part::
+
+    <h2>Choose payment broker:</h2>
+    <form action="{% url 'getpaid:create-payment' %}" method="post">
+      {% csrf_token %}
+      {{ payment_form.as_p }}
+      <input type="submit" value="Checkout">
+    </form>
+
+And that's pretty much it.
+
+After you open order detail you should see a list of plugins supporting your currency
+and a "Checkout" button that will redirect you to selected paywall. After completing
+the payment, you will return to the same view.
+
+Please see fully working `example app`_.
 
 Next steps
 ----------
@@ -174,6 +208,4 @@ Next steps
 If you're not satisfied with provided Payment model or the
 PaymentMethodForm, please see :doc:`customization docs<customization>`.
 
-.. _example sourcecode: https://github.com/django-getpaid/django-getpaid/tree/master/example
-.. _example view sourcecode: https://github.com/django-getpaid/django-getpaid/blob/master/example/orders/views.py#L25
-.. _example template: https://github.com/django-getpaid/django-getpaid/blob/master/example/orders/templates/orders/order_detail.html#L13
+.. _example app: https://github.com/django-getpaid/django-getpaid/tree/master/example

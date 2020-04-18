@@ -109,3 +109,11 @@ Default: ``"getpaid:payment-failure"``
 
 Allows setting custom view name for fail returns from paywall.
 Again, this can also be set on a per-backend basis.
+
+``HIDE_LONELY_PLUGIN``
+----------------------
+
+Default: False
+
+Allows you to hide plugin selection if only one plugin would be presented.
+The hidden plugin will be chosen as default.

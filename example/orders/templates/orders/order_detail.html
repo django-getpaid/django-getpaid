@@ -9,11 +9,12 @@
 <p>
 
   {% if order.status == 'W' %}
-    {% if payment_form.fields.backend.choices|length > 1 %}<h2>Choose payment type:</h2>{% endif %}
+{#    {% if payment_form.fields.backend.choices|length > 1 %}<h2>Choose payment type:</h2>{% endif %}#}
+    <h2>Choose payment type:</h2>
     <form action="{% url 'getpaid:create-payment' %}" method="post">
       {% csrf_token %}
       {{ payment_form.as_p }}
-      <input type="submit" value="Continue">
+      <input type="submit" value="Checkout">
     </form>
   {% endif %}
 

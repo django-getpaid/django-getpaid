@@ -1,5 +1,6 @@
 import swapper
 from django import forms
+from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 
 from getpaid.validators import run_getpaid_validators
@@ -42,7 +43,8 @@ class PaymentMethodForm(forms.ModelForm):
             label=_("Payment backend"),
             widget=forms.RadioSelect,
         )
-        if len(backends) == 1:
+        hide_lonely = getattr(settings, "GETPAID", {}).get("HIDE_LONELY_PLUGIN", False)
+        if hide_lonely and len(backends) == 1:
             params["initial"] = backends[0][0]
             params["widget"] = forms.HiddenInput
 
