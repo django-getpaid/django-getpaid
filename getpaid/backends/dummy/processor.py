@@ -84,8 +84,7 @@ class PaymentProcessor(BaseProcessor):
             response = requests.post(target_url, json=params)
             return HttpResponseRedirect(response.json()["url"])
         elif method == "POST":
-            data = self.get_params()
-            form = self.get_form(data)
+            form = self.get_form(params)
             return TemplateResponse(
                 request=request,
                 template=self.get_template_names(view=view),
@@ -100,13 +99,14 @@ class PaymentProcessor(BaseProcessor):
             raise ValueError("Got no status")
         elif new_status == ps.FAILED:
             self.payment.fail()
+        elif new_status == ps.PRE_AUTH:
+            self.payment.confirm_lock()
         elif new_status == ps.PAID:
             self.payment.confirm_payment()
         raise ValueError("Unhandled new status")
 
     def fetch_payment_status(self):
         base = self.get_paywall_baseurl()
-
         response = requests.get(
             urljoin(
                 base,
@@ -129,17 +129,14 @@ class PaymentProcessor(BaseProcessor):
             results["callback"] = "fail"
         return results
 
-    def prepare_lock(self, request=None, view=None, **kwargs):
-        raise NotImplemented
-
     def charge(self, amount=None, **kwargs):
-        raise NotImplemented
+        raise NotImplementedError
 
     def release_lock(self, **kwargs):
-        raise NotImplemented
+        raise NotImplementedError
 
     def start_refund(self, amount=None, **kwargs):
-        raise NotImplemented
+        raise NotImplementedError
 
     def cancel_refund(self):
-        raise NotImplemented
+        raise NotImplementedError

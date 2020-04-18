@@ -325,17 +325,6 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
             request=request, amount=amount, view=None, **kwargs
         )
 
-    @transition(field=status, source=ps.NEW, target=ps.PREPARED, on_error=ps.FAILED)
-    def prepare_lock(self, request, amount=None, **kwargs):
-        """
-        Interfaces processor's :meth:`~getpaid.processor.BaseProcessor.prepare_lock`.
-        """
-        if amount is None:
-            amount = self.amount_required
-        return self.processor.prepare_lock(
-            request=request, amount=amount, view=None, **kwargs
-        )
-
     @transition(field=status, source=ps.NEW, target=ps.PREPARED)
     def confirm_prepared(self, **kwargs):
         """

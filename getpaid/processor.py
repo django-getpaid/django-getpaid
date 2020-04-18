@@ -116,7 +116,7 @@ class BaseProcessor(ABC):
 
         :return: HttpResponse instance
         """
-        raise NotImplemented
+        raise NotImplementedError
 
     def handle_paywall_callback(self, request, **kwargs):
         """
@@ -138,15 +138,6 @@ class BaseProcessor(ABC):
         """
         raise NotImplementedError
 
-    def prepare_lock(self, request=None, view=None, **kwargs):
-        """
-        (Optional)
-        If paywall supports locking (pre-auth) mechanism, define it here.
-
-        :return: dict with 'url' key and any other additional info required by Processor
-        """
-        raise NotImplemented
-
     def charge(self, amount=None, **kwargs):
         """
         (Optional)
@@ -155,7 +146,7 @@ class BaseProcessor(ABC):
         order placement and charge money later.
         Returns charged amount.
         """
-        raise NotImplemented
+        raise NotImplementedError
 
     def release_lock(self, **kwargs):
         """
@@ -164,7 +155,7 @@ class BaseProcessor(ABC):
         be fullfilled (eg. the ordered product is no longer available for some reason).
         Returns released amount.
         """
-        raise NotImplemented
+        raise NotImplementedError
 
     def start_refund(self, amount=None, **kwargs):
         """
@@ -172,7 +163,7 @@ class BaseProcessor(ABC):
 
         Returns the amount that was actually refunded.
         """
-        raise NotImplemented
+        raise NotImplementedError
 
     def cancel_refund(self, **kwargs):
         """
@@ -180,4 +171,4 @@ class BaseProcessor(ABC):
 
         Returns True/False if the cancel succeeded.
         """
-        raise NotImplemented
+        raise NotImplementedError
