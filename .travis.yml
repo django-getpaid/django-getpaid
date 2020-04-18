@@ -7,6 +7,9 @@ python:
   - "3.6"
   - "3.7"
   - "3.8"
+env:
+  - DJANGO="2.2"
+  - DJANGO="3.0"
 
 fast_finish: true
 
@@ -17,4 +20,4 @@ install: pip install -r requirements_test.txt tox-travis
 script: tox
 
 after_success:
-  - codecov -e TOX_ENV
+  - codecov -e TOXENV
