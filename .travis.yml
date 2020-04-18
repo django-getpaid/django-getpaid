@@ -1,22 +1,20 @@
 # Config file for automatic testing at travis-ci.org
 
 language: python
+cache: pip
 
-matrix:
-  include:
-    - python: 3.6
-      env: TOX_ENV=py36-django22
-    - python: 3.7
-      env: TOX_ENV=py37-django22
-    - python: 3.8
-      env: TOX_ENV=py38-django22
-  fast_finish: true
+python:
+  - "3.6"
+  - "3.7"
+  - "3.8"
+
+fast_finish: true
 
 # command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
-install: pip install -r requirements_test.txt
+install: pip install -r requirements_test.txt tox-travis
 
 # command to run tests using coverage, e.g. python setup.py test
-script: tox -e $TOX_ENV
+script: tox
 
 after_success:
   - codecov -e TOX_ENV
