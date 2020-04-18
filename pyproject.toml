@@ -44,11 +44,12 @@ sphinx-rtd-theme = {version = "^0.4.3", optional = true, extras = ["docs"]}
 black = "^19.10b0"
 isort = "^4.3.21"
 graphviz = {version = "^0.13.2", optional = true, extras = ["graph"]}
+pytest-factoryboy = {version = "^2.0.3", optional = true, extras = ["test"]}
 
 [tool.poetry.extras]
 docs = ["sphinx", "sphinx-rtd-theme"]
 graph = ["graphviz"]
-test = ["pytest", "codecov", "coverage", "request-mock", "pytest-cov", "pytest-django", "requests"]
+test = ["pytest", "codecov", "coverage", "request-mock", "pytest-cov", "pytest-django", "requests", "pytest-factoryboy"]
 
 [tool.black]
 line-length = 88
@@ -83,7 +84,7 @@ multi_line_output = 3
 include_trailing_comma = true
 line_length = 88
 known_first_party = ["getpaid"]
-known_third_party = ["django", "django_fsm", "factory", "orders", "paywall", "requests", "swapper"]
+known_third_party = ["django", "django_fsm", "factory", "orders", "paywall", "pytest", "pytest_factoryboy", "requests", "swapper"]
 
 [build-system]
 requires = ["poetry>=0.12"]

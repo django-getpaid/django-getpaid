@@ -1,7 +1,6 @@
 import uuid
 
 import requests
-from django.conf import settings
 from django.db import models
 from django_fsm import FSMField, transition
 
@@ -42,6 +41,14 @@ class PaymentEntry(models.Model):
     def start_refund(self):
         pass
 
-    @transition(field=payment_status, source=ps.REFUND_STARTED, target=ps.REFUNDED)
+    @transition(
+        field=payment_status,
+        source=[ps.PRE_AUTH, ps.REFUND_STARTED],
+        target=ps.REFUNDED,
+    )
     def send_confirm_refund(self):
         self._send_status_to_callback(ps.REFUNDED)
+
+    @transition(field=payment_status, source=ps.REFUND_STARTED, target=ps.PAID)
+    def cancel_refund(self):
+        pass

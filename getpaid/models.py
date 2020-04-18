@@ -391,6 +391,8 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         Used when receiving callback confirmation.
         """
         if amount is None:
+            if not self.amount_locked:  # coming directly from PREPARED
+                self.amount_locked = self.amount_required
             amount = self.amount_locked
         self.amount_paid = amount
 

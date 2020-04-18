@@ -7,6 +7,7 @@ from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import FormView
+from django_fsm import can_proceed
 
 from getpaid.status import PaymentStatus as ps
 
@@ -109,3 +110,35 @@ def rest_register_payment(request):
 
     content = {"url": url}
     return JsonResponse(content)
+
+
+@csrf_exempt
+def rest_operation(request):
+    """
+    For test purposes backend can "suggest" the flow of payment.
+    """
+    data = json.loads(request.body)
+
+    payment_id = data["id"]
+    new_status = data["new_status"]
+
+    payment = PaymentEntry.objects.create(id=payment_id)
+    if new_status == ps.PRE_AUTH:
+        payment.send_confirm_lock()
+    elif new_status == ps.PAID:
+        if can_proceed(payment.send_confirm_charge):
+            payment.send_confirm_charge()
+        elif can_proceed(payment.cancel_refund):
+            payment.cancel_refund()
+        else:
+            raise NotImplementedError(
+                f"Cannot handle change to {ps.PAID} from {payment.payment_status}"
+            )
+    elif new_status == ps.FAILED:
+        payment.send_fail()
+    elif new_status == ps.REFUND_STARTED:
+        payment.start_refund()
+    elif new_status == ps.REFUNDED:
+        payment.send_confirm_refund()
+
+    return JsonResponse({"id": payment_id, "new_status": new_status})

@@ -14,6 +14,7 @@ import requests
 from django.http import HttpResponseRedirect
 from django.template.response import TemplateResponse
 from django.urls import reverse, reverse_lazy
+from django_fsm import can_proceed
 
 from getpaid.post_forms import PaymentHiddenInputsPostForm
 from getpaid.processor import BaseProcessor
@@ -82,8 +83,13 @@ class PaymentProcessor(BaseProcessor):
         method = self.get_method()
         if method == "REST":
             response = requests.post(target_url, json=params)
+            if response.status_code in self.ok_statuses:
+                self.payment.confirm_prepared()
+                self.payment.save()
             return HttpResponseRedirect(response.json()["url"])
         elif method == "POST":
+            self.payment.confirm_prepared()
+            self.payment.save()
             form = self.get_form(params)
             return TemplateResponse(
                 request=request,
@@ -91,6 +97,10 @@ class PaymentProcessor(BaseProcessor):
                 context={"form": form, "paywall_url": target_url},
             )
         else:
+            # GET payments are a bit tricky. You can either confirm payment as
+            # prepared here, or on successful return from paywall.
+            self.payment.confirm_prepared()
+            self.payment.save()
             return HttpResponseRedirect(target_url)
 
     def handle_paywall_callback(self, request, **kwargs):
@@ -102,8 +112,17 @@ class PaymentProcessor(BaseProcessor):
         elif new_status == ps.PRE_AUTH:
             self.payment.confirm_lock()
         elif new_status == ps.PAID:
-            self.payment.confirm_payment()
-        raise ValueError("Unhandled new status")
+            if can_proceed(self.payment.confirm_lock):  # GET flow needs this
+                self.payment.confirm_lock()
+            if can_proceed(self.payment.confirm_payment):
+                self.payment.confirm_payment()
+                if can_proceed(self.payment.mark_as_paid):
+                    self.payment.mark_as_paid()
+                elif can_proceed(self.payment.mark_as_refunded):
+                    self.payment.mark_as_refunded()
+        else:
+            raise ValueError(f"Unhandled new status {new_status}")
+        self.payment.save()
 
     def fetch_payment_status(self):
         base = self.get_paywall_baseurl()
@@ -115,7 +134,7 @@ class PaymentProcessor(BaseProcessor):
                 ),
             )
         )
-        if response.status_code != 200:
+        if response.status_code not in self.ok_statuses:
             raise Exception("Error occurred!")
         status = response.json()["payment_status"]
         results = {}
@@ -130,13 +149,29 @@ class PaymentProcessor(BaseProcessor):
         return results
 
     def charge(self, amount=None, **kwargs):
-        raise NotImplementedError
+        url = urljoin(self.get_paywall_baseurl(), reverse("paywall:api_operate"))
+        requests.post(
+            url, json={"id": str(self.payment.external_id), "new_status": ps.PAID}
+        )
 
     def release_lock(self, **kwargs):
-        raise NotImplementedError
+        url = urljoin(self.get_paywall_baseurl(), reverse("paywall:api_operate"))
+        requests.post(
+            url, json={"id": str(self.payment.external_id), "new_status": ps.REFUNDED}
+        )
 
     def start_refund(self, amount=None, **kwargs):
-        raise NotImplementedError
+        url = urljoin(self.get_paywall_baseurl(), reverse("paywall:api_operate"))
+        requests.post(
+            url,
+            json={
+                "id": str(self.payment.external_id),
+                "new_status": ps.REFUND_STARTED,
+            },
+        )
 
     def cancel_refund(self):
-        raise NotImplementedError
+        url = urljoin(self.get_paywall_baseurl(), reverse("paywall:api_operate"))
+        requests.post(
+            url, json={"id": str(self.payment.external_id), "new_status": ps.PAID}
+        )
