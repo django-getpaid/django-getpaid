@@ -113,6 +113,8 @@ An example view and its hookup to urls.py can look like this:
 .. code-block:: python
 
     # orders/views.py
+    from getpaid.forms import PaymentMethodForm
+
     class OrderView(DetailView):
         model = Order
 
