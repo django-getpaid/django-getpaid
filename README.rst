@@ -65,7 +65,7 @@ Add getpaid to URL patterns:
         ...
     ]
 
-Define an :class:`Order` model by subclassing :class:``getpaid.models.AbstractOrder``
+Define an ``Order`` model by subclassing ``getpaid.models.AbstractOrder``
 and define some required methods:
 
 .. code-block:: python
@@ -108,7 +108,9 @@ Inform getpaid of your Order model in ``settings.py`` and provide settings for p
 
 Write a view that will create the Payment.
 
-An example view and its hookup to urls.py can look like this::
+An example view and its hookup to urls.py can look like this:
+
+.. code-block:: python
 
     # orders/views.py
     class OrderView(DetailView):
@@ -129,13 +131,15 @@ An example view and its hookup to urls.py can look like this::
     ]
 
 You'll also need a template (``order_detail.html`` in this case) for this view.
-Here's the important part::
+Here's the important part:
+
+.. code-block::
 
     <h2>Choose payment broker:</h2>
     <form action="{% url 'getpaid:create-payment' %}" method="post">
-      {% csrf_token %}
-      {{ payment_form.as_p }}
-      <input type="submit" value="Checkout">
+        {% csrf_token %}
+        {{ payment_form.as_p }}
+        <input type="submit" value="Checkout">
     </form>
 
 
@@ -151,7 +155,7 @@ Running Tests
 Alternatives
 ============
 
-* `django-payments<https://github.com/mirumee/django-payments>`_
+* `django-payments <https://github.com/mirumee/django-payments>`_
 
 
 Credits

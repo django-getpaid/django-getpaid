@@ -45,6 +45,7 @@ black = "^19.10b0"
 isort = "^4.3.21"
 graphviz = {version = "^0.13.2", optional = true, extras = ["graph"]}
 pytest-factoryboy = {version = "^2.0.3", optional = true, extras = ["test"]}
+readme-renderer = "^25.0"
 
 [tool.poetry.extras]
 docs = ["sphinx", "sphinx-rtd-theme"]

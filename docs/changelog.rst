@@ -4,8 +4,8 @@
 History
 =======
 
-Version 2.0.0-rc.7 (in development)
------------------------------------
+Version 2.0.0 (2020-04-18)
+--------------------------
 
 * BREAKING: Complete redesign of internal APIs.
 * Supports only Django 2.2+ and Python 3.6+
