@@ -1,18 +1,21 @@
+import json
+
 import swapper
 from django.shortcuts import get_object_or_404
 from django.views import View
-from django.views.decorators.csrf import csrf_exempt
+
+from .processor import PaymentProcessor
 
 
 class CallbackView(View):
     """
-    Each plugin can define its own callbacks and other views.
+    Dedicated callback view, since payNow does not support dynamic callback urls.
     """
 
-    def post(self, request, pk, *args, **kwargs):
+    def post(self, request, *args, **kwargs):
+        external_id = json.loads(request.data).get("paymentId")
         Payment = swapper.load_model("getpaid", "Payment")
-        payment = get_object_or_404(Payment, pk=pk)
-        return payment.handle_paywall_callback(request, *args, **kwargs)
-
-
-callback = csrf_exempt(CallbackView.as_view())
+        payment = get_object_or_404(
+            Payment, external_id=external_id, backend=PaymentProcessor.slug
+        )
+        return payment.handle_callback(request, *args, **kwargs)

@@ -4,10 +4,10 @@ from django.core.exceptions import ImproperlyConfigured
 from django.utils.translation import ugettext_lazy as _
 
 
-class GetpaidDummyAppConfig(AppConfig):
+class DummyPluginAppConfig(AppConfig):
     name = "getpaid.backends.dummy"
     label = "getpaid_dummy"
-    verbose_name = _("Dummy payment")
+    verbose_name = _("Dummy paywall")
 
     def ready(self):
         if not settings.DEBUG:

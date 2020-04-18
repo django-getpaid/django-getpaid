@@ -62,7 +62,7 @@ class AbstractOrder(models.Model):
         You can raise :class:`~django.forms.ValidationError` if you want more
         verbose error message.
         """
-        if self.payments.exclude(status__in=[ps.FAILED, ps.CANCELLED]).exists():
+        if self.payments.exclude(status=ps.FAILED).exists():
             raise forms.ValidationError(_("Non-failed Payments exist for this Order."))
         return True
 
@@ -337,7 +337,7 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         )
 
     @transition(field=status, source=ps.NEW, target=ps.PREPARED)
-    def confirm_prepared(self):
+    def confirm_prepared(self, **kwargs):
         """
         Used to confirm that paywall registered POSTed form.
         """
@@ -386,7 +386,7 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         return result
 
     @transition(field=status, source=ps.PRE_AUTH, target=ps.IN_CHARGE)
-    def confirm_charge_sent(self):
+    def confirm_charge_sent(self, **kwargs):
         """
         Used during async charge cycle - after you send charge request,
         the confirmation will be sent to callback endpoint.
@@ -411,7 +411,7 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
     @transition(
         field=status, source=ps.PARTIAL, target=ps.PAID, conditions=[_check_fully_paid]
     )
-    def mark_as_paid(self):
+    def mark_as_paid(self, **kwargs):
         """
         Marks payment as fully paid if condition is met.
         """
@@ -437,7 +437,7 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         return self.processor.start_refund(amount=amount, **kwargs)
 
     @transition(field=status, source=ps.REFUND_STARTED, target=ps.PARTIAL)
-    def cancel_refund(self):
+    def cancel_refund(self, **kwargs):
         """
         Interfaces processor's :meth:`~getpaid.processor.BaseProcessor.charge`.
         """
@@ -463,7 +463,7 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         target=ps.REFUNDED,
         conditions=[_is_full_refund],
     )
-    def mark_as_refunded(self):
+    def mark_as_refunded(self, **kwargs):
         """
         Verify if refund was partial or full.
         """
@@ -471,7 +471,7 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
     @transition(
         field=status, source=[ps.NEW, ps.PRE_AUTH, ps.PREPARED], target=ps.FAILED
     )
-    def fail(self):
+    def fail(self, **kwargs):
         """
         Sets Payment as failed.
         """
@@ -492,11 +492,11 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         self.fraud_message = message
 
     @transition(field=fraud_status, source=fs.CHECK, target=fs.REJECTED)
-    def mark_as_fraud(self, message=""):
+    def mark_as_fraud(self, message="", **kwargs):
         self.fraud_message += f"\n==MANUAL REJECT==\n{message}"
 
     @transition(field=fraud_status, source=fs.CHECK, target=fs.ACCEPTED)
-    def mark_as_legit(self, message=""):
+    def mark_as_legit(self, message="", **kwargs):
         self.fraud_message += f"\n==MANUAL ACCEPT==\n{message}"
 
 

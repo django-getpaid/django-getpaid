@@ -12,7 +12,7 @@ DATABASES = {"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": ":memor
 
 ROOT_URLCONF = "tests.urls"
 
-INSTALLED_APPS = ["getpaid", "getpaid.backends.dummy", "orders"]
+INSTALLED_APPS = ["getpaid", "paywall", "getpaid.backends.dummy", "orders"]
 
 SITE_ID = 1
 

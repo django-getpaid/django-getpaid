@@ -31,7 +31,7 @@ class BaseProcessor(ABC):
         self.optional_config = getattr(settings, "GETPAID", {})
 
     @classmethod
-    def class_id(cls):
+    def class_id(cls, **kwargs):
         return cls.__module__
 
     def get_setting(self, name, default=None):
@@ -41,25 +41,25 @@ class BaseProcessor(ABC):
         return value
 
     @classmethod
-    def get_display_name(cls) -> str:
+    def get_display_name(cls, **kwargs) -> str:
         return cls.display_name
 
     @classmethod
-    def get_accepted_currencies(cls) -> list:
+    def get_accepted_currencies(cls, **kwargs) -> list:
         return cls.accepted_currencies
 
     @classmethod
-    def get_logo_url(cls) -> str:
+    def get_logo_url(cls, **kwargs) -> str:
         return cls.logo_url
 
     @classmethod
-    def get_paywall_baseurl(cls):
+    def get_paywall_baseurl(cls, **kwargs):
         if settings.DEBUG:
             return cls.sandbox_url
         return cls.production_url
 
     @staticmethod
-    def get_our_baseurl(request=None):
+    def get_our_baseurl(request=None, **kwargs):
         """
         Little helper function to get base url for our site.
         Note that this way 'https' is enforced on production environment.
@@ -67,7 +67,7 @@ class BaseProcessor(ABC):
         scheme = "http" if settings.DEBUG else "https"
         return f"{scheme}://{get_current_site(request).domain}/"
 
-    def get_template_names(self, view=None) -> list:
+    def get_template_names(self, view=None, **kwargs) -> list:
         template_name = self.get_setting("POST_TEMPLATE")
         if template_name is None:
             template_name = self.post_template_name
@@ -77,7 +77,7 @@ class BaseProcessor(ABC):
             raise ImproperlyConfigured("Couldn't determine template name!")
         return [template_name]
 
-    def get_form_class(self):
+    def get_form_class(self, **kwargs):
         form_class_path = self.get_setting("POST_FORM_CLASS")
         if not form_class_path:
             return self.post_form_class
@@ -87,14 +87,14 @@ class BaseProcessor(ABC):
             return getattr(module, class_name)
         return self.post_form_class
 
-    def prepare_form_data(self, post_data):
+    def prepare_form_data(self, post_data, **kwargs):
         """
         If backend support several modes of operation, POST should probably
         additionally calculate some sort of signature based on passed data.
         """
         return post_data
 
-    def get_form(self, post_data):
+    def get_form(self, post_data, **kwargs):
         """
         (Optional)
         Used to get POST form for backends that use such flow.
@@ -105,12 +105,12 @@ class BaseProcessor(ABC):
 
         form_data = self.prepare_form_data(post_data)
 
-        return form_class(items=form_data)
+        return form_class(fields=form_data)
 
     # Communication with outer world
 
     @abstractmethod
-    def prepare_transaction(self, request, view=None, **kwargs) -> str:
+    def prepare_transaction(self, request, view=None, **kwargs):
         """
         Prepare Response for the view asking to prepare transaction.
 
@@ -127,7 +127,7 @@ class BaseProcessor(ABC):
         """
         raise NotImplementedError
 
-    def fetch_payment_status(self) -> dict:
+    def fetch_payment_status(self, **kwargs) -> dict:
         # TODO use interface annotation to specify the dict layout
         """
         Logic for checking payment status with paywall.
@@ -174,7 +174,7 @@ class BaseProcessor(ABC):
         """
         raise NotImplemented
 
-    def cancel_refund(self):
+    def cancel_refund(self, **kwargs):
         """
         Cancels started refund.
 

@@ -15,10 +15,16 @@ GETPAID_PAYMENT_MODEL = "orders.CustomPayment"
 
 GETPAID_BACKEND_SETTINGS = {
     "getpaid.backends.dummy": {
+        "pos_id": 12345,
+        "second_key": "91ae651578c5b5aa93f2d38a9be8ce11",
+        "client_id": 12345,
+        "client_secret": "12f071174cb7eb79d4aac5bc2f07563f",
         "confirmation_method": "push",
         "gateway": reverse_lazy("paywall:gateway"),
     },
 }
+
+PAYWALL_MODE = "LOCK"  # PAY for instant paying, LOCK for pre-auth
 
 INSTALLED_APPS = [
     "django.contrib.auth",

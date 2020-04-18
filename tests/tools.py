@@ -6,5 +6,5 @@ class Plugin(BaseProcessor):
     accepted_currencies = ["EUR", "USD"]
     slug = "test_plugin"
 
-    def process_payment(self, *args, **kwargs):
+    def prepare_transaction(self, *args, **kwargs):
         return ""

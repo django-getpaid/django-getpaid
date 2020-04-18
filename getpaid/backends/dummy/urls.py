@@ -1,7 +1,9 @@
-from django.urls import path
+from django.urls import include, path, register_converter
 
-from .views import callback
+from . import views
+
+app_name = "dummy"
 
 urlpatterns = [
-    path("callback/<uuid:pk>/", callback, name="callback"),
+    path("callback/", views.CallbackView.as_view(), name="callback",),
 ]

@@ -1,6 +1,5 @@
 import swapper
 from django import http
-from django.core import exceptions
 from django.shortcuts import get_object_or_404
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
@@ -22,10 +21,10 @@ class CreatePaymentView(CreateView):
 
     def form_valid(self, form):
         payment = form.save()
-        return payment.process(request=self.request, view=self)
+        return payment.prepare_transaction(request=self.request, view=self)
 
     def form_invalid(self, form):
-        raise exceptions.PermissionDenied
+        return super().form_invalid(form)
 
 
 new_payment = CreatePaymentView.as_view()

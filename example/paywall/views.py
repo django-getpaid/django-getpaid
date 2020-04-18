@@ -1,11 +1,14 @@
 import json
 
 import requests
+from django.conf import settings
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import FormView
+
+from getpaid.status import PaymentStatus as ps
 
 from .forms import QuestionForm
 from .models import PaymentEntry
@@ -25,24 +28,34 @@ class AuthorizationView(FormView):
         params = self.request.POST or self.request.GET  # both cases for testability
         if "pay_id" in params:
             obj = get_object_or_404(PaymentEntry, id=params.get("pay_id"))
-            context["payment"] = obj.payment
+            context["ext_id"] = obj.ext_id
             context["value"] = obj.value
             context["currency"] = obj.currency
             context["description"] = obj.description
-            context["callback"] = obj.callback
-            context["success_url"] = obj.success_url
-            context["failure_url"] = obj.failure_url
+
             context["message"] = "Presenting pre-registered payment"
         else:
-            context["payment"] = params.get("payment")
+            context["ext_id"] = params.get("ext_id")
             context["value"] = params.get("value")
             context["currency"] = params.get("currency")
             context["description"] = params.get("description")
-            context["callback"] = params.get("callback", "")
-            context["success_url"] = params.get("success_url", "")
-            context["failure_url"] = params.get("failure_url", "")
+
             context["message"] = "Presenting directly requested payment"
         return context
+
+    def get_initial(self):
+        initial = super().get_initial()
+        params = self.request.POST or self.request.GET
+        if "pay_id" in params:
+            obj = get_object_or_404(PaymentEntry, id=params.get("pay_id"))
+            initial["callback"] = obj.callback
+            initial["success_url"] = obj.success_url
+            initial["failure_url"] = obj.failure_url
+        else:
+            initial["callback"] = params.get("callback", "")
+            initial["success_url"] = params.get("success_url", "")
+            initial["failure_url"] = params.get("failure_url", "")
+        return initial
 
     def get_success_url(self):
         if self.success:
@@ -51,25 +64,36 @@ class AuthorizationView(FormView):
 
     def form_valid(self, form):
         self.form = form
-        url = self.request.build_absolute_uri(form.cleaned_data["callback"])
+        callback = form.cleaned_data["callback"]
+        url = self.request.build_absolute_uri(callback) if callback else None
         # TODO: call post from delayed subprocess
         if url:
             if form.cleaned_data["authorize_payment"] == "1":
                 self.success = True
-                requests.post(url, json={"status": "OK"})
+                if settings.PAYWALL_MODE == "LOCK":
+                    requests.post(url, json={"new_status": ps.PRE_AUTH})
+                else:
+                    requests.post(url, json={"new_status": ps.PAID})
             else:
                 self.success = False
-                requests.post(url, json={"status": "FAIL"})
+                requests.post(url, json={"new_status": ps.FAILED})
         return super().form_valid(form)
 
 
 authorization_view = csrf_exempt(AuthorizationView.as_view())
 
 
+def get_status(request, pk, **kwargs):
+    obj = get_object_or_404(PaymentEntry, {"pk": pk})
+    return JsonResponse(
+        {"payment_status": obj.payment_status, "fraud_status": obj.fraud_status}
+    )
+
+
 @csrf_exempt
 def rest_register_payment(request):
     legal_fields = [
-        "payment",
+        "ext_id",
         "value",
         "currency",
         "description",

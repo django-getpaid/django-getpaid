@@ -1,7 +1,0 @@
-{% load i18n %}
-This is an intermittent form representing POST flow. Confirming will send
-a POST request to broker's paywall.
-<form action="{{ paywall_url }}" method="post">
-  {{ form.as_p }}
-  <input type="submit" value="{% trans "Confirm payment" %}">
-</form>

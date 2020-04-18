@@ -1,3 +1,8 @@
-from django.conf.urls import include, url
+from django.urls import include, path
+from orders.views import OrderView
 
-urlpatterns = [url(r"^payments/", include("getpaid.urls", namespace="getpaid"))]
+urlpatterns = [
+    path("order/<int:pk>/", OrderView.as_view(), name="order_detail"),
+    path("payments/", include("getpaid.urls")),
+    path("paywall/", include("paywall.urls")),
+]

@@ -2,10 +2,10 @@ from django import forms
 
 
 class PaymentHiddenInputsPostForm(forms.Form):
-    def __init__(self, items, *args, **kwargs):
+    def __init__(self, fields, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        for key in items:
+        for key in fields:
             self.fields[key] = forms.CharField(
-                initial=items[key], widget=forms.HiddenInput
+                initial=fields[key], widget=forms.HiddenInput
             )

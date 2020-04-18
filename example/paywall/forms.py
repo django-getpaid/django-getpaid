@@ -11,6 +11,6 @@ class QuestionForm(forms.Form):
         label=_("authorization"), choices=((1, _("yes")), (0, _("no")))
     )
 
-    callback = forms.CharField(widget=forms.HiddenInput)
-    success_url = forms.CharField(widget=forms.HiddenInput)
-    failure_url = forms.CharField(widget=forms.HiddenInput)
+    callback = forms.CharField(widget=forms.HiddenInput, required=False)
+    success_url = forms.CharField(widget=forms.HiddenInput, required=False)
+    failure_url = forms.CharField(widget=forms.HiddenInput, required=False)
