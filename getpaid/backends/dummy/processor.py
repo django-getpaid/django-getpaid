@@ -45,7 +45,7 @@ class PaymentProcessor(BaseProcessor):
     def get_confirmation_method(self):
         return self.get_setting("confirmation_method", self.confirmation_method).upper()
 
-    def get_paywall_baseurl(self, request=None):
+    def get_paywall_baseurl(self, request=None, **kwargs):
         if request is None:
             base = os.environ.get("_PAYWALL_URL")
         else:
@@ -124,7 +124,7 @@ class PaymentProcessor(BaseProcessor):
             raise ValueError(f"Unhandled new status {new_status}")
         self.payment.save()
 
-    def fetch_payment_status(self):
+    def fetch_payment_status(self, **kwargs):
         base = self.get_paywall_baseurl()
         response = requests.get(
             urljoin(
@@ -170,7 +170,7 @@ class PaymentProcessor(BaseProcessor):
             },
         )
 
-    def cancel_refund(self):
+    def cancel_refund(self, **kwargs):
         url = urljoin(self.get_paywall_baseurl(), reverse("paywall:api_operate"))
         requests.post(
             url, json={"id": str(self.payment.external_id), "new_status": ps.PAID}

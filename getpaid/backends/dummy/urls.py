@@ -1,4 +1,4 @@
-from django.urls import include, path, register_converter
+from django.urls import path
 
 from . import views
 
