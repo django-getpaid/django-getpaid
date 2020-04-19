@@ -117,3 +117,12 @@ Default: False
 
 Allows you to hide plugin selection if only one plugin would be presented.
 The hidden plugin will be chosen as default.
+
+``VALIDATORS``
+--------------
+
+Default: []
+
+Here you can provide import paths for validators that will be run against
+the payment before it is sent to the paywall. This can also be set on a
+per-backend basis.
