@@ -61,3 +61,4 @@ db.sqlite3
 
 # Codacy
 /.codacy-coverage
+/codacy-coverage.json
