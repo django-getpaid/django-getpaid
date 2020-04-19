@@ -13,7 +13,8 @@ Welcome to django-getpaid
     :target: https://pypi.org/project/django-getpaid/
 .. image:: https://img.shields.io/pypi/l/django-getpaid.svg
     :target: https://pypi.org/project/django-getpaid/
-
+.. image:: https://api.codacy.com/project/badge/Grade/d25ba81e2e4740d6aac356f4ac90b16d
+    :target: https://www.codacy.com/manual/dekoza/django-getpaid
 
 django-getpaid is payment processing framework for Django
 

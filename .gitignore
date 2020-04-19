@@ -59,3 +59,5 @@ db.sqlite3
 # poetry
 /poetry.lock
 
+# Codacy
+/.codacy-coverage
