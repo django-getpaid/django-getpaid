@@ -1,20 +1,21 @@
-=============================
-Welcome to django-getpaid
-=============================
-
 .. image:: https://img.shields.io/pypi/v/django-getpaid.svg
     :target: https://pypi.org/project/django-getpaid/
     :alt: Latest PyPI version
 .. image:: https://img.shields.io/travis/sunscrapers/django-getpaid.svg
     :target: https://travis-ci.org/sunscrapers/django-getpaid
-.. image:: https://img.shields.io/coveralls/github/cypreess/django-getpaid.svg
-    :target: https://coveralls.io/github/django-getpaid/django-getpaid?branch=master
+.. image:: https://api.codacy.com/project/badge/Coverage/d25ba81e2e4740d6aac356f4ac90b16d
+    :target: https://www.codacy.com/manual/dekoza/django-getpaid
 .. image:: https://img.shields.io/pypi/wheel/django-getpaid.svg
     :target: https://pypi.org/project/django-getpaid/
 .. image:: https://img.shields.io/pypi/l/django-getpaid.svg
     :target: https://pypi.org/project/django-getpaid/
 .. image:: https://api.codacy.com/project/badge/Grade/d25ba81e2e4740d6aac356f4ac90b16d
     :target: https://www.codacy.com/manual/dekoza/django-getpaid
+
+=============================
+Welcome to django-getpaid
+=============================
+
 
 django-getpaid is payment processing framework for Django
 
