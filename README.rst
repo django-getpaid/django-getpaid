@@ -88,9 +88,14 @@ and define some required methods:
         def get_buyer_info(self):
             return {"email": self.buyer.email}
 
+        def get_currency(self):
+            return "EUR"
+
         def get_description(self):
             return self.description
 
+.. note:: If you already have an Order model and don't want to subclass ``AbstractOrder``
+    just make sure you implement all methods.
 
 Inform getpaid of your Order model in ``settings.py`` and provide settings for payment backends:
 

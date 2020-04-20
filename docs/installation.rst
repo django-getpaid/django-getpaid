@@ -45,9 +45,9 @@ Plugins have the format ``getpaid_<backend_name>``:
 Create Order model
 ------------------
 
-You need to create your own model for an order. It needs to inherit from
-``getpaid.models.AbstractOrder`` and you need to implement some methods. It
-could look like this example:
+You need to create your own model for an order. It should inherit from
+``getpaid.models.AbstractOrder`` (if not, it must implement its methods)
+and you need to implement some methods. It could look like this example:
 
 .. code-block:: python
 
