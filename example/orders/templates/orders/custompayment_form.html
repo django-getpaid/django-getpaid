@@ -1,0 +1,13 @@
+{% extends "getpaid/base.html" %}
+{% block content %}
+  {% if not form %}
+    Error.
+  {% else %}
+    {% if form.errors %}
+      {{ form.errors.order }}
+      <a href="{% url "order_detail" pk=form.order.value %}">Back</a>
+    {% else %}
+      {{ form.as_p }}
+    {% endif %}
+  {% endif %}
+{% endblock content %}

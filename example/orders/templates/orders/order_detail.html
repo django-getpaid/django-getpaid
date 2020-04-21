@@ -1,5 +1,5 @@
-<html lang="en">
-<body>
+{% extends "getpaid/base.html" %}
+{% block content %}
 <h1>Order #{{ object.pk }}</h1>
 <p>
   <a href="{% url 'home' %}">Home</a>
@@ -43,7 +43,7 @@
           <td>{{ payment.status }}</td>
           <td>{{ payment.backend }}</td>
           <td>{{ payment.created_on }}</td>
-          <td>{{ payment.paid_on }}</td>
+          <td>{{ payment.last_payment_on }}</td>
           <td>{{ payment.amount_paid }} {{ payment.currency }}</td>
 
         </tr>
@@ -51,5 +51,4 @@
     </table>
   {% endif %}
 {% endwith %}
-</body>
-</html>
+{% endblock content %}

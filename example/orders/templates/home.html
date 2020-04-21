@@ -1,10 +1,5 @@
-<html>
-<head>
-    <style>
-        input[type=text] {width: 300px;}
-    </style>
-</head>
-<body>
+{% extends "getpaid/base.html" %}
+{% block content %}
 <h1>django-getpaid example project</h1>
 <p>This is an example project of how django-getpaid manage order payment workflow.</p>
 <p>First you will need to create an order. In this simple example order has just one item which have
@@ -26,5 +21,4 @@ name and price.</p>
         {% endfor %}
     </ol>
 {% endif %}
-</body>
-</html>
+{% endblock content %}

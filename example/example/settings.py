@@ -24,7 +24,7 @@ GETPAID_BACKEND_SETTINGS = {
     },
 }
 
-PAYWALL_MODE = "LOCK"  # PAY for instant paying, LOCK for pre-auth
+PAYWALL_MODE = "PAY"  # PAY for instant paying, LOCK for pre-auth
 
 INSTALLED_APPS = [
     "django.contrib.auth",

@@ -11,7 +11,7 @@ import os
 from urllib.parse import urljoin
 
 import requests
-from django.http import HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect
 from django.template.response import TemplateResponse
 from django.urls import reverse, reverse_lazy
 from django_fsm import can_proceed
@@ -123,6 +123,7 @@ class PaymentProcessor(BaseProcessor):
         else:
             raise ValueError(f"Unhandled new status {new_status}")
         self.payment.save()
+        return HttpResponse("OK")
 
     def fetch_payment_status(self, **kwargs):
         base = self.get_paywall_baseurl()

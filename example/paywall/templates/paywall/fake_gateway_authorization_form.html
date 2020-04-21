@@ -1,6 +1,5 @@
-{% load i18n %}
-<html>
-<body>
+{% extends "getpaid/base.html" %}
+{% block content %}
 <h1>django-getpaid fake payment gateway</h1>
 <h3>This page simulates the broker's paywall where usually you would
   proceed with payment by entering card data or something.</h3>
@@ -16,6 +15,4 @@
     {{ form.as_p }}
     <input type="submit" value="{% trans "Continue" %}">
 </form>
-
-</body>
-</html>
+{% endblock content %}
