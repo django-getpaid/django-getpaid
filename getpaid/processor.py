@@ -47,7 +47,7 @@ class BaseProcessor(ABC):
     def get_client(self):
         return self.get_client_class()(**self.get_client_params())
 
-    def get_client_params(self):
+    def get_client_params(self) -> dict:
         return {}
 
     @classmethod
