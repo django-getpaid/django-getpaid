@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "django-getpaid"
-version = "2.0.1"
+version = "2.1.0-pre.1"
 description = "Multi-broker payment processor for Django."
 authors = ["Dominik Kozaczko <dominik@kozaczko.info>"]
 license = "MIT"
@@ -26,6 +26,7 @@ pendulum = "^2.0.5"
 #django = "~2.2 || ~3.0"
 swapper = "^1.1.2"
 django-fsm = "^2.7.0"
+typing-extensions = "^3.7.4"
 
 [tool.poetry.dev-dependencies]
 tox = "^3.14.5"
@@ -46,6 +47,7 @@ isort = "^4.3.21"
 graphviz = {version = "^0.13.2", optional = true, extras = ["graph"]}
 pytest-factoryboy = {version = "^2.0.3", optional = true, extras = ["test"]}
 readme-renderer = "^25.0"
+monkeytype = "^20.4.2"
 
 [tool.poetry.extras]
 docs = ["sphinx", "sphinx-rtd-theme"]

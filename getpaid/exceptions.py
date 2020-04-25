@@ -4,9 +4,21 @@ class GetPaidException(Exception):
         super().__init__(*args)
 
 
-class ChargeFailure(GetPaidException):
+class CommunicationError(GetPaidException):
     pass
 
 
-class LockFailure(GetPaidException):
+class ChargeFailure(CommunicationError):
+    pass
+
+
+class LockFailure(CommunicationError):
+    pass
+
+
+class RefundFailure(CommunicationError):
+    pass
+
+
+class CredentialsError(GetPaidException):
     pass

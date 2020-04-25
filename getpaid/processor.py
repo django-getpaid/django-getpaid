@@ -15,6 +15,8 @@ class BaseProcessor(ABC):
     slug = None  #: For friendly urls
     post_form_class = None
     post_template_name = None
+    client_class = None
+    client = None
     ok_statuses = [
         200,
     ]  #: List of potentially successful HTTP status codes returned by paywall when creating payment
@@ -29,6 +31,24 @@ class BaseProcessor(ABC):
             self.path, {}
         )
         self.optional_config = getattr(settings, "GETPAID", {})
+        if self.client_class is not None:
+            self.client = self.get_client()
+
+    def get_client_class(self):
+        class_path = self.get_setting("CLIENT_CLASS")
+        if not class_path:
+            class_path = self.client_class
+        if class_path and not callable(class_path):
+            module_name, _, class_name = class_path.rpartition(".")
+            module = import_module(module_name)
+            return getattr(module, class_name)
+        return class_path
+
+    def get_client(self):
+        return self.get_client_class()(**self.get_client_params())
+
+    def get_client_params(self):
+        return {}
 
     @classmethod
     def class_id(cls, **kwargs):

@@ -272,7 +272,7 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         return self.processor.fetch_payment_status()
 
     @atomic
-    def fetch_and_update_status(self):
+    def fetch_and_update_status(self) -> dict:
         """
         Used during 'PULL' flow to automatically fetch and update
         Payment's status.
@@ -300,7 +300,7 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
                 status_report["exception"] = e
         return status_report
 
-    def get_return_redirect_url(self, request, success):
+    def get_return_redirect_url(self, request, success: bool) -> str:
         if success:
             url = self.processor.get_setting("SUCCESS_URL")
         else:
@@ -312,7 +312,7 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
             return resolve_url(url, **kwargs)
         return resolve_url(self.order.get_return_url(self, success=success))
 
-    def get_return_redirect_kwargs(self, request, success):
+    def get_return_redirect_kwargs(self, request, success: bool) -> dict:
         return {"pk": self.id}
 
     # Actions / FSM transitions
