@@ -66,6 +66,17 @@ class PaymentStatus(str, Enum):
         return self.choices
 
 
+class BackendMethod(str, Enum):
+    GET = "GET"
+    POST = "POST"
+    REST = "REST"
+
+
+class ConfirmationMethod(str, Enum):
+    PUSH = "PUSH"
+    PULL = "PULL"
+
+
 class GetpaidInternalResponse(TypedDict):
     raw_response: Any
     exception: Optional[Exception]
