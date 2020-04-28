@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from decimal import Decimal
 from importlib import import_module
-from typing import Any, List, Mapping, Optional, Type, Union
+from typing import TYPE_CHECKING, Any, List, Mapping, Optional, Type, Union
 
 from django.conf import settings
 from django.contrib.sites.shortcuts import get_current_site
@@ -10,8 +10,12 @@ from django.forms import BaseForm
 from django.http import HttpRequest, HttpResponse
 from django.views import View
 
-from getpaid.models import AbstractPayment
 from getpaid.types import ChargeResponse, PaymentStatusResponse
+
+if TYPE_CHECKING:
+    from .models import AbstractPayment
+else:
+    from django.db.models import Model as AbstractPayment
 
 
 class BaseProcessor(ABC):
