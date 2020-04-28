@@ -1,9 +1,17 @@
 from abc import ABC, abstractmethod
+from decimal import Decimal
 from importlib import import_module
+from typing import Any, List, Mapping, Optional, Type, Union
 
 from django.conf import settings
 from django.contrib.sites.shortcuts import get_current_site
 from django.core.exceptions import ImproperlyConfigured
+from django.forms import BaseForm
+from django.http import HttpRequest, HttpResponse
+from django.views import View
+
+from getpaid.models import AbstractPayment
+from getpaid.types import ChargeResponse, PaymentStatusResponse
 
 
 class BaseProcessor(ABC):
@@ -21,7 +29,7 @@ class BaseProcessor(ABC):
         200,
     ]  #: List of potentially successful HTTP status codes returned by paywall when creating payment
 
-    def __init__(self, payment):
+    def __init__(self, payment: AbstractPayment) -> None:
         self.payment = payment
         self.path = payment.backend
         self.context = {}  # can be used by Payment's customized methods.
@@ -34,7 +42,7 @@ class BaseProcessor(ABC):
         if self.client_class is not None:
             self.client = self.get_client()
 
-    def get_client_class(self):
+    def get_client_class(self) -> Type:
         class_path = self.get_setting("CLIENT_CLASS")
         if not class_path:
             class_path = self.client_class
@@ -44,17 +52,17 @@ class BaseProcessor(ABC):
             return getattr(module, class_name)
         return class_path
 
-    def get_client(self):
+    def get_client(self) -> object:
         return self.get_client_class()(**self.get_client_params())
 
     def get_client_params(self) -> dict:
         return {}
 
     @classmethod
-    def class_id(cls, **kwargs):
+    def class_id(cls, **kwargs) -> str:
         return cls.__module__
 
-    def get_setting(self, name, default=None):
+    def get_setting(self, name: str, default: Optional[Any] = None) -> Any:
         value = self.config.get(name, default)
         if value is None:
             value = self.optional_config.get(name, None)
@@ -65,7 +73,7 @@ class BaseProcessor(ABC):
         return cls.display_name
 
     @classmethod
-    def get_accepted_currencies(cls, **kwargs) -> list:
+    def get_accepted_currencies(cls, **kwargs) -> List[str]:
         return cls.accepted_currencies
 
     @classmethod
@@ -73,13 +81,13 @@ class BaseProcessor(ABC):
         return cls.logo_url
 
     @classmethod
-    def get_paywall_baseurl(cls, **kwargs):
+    def get_paywall_baseurl(cls, **kwargs) -> str:
         if settings.DEBUG:
             return cls.sandbox_url
         return cls.production_url
 
     @staticmethod
-    def get_our_baseurl(request=None, **kwargs):
+    def get_our_baseurl(request: HttpRequest = None, **kwargs) -> str:
         """
         Little helper function to get base url for our site.
         Note that this way 'https' is enforced on production environment.
@@ -87,7 +95,7 @@ class BaseProcessor(ABC):
         scheme = "http" if settings.DEBUG else "https"
         return f"{scheme}://{get_current_site(request).domain}/"
 
-    def get_template_names(self, view=None, **kwargs) -> list:
+    def get_template_names(self, view: Optional[View] = None, **kwargs) -> List[str]:
         template_name = self.get_setting("POST_TEMPLATE")
         if template_name is None:
             template_name = self.post_template_name
@@ -97,7 +105,7 @@ class BaseProcessor(ABC):
             raise ImproperlyConfigured("Couldn't determine template name!")
         return [template_name]
 
-    def get_form_class(self, **kwargs):
+    def get_form_class(self, **kwargs) -> Type:
         form_class_path = self.get_setting("POST_FORM_CLASS")
         if not form_class_path:
             return self.post_form_class
@@ -107,14 +115,14 @@ class BaseProcessor(ABC):
             return getattr(module, class_name)
         return self.post_form_class
 
-    def prepare_form_data(self, post_data, **kwargs):
+    def prepare_form_data(self, post_data: dict, **kwargs) -> Mapping[str, Any]:
         """
         If backend support several modes of operation, POST should probably
         additionally calculate some sort of signature based on passed data.
         """
         return post_data
 
-    def get_form(self, post_data, **kwargs):
+    def get_form(self, post_data: dict, **kwargs) -> BaseForm:
         """
         (Optional)
         Used to get POST form for backends that use such flow.
@@ -130,7 +138,9 @@ class BaseProcessor(ABC):
     # Communication with outer world
 
     @abstractmethod
-    def prepare_transaction(self, request, view=None, **kwargs):
+    def prepare_transaction(
+        self, request: HttpRequest, view: Optional[View] = None, **kwargs
+    ) -> HttpResponse:
         """
         Prepare Response for the view asking to prepare transaction.
 
@@ -138,7 +148,7 @@ class BaseProcessor(ABC):
         """
         raise NotImplementedError
 
-    def handle_paywall_callback(self, request, **kwargs):
+    def handle_paywall_callback(self, request: HttpRequest, **kwargs) -> HttpResponse:
         """
         This method handles the callback from paywall for the purpose
         of asynchronously updating the payment status in our system.
@@ -147,28 +157,25 @@ class BaseProcessor(ABC):
         """
         raise NotImplementedError
 
-    def fetch_payment_status(self, **kwargs) -> dict:
+    def fetch_payment_status(self, **kwargs) -> PaymentStatusResponse:
         # TODO use interface annotation to specify the dict layout
         """
         Logic for checking payment status with paywall.
-
-        Should return dict with either "amount" or "status" keys.
-        If "status" key is used, it should be one of getpaid.models.PAYMENT_STATUS_CHOICES
-        If both keys are present, "status" takes precedence.
         """
         raise NotImplementedError
 
-    def charge(self, amount=None, **kwargs):
+    def charge(
+        self, amount: Optional[Union[Decimal, float, int]] = None, **kwargs
+    ) -> ChargeResponse:
         """
         (Optional)
         Check if payment can be locked and call processor's method.
         This method is used eg. in flows that pre-authorize payment during
         order placement and charge money later.
-        Returns charged amount.
         """
         raise NotImplementedError
 
-    def release_lock(self, **kwargs):
+    def release_lock(self, **kwargs) -> Decimal:
         """
         (Optional)
         Release locked payment. This can happen if pre-authorized payment cannot
@@ -177,15 +184,17 @@ class BaseProcessor(ABC):
         """
         raise NotImplementedError
 
-    def start_refund(self, amount=None, **kwargs):
+    def start_refund(
+        self, amount: Optional[Union[Decimal, float, int]] = None, **kwargs
+    ) -> Decimal:
         """
         Refunds the given amount.
 
-        Returns the amount that was actually refunded.
+        Returns the amount that is refunded.
         """
         raise NotImplementedError
 
-    def cancel_refund(self, **kwargs):
+    def cancel_refund(self, **kwargs) -> bool:
         """
         Cancels started refund.
 

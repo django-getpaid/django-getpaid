@@ -1,6 +1,9 @@
+from decimal import Decimal
 from enum import Enum
+from typing import Any, Optional, Union
 
 from django.utils.translation import pgettext_lazy
+from typing_extensions import TypedDict
 
 
 class FraudStatus(str, Enum):
@@ -61,3 +64,34 @@ class PaymentStatus(str, Enum):
         Backward compatibility with pre-Enum version.
         """
         return self.choices
+
+
+class GetpaidInternalResponse(TypedDict):
+    raw_response: Any
+    exception: Optional[Exception]
+
+
+class ChargeResponse(GetpaidInternalResponse):
+    amount_charged: Optional[Decimal]
+    success: Optional[bool]
+    async_call: Optional[bool]
+
+
+class PaymentStatusResponse(GetpaidInternalResponse):
+    amount: Optional[Decimal]
+    callback: Optional[str]
+    callback_result: Optional[Any]
+    saved: Optional[bool]
+
+
+class ItemInfo(TypedDict):
+    name: str
+    quantity: int
+    unit_price: Decimal
+
+
+class BuyerInfo(TypedDict):
+    email: str
+    first_name: Optional[str]
+    last_name: Optional[str]
+    phone: Optional[Union[str, int]]
