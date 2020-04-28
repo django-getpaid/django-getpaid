@@ -1,14 +1,19 @@
 import logging
 import uuid
+from decimal import Decimal
 from importlib import import_module
+from typing import List, Optional, Union
 
 import swapper
 from django import forms
 from django.db import models
 from django.db.transaction import atomic
+from django.forms import BaseForm
+from django.http import HttpRequest, HttpResponse
 from django.shortcuts import resolve_url
 from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
+from django.views import View
 from django_fsm import (
     ConcurrentTransitionMixin,
     FSMField,
@@ -20,7 +25,9 @@ from django_fsm import (
 from . import FraudStatus as fs
 from . import PaymentStatus as ps
 from .exceptions import ChargeFailure, GetPaidException
+from .processor import BaseProcessor
 from .registry import registry
+from .types import BuyerInfo, ChargeResponse, ItemInfo, PaymentStatusResponse
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +44,7 @@ class AbstractOrder(models.Model):
     class Meta:
         abstract = True
 
-    def get_return_url(self, *args, success=None, **kwargs):
+    def get_return_url(self, *args, success=None, **kwargs) -> str:
         """
         Method used to determine the final url the client should see after
         returning from gateway. Client will be redirected to this url after
@@ -47,14 +54,14 @@ class AbstractOrder(models.Model):
         """
         return self.get_absolute_url()
 
-    def get_absolute_url(self):
+    def get_absolute_url(self) -> str:
         """
         Standard method recommended in Django docs. It should return
         the URL to see details of particular Payment (or usually - Order).
         """
         raise NotImplementedError
 
-    def is_ready_for_payment(self):
+    def is_ready_for_payment(self) -> bool:
         """Most of the validation is made in PaymentMethodForm but if you need
         any extra validation. For example you most probably want to disable
         making another payment for order that is already paid.
@@ -66,13 +73,14 @@ class AbstractOrder(models.Model):
             raise forms.ValidationError(_("Non-failed Payments exist for this Order."))
         return True
 
-    def get_items(self):
+    def get_items(self) -> List[ItemInfo]:
         """
         There are backends that require some sort of item list to be attached
         to the payment. But it's up to you if the list is real or contains only
         one item called "Payment for stuff in {myshop}" ;)
 
-        :return: List of {"name": str, "quantity": Decimal, "unit_price": Decimal} dicts.
+        :return: List of :class:`ItemInfo` dicts. Default: order summary.
+        :rtype: List[ItemInfo]
         """
         return [
             {
@@ -82,7 +90,7 @@ class AbstractOrder(models.Model):
             }
         ]
 
-    def get_total_amount(self):
+    def get_total_amount(self) -> Decimal:
         """
         This method must return the total value of the Order.
 
@@ -90,11 +98,11 @@ class AbstractOrder(models.Model):
         """
         raise NotImplementedError
 
-    def get_buyer_info(self) -> dict:
+    def get_buyer_info(self) -> BuyerInfo:
         """
         This method should return dict with necessary user info.
         For most backends email should be sufficient.
-        Expected field names: `email`, `first_name`, `last_name`, `phone`
+        Refer to :class`BuyerInfo` for expected structure.
         """
         raise NotImplementedError
 
@@ -180,16 +188,16 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
     # First some helpful properties and internals
 
     @property
-    def processor(self):
+    def processor(self) -> BaseProcessor:
         if self._processor is None:
             self._processor = self.get_processor()
         return self._processor
 
     @property
-    def fully_paid(self):
+    def fully_paid(self) -> bool:
         return self.amount_paid >= self.amount_required
 
-    def get_processor(self):
+    def get_processor(self) -> BaseProcessor:
         """
         Returns the processor instance for the backend that
         was chosen for this Payment. By default it takes it from global
@@ -206,14 +214,14 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
 
     # Then some customization enablers
 
-    def get_unique_id(self):
+    def get_unique_id(self) -> str:
         """
         Return unique identifier for this payment. Most paywalls call this
         "external id". Default: str(self.id) which is uuid4.
         """
         return str(self.id)
 
-    def get_items(self):
+    def get_items(self) -> List[ItemInfo]:
         """
         Some backends require the list of items to be added to Payment.
 
@@ -225,10 +233,10 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         # TODO: type/interface annotation
         return self.order.get_items()
 
-    def get_buyer_info(self):
+    def get_buyer_info(self) -> BuyerInfo:
         return self.order.get_buyer_info()
 
-    def get_form(self, *args, **kwargs):
+    def get_form(self, *args, **kwargs) -> BaseForm:
         """
         Interfaces processor's ``get_form``.
 
@@ -237,7 +245,7 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         """
         return self.processor.get_form(*args, **kwargs)
 
-    def get_template_names(self, view=None):
+    def get_template_names(self, view=None) -> List[str]:
         """
         Interfaces processor's ``get_template_names``.
 
@@ -246,7 +254,7 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         """
         return self.processor.get_template_names(view=view)
 
-    def handle_paywall_callback(self, request, **kwargs):
+    def handle_paywall_callback(self, request, **kwargs) -> HttpResponse:
         """
         Interfaces processor's ``handle_paywall_callback``.
 
@@ -262,17 +270,17 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         """
         return self.processor.handle_paywall_callback(request, **kwargs)
 
-    def fetch_status(self):
+    def fetch_status(self) -> PaymentStatusResponse:
         """
         Interfaces processor's ``fetch_payment_status``.
 
-        Used during 'PULL' flow. Fetches status from paywall and translates it to
-        a value from ``PAYMENT_STATUS_CHOICES``.
+        Used during 'PULL' flow. Fetches status from paywall and proposes a callback
+        depending on the response.
         """
         return self.processor.fetch_payment_status()
 
     @atomic
-    def fetch_and_update_status(self) -> dict:
+    def fetch_and_update_status(self) -> PaymentStatusResponse:
         """
         Used during 'PULL' flow to automatically fetch and update
         Payment's status.
@@ -317,22 +325,27 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
 
     # Actions / FSM transitions
 
-    def prepare_transaction(self, request=None, amount=None, view=None, **kwargs):
+    def prepare_transaction(
+        self,
+        request: Optional[HttpRequest] = None,
+        view: Optional[View] = None,
+        **kwargs,
+    ) -> HttpResponse:
         """
         Interfaces processor's :meth:`~getpaid.processor.BaseProcessor.prepare_transaction`.
         """
-        return self.processor.prepare_transaction(
-            request=request, amount=amount, view=None, **kwargs
-        )
+        return self.processor.prepare_transaction(request=request, view=None, **kwargs)
 
     @transition(field=status, source=ps.NEW, target=ps.PREPARED)
-    def confirm_prepared(self, **kwargs):
+    def confirm_prepared(self, **kwargs) -> None:
         """
         Used to confirm that paywall registered POSTed form.
         """
 
     @transition(field=status, source=[ps.NEW, ps.PREPARED], target=ps.PRE_AUTH)
-    def confirm_lock(self, amount=None, **kwargs):
+    def confirm_lock(
+        self, amount: Optional[Union[Decimal, float, int]] = None, **kwargs
+    ) -> None:
         """
         Used to confirm that certain amount has been locked (pre-authed).
         """
@@ -341,7 +354,9 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         self.amount_locked = amount
 
     @atomic
-    def charge(self, amount=None, **kwargs):
+    def charge(
+        self, amount: Optional[Union[Decimal, float, int]] = None, **kwargs
+    ) -> ChargeResponse:
         """
         Interfaces processor's :meth:`~getpaid.processor.BaseProcessor.charge`.
         """
@@ -358,10 +373,10 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
                 self.mark_as_paid()
             else:
                 logger.debug(
-                    "Cannot mark as paid.",
+                    "Cannot mark as fully paid, left as partially paid.",
                     extra={"payment_id": self.id, "payment_status": self.status,},
                 )
-        elif result.get("async", False):
+        elif result.get("async_call", False):
             if can_proceed(self.confirm_charge_sent):
                 self.confirm_charge_sent()
             else:
@@ -375,7 +390,7 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         return result
 
     @transition(field=status, source=ps.PRE_AUTH, target=ps.IN_CHARGE)
-    def confirm_charge_sent(self, **kwargs):
+    def confirm_charge_sent(self, **kwargs) -> None:
         """
         Used during async charge cycle - after you send charge request,
         the confirmation will be sent to callback endpoint.
@@ -386,7 +401,9 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         source=[ps.PRE_AUTH, ps.PREPARED, ps.IN_CHARGE],
         target=ps.PARTIAL,
     )
-    def confirm_payment(self, amount=None, **kwargs):
+    def confirm_payment(
+        self, amount: Optional[Union[Decimal, float, int]] = None, **kwargs
+    ) -> None:
         """
         Used when receiving callback confirmation.
         """
@@ -396,19 +413,19 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
             amount = self.amount_locked
         self.amount_paid = amount
 
-    def _check_fully_paid(self):
+    def _check_fully_paid(self) -> bool:
         return self.fully_paid
 
     @transition(
         field=status, source=ps.PARTIAL, target=ps.PAID, conditions=[_check_fully_paid]
     )
-    def mark_as_paid(self, **kwargs):
+    def mark_as_paid(self, **kwargs) -> None:
         """
         Marks payment as fully paid if condition is met.
         """
 
     @transition(field=status, source=ps.PRE_AUTH, target=ps.REFUNDED)
-    def release_lock(self, **kwargs):
+    def release_lock(self, **kwargs) -> Decimal:
         """
         Interfaces processor's :meth:`~getpaid.processor.BaseProcessor.charge`.
         """
@@ -417,7 +434,9 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         return self.processor.release_lock(**kwargs)
 
     @transition(field=status, source=[ps.PAID, ps.PARTIAL], target=ps.REFUND_STARTED)
-    def start_refund(self, amount=None, **kwargs):
+    def start_refund(
+        self, amount: Optional[Union[Decimal, float, int]] = None, **kwargs
+    ) -> Decimal:
         """
         Interfaces processor's :meth:`~getpaid.processor.BaseProcessor.charge`.
         """
@@ -428,14 +447,16 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         return self.processor.start_refund(amount=amount, **kwargs)
 
     @transition(field=status, source=ps.REFUND_STARTED, target=ps.PARTIAL)
-    def cancel_refund(self, **kwargs):
+    def cancel_refund(self, **kwargs) -> bool:
         """
         Interfaces processor's :meth:`~getpaid.processor.BaseProcessor.charge`.
         """
         return self.processor.cancel_refund()
 
     @transition(field=status, source=ps.REFUND_STARTED, target=ps.PARTIAL)
-    def confirm_refund(self, amount=None, **kwargs):
+    def confirm_refund(
+        self, amount: Optional[Union[Decimal, float, int]] = None, **kwargs
+    ) -> None:
         """
         Used when receiving callback confirmation.
         """
@@ -445,7 +466,7 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         self.amount_paid -= amount
         self.refunded_on = now()
 
-    def _is_full_refund(self):
+    def _is_full_refund(self) -> bool:
         return self.amount_refunded == self.amount_paid
 
     @transition(
@@ -454,7 +475,7 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         target=ps.REFUNDED,
         conditions=[_is_full_refund],
     )
-    def mark_as_refunded(self, **kwargs):
+    def mark_as_refunded(self, **kwargs) -> None:
         """
         Verify if refund was partial or full.
         """
@@ -462,7 +483,7 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
     @transition(
         field=status, source=[ps.NEW, ps.PRE_AUTH, ps.PREPARED], target=ps.FAILED
     )
-    def fail(self, **kwargs):
+    def fail(self, **kwargs) -> None:
         """
         Sets Payment as failed.
         """
@@ -471,23 +492,23 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
     # The "uber-private" ones should be used only by processor.
 
     @transition(field=fraud_status, source=fs.UNKNOWN, target=fs.REJECTED)
-    def ___mark_as_fraud(self, message=""):
+    def ___mark_as_fraud(self, message: str = "") -> None:
         self.fraud_message = message
 
     @transition(field=fraud_status, source=fs.UNKNOWN, target=fs.ACCEPTED)
-    def ___mark_as_legit(self, message=""):
+    def ___mark_as_legit(self, message: str = "") -> None:
         self.fraud_message = message
 
     @transition(field=fraud_status, source=fs.UNKNOWN, target=fs.CHECK)
-    def ___mark_for_check(self, message=""):
+    def ___mark_for_check(self, message: str = "") -> None:
         self.fraud_message = message
 
     @transition(field=fraud_status, source=fs.CHECK, target=fs.REJECTED)
-    def mark_as_fraud(self, message="", **kwargs):
+    def mark_as_fraud(self, message: str = "", **kwargs) -> None:
         self.fraud_message += f"\n==MANUAL REJECT==\n{message}"
 
     @transition(field=fraud_status, source=fs.CHECK, target=fs.ACCEPTED)
-    def mark_as_legit(self, message="", **kwargs):
+    def mark_as_legit(self, message: str = "", **kwargs) -> None:
         self.fraud_message += f"\n==MANUAL ACCEPT==\n{message}"
 
 
