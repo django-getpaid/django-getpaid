@@ -4,6 +4,14 @@
 History
 =======
 
+Version 2.1.0 (2020-04-30)
+--------------------------
+
+* Definitions for all internal data types and statuses
+* Full type hinting
+* Fixed bugs (thanks to `Kacper Pikulski <https://github.com/pikulak>`_!)
+
+
 Version 2.0.0 (2020-04-18)
 --------------------------
 

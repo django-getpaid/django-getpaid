@@ -29,7 +29,7 @@ url_api_operate = reverse_lazy("paywall:api_operate")
 def _prep_conf(api_method: bm = bm.REST, confirm_method: cm = cm.PUSH) -> dict:
     return {
         "getpaid.backends.dummy": {
-            "method": api_method,
+            "paywall_method": api_method,
             "confirmation_method": confirm_method,
         }
     }

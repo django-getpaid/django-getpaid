@@ -16,7 +16,7 @@ REGISTRATION_METHOD = "REST"
 GETPAID_BACKEND_SETTINGS = {
     "getpaid.backends.dummy": {
         "confirmation_method": CONFIRMATION_METHOD,
-        "method": REGISTRATION_METHOD,
+        "paywall_method": REGISTRATION_METHOD,
         # "push" for automatic callback,
         # "pull" if you want to call fetch_status separately
     },

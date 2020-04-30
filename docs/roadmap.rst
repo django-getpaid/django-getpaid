@@ -6,7 +6,6 @@ These features are planned for future versions (in no particular order):
 * translations
 * paywall communication log (all responses and callbacks)
 * Subscriptions handling
-* Complete type annotations
 * cookiecutter for plugins
 * django-rest-framework helpers
 * async/await support

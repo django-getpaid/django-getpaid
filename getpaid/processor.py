@@ -96,6 +96,8 @@ class BaseProcessor(ABC):
         Little helper function to get base url for our site.
         Note that this way 'https' is enforced on production environment.
         """
+        if request is None:
+            return "http://127.0.0.1/"
         scheme = "http" if settings.DEBUG else "https"
         return f"{scheme}://{get_current_site(request).domain}/"
 

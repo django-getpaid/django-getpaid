@@ -39,8 +39,8 @@ class PaymentProcessor(BaseProcessor):
     standard_url = reverse_lazy("paywall:gateway")
     api_url = reverse_lazy("paywall:api_register")
 
-    def get_method(self):
-        return self.get_setting("method", self.method)
+    def get_paywall_method(self):
+        return self.get_setting("paywall_method", self.method)
 
     def get_confirmation_method(self):
         return self.get_setting("confirmation_method", self.confirmation_method).upper()
@@ -50,7 +50,7 @@ class PaymentProcessor(BaseProcessor):
             base = os.environ.get("_PAYWALL_URL")
         else:
             base = os.environ["_PAYWALL_URL"] = request.build_absolute_uri("/")
-        if self.get_method() == "REST":
+        if self.get_paywall_method() == "REST":
             return urljoin(base, str(self.api_url))
         return urljoin(base, str(self.standard_url))
 
@@ -80,7 +80,7 @@ class PaymentProcessor(BaseProcessor):
     def prepare_transaction(self, request, view=None, **kwargs):
         target_url = self.get_paywall_baseurl(request)
         params = self.get_params()
-        method = self.get_method()
+        method = self.get_paywall_method()
         if method == "REST":
             response = requests.post(target_url, json=params)
             if response.status_code in self.ok_statuses:
