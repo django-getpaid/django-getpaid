@@ -2,6 +2,7 @@ from decimal import Decimal
 from enum import Enum
 from typing import Any, Optional, Union
 
+from django.utils.decorators import classproperty
 from django.utils.translation import pgettext_lazy
 from typing_extensions import TypedDict
 
@@ -12,21 +13,21 @@ class FraudStatus(str, Enum):
     REJECTED = "rejected"
     CHECK = "check"
 
-    @property
-    def choices(self):
+    @classproperty
+    def choices(cls):
         return (
-            (self.UNKNOWN, pgettext_lazy("fraud status", "unknown")),
-            (self.ACCEPTED, pgettext_lazy("fraud status", "accepted")),
-            (self.REJECTED, pgettext_lazy("fraud status", "rejected")),
-            (self.CHECK, pgettext_lazy("fraud status", "needs manual verification")),
+            (cls.UNKNOWN, pgettext_lazy("fraud status", "unknown")),
+            (cls.ACCEPTED, pgettext_lazy("fraud status", "accepted")),
+            (cls.REJECTED, pgettext_lazy("fraud status", "rejected")),
+            (cls.CHECK, pgettext_lazy("fraud status", "needs manual verification")),
         )
 
-    @property
-    def CHOICES(self):
+    @classproperty
+    def CHOICES(cls):
         """
         Backward compatibility with pre-Enum version.
         """
-        return self.choices
+        return cls.choices
 
 
 class PaymentStatus(str, Enum):
@@ -44,26 +45,26 @@ class PaymentStatus(str, Enum):
     REFUND_STARTED = "refund_started"
     REFUNDED = "refunded"
 
-    @property
-    def choices(self):
+    @classproperty
+    def choices(cls):
         return (
-            (self.NEW, pgettext_lazy("payment status", "new")),
-            (self.PREPARED, pgettext_lazy("payment status", "in progress")),
-            (self.PRE_AUTH, pgettext_lazy("payment status", "pre-authed")),
-            (self.IN_CHARGE, pgettext_lazy("payment status", "charge process started")),
-            (self.PARTIAL, pgettext_lazy("payment status", "partially paid")),
-            (self.PAID, pgettext_lazy("payment status", "paid")),
-            (self.FAILED, pgettext_lazy("payment status", "failed")),
-            (self.REFUND_STARTED, pgettext_lazy("payment status", "refund started")),
-            (self.REFUNDED, pgettext_lazy("payment status", "refunded")),
+            (cls.NEW, pgettext_lazy("payment status", "new")),
+            (cls.PREPARED, pgettext_lazy("payment status", "in progress")),
+            (cls.PRE_AUTH, pgettext_lazy("payment status", "pre-authed")),
+            (cls.IN_CHARGE, pgettext_lazy("payment status", "charge process started")),
+            (cls.PARTIAL, pgettext_lazy("payment status", "partially paid")),
+            (cls.PAID, pgettext_lazy("payment status", "paid")),
+            (cls.FAILED, pgettext_lazy("payment status", "failed")),
+            (cls.REFUND_STARTED, pgettext_lazy("payment status", "refund started")),
+            (cls.REFUNDED, pgettext_lazy("payment status", "refunded")),
         )
 
-    @property
-    def CHOICES(self):
+    @classproperty
+    def CHOICES(cls):
         """
         Backward compatibility with pre-Enum version.
         """
-        return self.choices
+        return cls.choices
 
 
 class BackendMethod(str, Enum):

@@ -99,7 +99,7 @@ def test_fsm_check_available_transitions_from_partial(payment_factory):
     assert not can_proceed(payment.confirm_prepared)
     assert not can_proceed(payment.confirm_lock)
     assert not can_proceed(payment.confirm_charge_sent)
-    assert not can_proceed(payment.confirm_payment)
+    assert can_proceed(payment.confirm_payment)
     assert can_proceed(payment.mark_as_paid)
     assert not can_proceed(payment.release_lock)
     assert can_proceed(payment.start_refund)

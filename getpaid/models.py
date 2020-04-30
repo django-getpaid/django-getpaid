@@ -398,7 +398,7 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
 
     @transition(
         field=status,
-        source=[ps.PRE_AUTH, ps.PREPARED, ps.IN_CHARGE],
+        source=[ps.PRE_AUTH, ps.PREPARED, ps.IN_CHARGE, ps.PARTIAL],
         target=ps.PARTIAL,
     )
     def confirm_payment(
@@ -411,7 +411,7 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
             if not self.amount_locked:  # coming directly from PREPARED
                 self.amount_locked = self.amount_required
             amount = self.amount_locked
-        self.amount_paid = amount
+        self.amount_paid += amount
 
     def _check_fully_paid(self) -> bool:
         return self.fully_paid
@@ -463,7 +463,6 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         if amount is None:
             amount = self.amount_paid
         self.amount_refunded += amount
-        self.amount_paid -= amount
         self.refunded_on = now()
 
     def _is_full_refund(self) -> bool:

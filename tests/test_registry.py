@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.test import TestCase
 
+from getpaid import FraudStatus, PaymentStatus
 from getpaid.processor import BaseProcessor
 from getpaid.registry import registry
 
@@ -31,3 +32,10 @@ class TestRegistry(TestCase):
     def test_url(self):
         # dummy plugin contains at least one example endpoint
         assert len(registry.urls) > 0
+
+    def test_choices(self):
+        fraud_choices = FraudStatus.CHOICES
+        assert type(fraud_choices) == tuple
+
+        payment_choices = PaymentStatus.CHOICES
+        assert type(payment_choices) == tuple

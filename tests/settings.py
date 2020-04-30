@@ -30,7 +30,6 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.sessions",
     "django.contrib.contenttypes",
-    "django_fsm",
     "getpaid",
     "getpaid.backends.dummy",
     "orders",
