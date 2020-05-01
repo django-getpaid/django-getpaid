@@ -4,6 +4,12 @@
 History
 =======
 
+Version 2.2.0 (in development)
+------------------------------
+
+* Add template tag
+
+
 Version 2.1.0 (2020-04-30)
 --------------------------
 

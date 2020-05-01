@@ -40,13 +40,24 @@ class PluginRegistry(object):
 
     def get_choices(self, currency):
         """
-        Get plugins that support given currency, in CHOICES format.
+        Get CHOICES for plugins that support given currency.
         """
         currency = currency.upper()
         return [
             (name, p.display_name)
             for name, p in self._backends.items()
             if currency in p.get_accepted_currencies()
+        ]
+
+    def get_backends(self, currency):
+        """
+        Get plugins that support given currency.
+        """
+        currency = currency.upper()
+        return [
+            backend
+            for backend in self._backends.values()
+            if currency in backend.get_accepted_currencies()
         ]
 
     @property
