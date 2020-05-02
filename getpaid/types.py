@@ -1,7 +1,8 @@
 from decimal import Decimal
 from enum import Enum
-from typing import Any, Optional, Union
+from typing import Any, List, Optional, Union
 
+from django.http import HttpResponse
 from django.utils.decorators import classproperty
 from django.utils.translation import pgettext_lazy
 from typing_extensions import TypedDict
@@ -107,3 +108,24 @@ class BuyerInfo(TypedDict):
     first_name: Optional[str]
     last_name: Optional[str]
     phone: Optional[Union[str, int]]
+
+
+class FormField(TypedDict):
+    name: str
+    value: Any
+    label: Optional[str]
+    widget: str
+    help_text: Optional[str]
+    required: bool
+
+
+class PaymentForm(TypedDict):
+    fields: List[FormField]
+
+
+class RestfulResult(TypedDict):
+    status_code: int
+    result: HttpResponse
+    target_url: Optional[str]
+    form: Optional[PaymentForm]
+    message: Optional[Union[str, bytes]]

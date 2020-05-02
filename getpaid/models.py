@@ -27,7 +27,13 @@ from . import PaymentStatus as ps
 from .exceptions import ChargeFailure, GetPaidException
 from .processor import BaseProcessor
 from .registry import registry
-from .types import BuyerInfo, ChargeResponse, ItemInfo, PaymentStatusResponse
+from .types import (
+    BuyerInfo,
+    ChargeResponse,
+    ItemInfo,
+    PaymentStatusResponse,
+    RestfulResult,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -335,6 +341,35 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         Interfaces processor's :meth:`~getpaid.processor.BaseProcessor.prepare_transaction`.
         """
         return self.processor.prepare_transaction(request=request, view=None, **kwargs)
+
+    def prepare_transaction_for_rest(
+        self,
+        request: Optional[HttpRequest] = None,
+        view: Optional[View] = None,
+        **kwargs,
+    ) -> RestfulResult:
+        result = self.prepare_transaction(request=request, view=view, **kwargs)
+        data = {"status_code": result.status_code, "result": result}
+        if result.status_code == 200:
+            data["target_url"] = result.context_data["paywall_url"]
+            data["form"] = {
+                "fields": [
+                    {
+                        "name": name,
+                        "value": field.initial,
+                        "label": field.label or name,
+                        "widget": field.widget.__class__.__name__,
+                        "help_text": field.help_text,
+                        "required": field.required,
+                    }
+                    for name, field in result.context_data["form"].fields
+                ],
+            }
+        elif result.status_code == 302:
+            data["target_url"] = result.url
+        else:
+            data["message"] = result.content
+        return data
 
     @transition(field=status, source=ps.NEW, target=ps.PREPARED)
     def confirm_prepared(self, **kwargs) -> None:
