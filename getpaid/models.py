@@ -348,6 +348,10 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         view: Optional[View] = None,
         **kwargs,
     ) -> RestfulResult:
+        """
+        Helper function returning data as dict to better integrate with
+        Django REST Framework.
+        """
         result = self.prepare_transaction(request=request, view=view, **kwargs)
         data = {"status_code": result.status_code, "result": result}
         if result.status_code == 200:
