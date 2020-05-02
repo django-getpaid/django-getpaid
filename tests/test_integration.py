@@ -89,11 +89,10 @@ def test_post_flow_begin(payment_factory, settings, live_server, requests_mock, 
 def test_rest_flow_begin(payment_factory, settings, live_server, requests_mock, rf):
     os.environ["_PAYWALL_URL"] = live_server.url
     settings.GETPAID_BACKEND_SETTINGS = _prep_conf(api_method=bm.REST)
-
     payment = payment_factory(external_id=uuid.uuid4())
     requests_mock.post(str(url_api_register), json={"url": str(url_post_payment)})
-    result = payment.prepare_transaction(None)
 
+    result = payment.prepare_transaction(None)
     assert result.status_code == 302
     assert payment.status == ps.PREPARED
 

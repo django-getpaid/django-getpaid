@@ -8,7 +8,7 @@ Version 2.2.0 (in development)
 ------------------------------
 
 * Add template tag
-
+* Add helper for REST integration
 
 Version 2.1.0 (2020-04-30)
 --------------------------
