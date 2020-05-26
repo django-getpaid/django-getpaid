@@ -17,10 +17,10 @@ class FraudStatus(str, Enum):
     @classproperty
     def choices(cls):
         return (
-            (cls.UNKNOWN, pgettext_lazy("fraud status", "unknown")),
-            (cls.ACCEPTED, pgettext_lazy("fraud status", "accepted")),
-            (cls.REJECTED, pgettext_lazy("fraud status", "rejected")),
-            (cls.CHECK, pgettext_lazy("fraud status", "needs manual verification")),
+            (cls.UNKNOWN.value, pgettext_lazy("fraud status", "unknown")),
+            (cls.ACCEPTED.value, pgettext_lazy("fraud status", "accepted")),
+            (cls.REJECTED.value, pgettext_lazy("fraud status", "rejected")),
+            (cls.CHECK.value, pgettext_lazy("fraud status", "needs manual verification")),
         )
 
     @classproperty
@@ -49,15 +49,15 @@ class PaymentStatus(str, Enum):
     @classproperty
     def choices(cls):
         return (
-            (cls.NEW, pgettext_lazy("payment status", "new")),
-            (cls.PREPARED, pgettext_lazy("payment status", "in progress")),
-            (cls.PRE_AUTH, pgettext_lazy("payment status", "pre-authed")),
-            (cls.IN_CHARGE, pgettext_lazy("payment status", "charge process started")),
-            (cls.PARTIAL, pgettext_lazy("payment status", "partially paid")),
-            (cls.PAID, pgettext_lazy("payment status", "paid")),
-            (cls.FAILED, pgettext_lazy("payment status", "failed")),
-            (cls.REFUND_STARTED, pgettext_lazy("payment status", "refund started")),
-            (cls.REFUNDED, pgettext_lazy("payment status", "refunded")),
+            (cls.NEW.value, pgettext_lazy("payment status", "new")),
+            (cls.PREPARED.value, pgettext_lazy("payment status", "in progress")),
+            (cls.PRE_AUTH.value, pgettext_lazy("payment status", "pre-authed")),
+            (cls.IN_CHARGE.value, pgettext_lazy("payment status", "charge process started")),
+            (cls.PARTIAL.value, pgettext_lazy("payment status", "partially paid")),
+            (cls.PAID.value, pgettext_lazy("payment status", "paid")),
+            (cls.FAILED.value, pgettext_lazy("payment status", "failed")),
+            (cls.REFUND_STARTED.value, pgettext_lazy("payment status", "refund started")),
+            (cls.REFUNDED.value, pgettext_lazy("payment status", "refunded")),
         )
 
     @classproperty
