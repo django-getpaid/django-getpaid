@@ -1,7 +1,0 @@
--r requirements.txt
-
-bumpversion==0.5.3
-wheel==0.30.0
-black
-pre-commit
-requests
