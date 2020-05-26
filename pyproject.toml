@@ -62,11 +62,11 @@ test = [
     "pytest",
     "codecov",
     "coverage",
-    "request-mock",
+    "requests",
+    "requests-mock",
     "pytest-cov",
     "pytest-django",
-    "requests",
-    "pytest-factoryboy"
+    "pytest-factoryboy",
 ]
 
 

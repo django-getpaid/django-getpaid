@@ -14,7 +14,7 @@ env:
 fast_finish: true
 
 # command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
-install: pip install -r requirements_test.txt tox-travis
+install: pip install tox tox-travis
 
 # command to run tests using coverage, e.g. python setup.py test
 script: tox
