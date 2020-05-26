@@ -48,13 +48,19 @@ dictionary. Use plugin's dotted path - just as you put it in  ``INSTALLED_APPS``
 
     GETPAID_BACKEND_SETTINGS = {
         "getpaid.backends.dummy": {
+            "use_sandbox": True,
             "confirmation_method": "push",
             "gateway": reverse_lazy("paywall:gateway"),
         },
-        "getpaid_paynow": {
-            "api_key": "9bcdead5-b194-4eb5-a1d5-c1654572e624",
-            "signature_key": "54d22fdb-2a8b-4711-a2e9-0e69a2a91189",
-        },
+        "getpaid_payu": {
+            "use_sandbox": True,
+            # take these from your merchant panel:
+            "pos_id": 12345,
+            "second_key": "91ae651578c5b5aa93f2d38a9be8ce11",
+            "oauth_id": 12345,
+            "oauth_secret": "12f071174cb7eb79d4aac5bc2f07563f"
+            "continue_url": "{frontend_url}platnosci/{payment_id}/koniec/",
+        }
     }
 
 
