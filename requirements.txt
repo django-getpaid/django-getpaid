@@ -7,3 +7,4 @@ anyjson
 simplejson
 swapper==1.1.2.post1
 django-fsm==2.7.0
+djangorestframework==3.11.0

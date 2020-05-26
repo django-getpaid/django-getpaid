@@ -179,6 +179,7 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         protected=True,
     )
     fraud_message = models.TextField(_("fraud message"), blank=True)
+    redirect_uri = models.URLField(max_length=1024, blank=True)
 
     _processor = None
 
