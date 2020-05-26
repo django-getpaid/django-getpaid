@@ -14,4 +14,3 @@ PayU
 * Original API Docs: https://www.payu.pl/en/developers
 * Sandbox panel: https://merch-prod.snd.payu.com/user/login
 * Currencies: BGN, CHF, CZK, DKK, EUR, GBP, HRK, HUF, NOK, PLN, RON, RUB, SEK, UAH, USD
-

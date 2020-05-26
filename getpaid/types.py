@@ -20,7 +20,10 @@ class FraudStatus(str, Enum):
             (cls.UNKNOWN.value, pgettext_lazy("fraud status", "unknown")),
             (cls.ACCEPTED.value, pgettext_lazy("fraud status", "accepted")),
             (cls.REJECTED.value, pgettext_lazy("fraud status", "rejected")),
-            (cls.CHECK.value, pgettext_lazy("fraud status", "needs manual verification")),
+            (
+                cls.CHECK.value,
+                pgettext_lazy("fraud status", "needs manual verification"),
+            ),
         )
 
     @classproperty
@@ -52,11 +55,17 @@ class PaymentStatus(str, Enum):
             (cls.NEW.value, pgettext_lazy("payment status", "new")),
             (cls.PREPARED.value, pgettext_lazy("payment status", "in progress")),
             (cls.PRE_AUTH.value, pgettext_lazy("payment status", "pre-authed")),
-            (cls.IN_CHARGE.value, pgettext_lazy("payment status", "charge process started")),
+            (
+                cls.IN_CHARGE.value,
+                pgettext_lazy("payment status", "charge process started"),
+            ),
             (cls.PARTIAL.value, pgettext_lazy("payment status", "partially paid")),
             (cls.PAID.value, pgettext_lazy("payment status", "paid")),
             (cls.FAILED.value, pgettext_lazy("payment status", "failed")),
-            (cls.REFUND_STARTED.value, pgettext_lazy("payment status", "refund started")),
+            (
+                cls.REFUND_STARTED.value,
+                pgettext_lazy("payment status", "refund started"),
+            ),
             (cls.REFUNDED.value, pgettext_lazy("payment status", "refunded")),
         )
 
