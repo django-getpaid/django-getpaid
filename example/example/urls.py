@@ -10,4 +10,6 @@ urlpatterns = [
     path("order/<int:pk>/", OrderView.as_view(), name="order_detail"),
     path("payments/", include("getpaid.urls")),
     path("paywall/", include("paywall.urls")),
+    # Add your rest-framework order viewset's urls
+    # if you're using rest-framework.
 ]

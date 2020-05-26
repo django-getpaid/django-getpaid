@@ -2,4 +2,4 @@ from django.apps import AppConfig
 
 
 class GetpaidRestConfig(AppConfig):
-    name = "getpaid.rest_framework"
+    name = "getpaid_rest_framework"
