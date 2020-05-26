@@ -56,6 +56,12 @@ db.sqlite3
 # pyenv
 .python-version
 
+# virtualenv
+venv
+.venv
+virtualenv
+.virtualenv
+
 # poetry
 /poetry.lock
 
