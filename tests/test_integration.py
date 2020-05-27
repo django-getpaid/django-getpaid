@@ -3,6 +3,7 @@ import uuid
 
 import pytest
 import swapper
+from django.conf import settings
 from django.template.response import TemplateResponse
 from django.test import TestCase
 from django.urls import reverse, reverse_lazy
@@ -16,7 +17,7 @@ from getpaid.types import PaymentStatus as ps
 from .tools import Plugin
 
 pytestmark = pytest.mark.django_db
-dummy = "getpaid.backends.dummy"
+dummy = settings.GETPAID_DUMMY_SLUG
 
 Order = swapper.load_model("getpaid", "Order")
 Payment = swapper.load_model("getpaid", "Payment")
@@ -28,7 +29,7 @@ url_api_operate = reverse_lazy("paywall:api_operate")
 
 def _prep_conf(api_method: bm = bm.REST, confirm_method: cm = cm.PUSH) -> dict:
     return {
-        "getpaid.backends.dummy": {
+        settings.GETPAID_DUMMY_SLUG: {
             "paywall_method": api_method,
             "confirmation_method": confirm_method,
         }

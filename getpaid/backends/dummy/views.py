@@ -16,6 +16,6 @@ class CallbackView(View):
         external_id = json.loads(request.data).get("paymentId")
         Payment = swapper.load_model("getpaid", "Payment")
         payment = get_object_or_404(
-            Payment, external_id=external_id, backend=PaymentProcessor.path
+            Payment, external_id=external_id, backend=PaymentProcessor.slug
         )
         return payment.handle_callback(request, *args, **kwargs)
