@@ -17,7 +17,7 @@ from getpaid.exceptions import (
     LockFailure,
     RefundFailure,
 )
-from getpaid.types import ItemInfo
+from getpaid.types import ItemInfo, ShoppingCart
 from .types import (
     BuyerData,
     CancellationResponse,
@@ -43,7 +43,7 @@ def ensure_auth(func: Callable) -> Callable:
 
 class Client:
     last_response = None
-    _convertables = {"amount", "total", "available", "unitPrice", "totalAmount"}
+    _convertables = {"amount", "total", "available", "unitPrice", "totalAmount", "fee"}
 
     def __init__(
         self,
@@ -140,6 +140,7 @@ class Client:
         customer_ip: Optional[str] = None,
         buyer: Optional[BuyerData] = None,
         products: Optional[List[ProductData]] = None,
+        shopping_carts: Optional[List[ShoppingCart]] = None,
         notify_url: Optional[str] = None,
         **kwargs,
     ) -> PaymentResponse:
@@ -152,24 +153,31 @@ class Client:
         :param customer_ip: IP address of the customer, default: "127.0.0.1"
         :param buyer: Buyer data (see :class:`Buyer`)
         :param products: List of products being bought (see :class:`Product`), defaults to amount + description
+        :param shopping_carts: List of carts in marketplace (only if is_marketplace set as True)
         :param notify_url: Callback url
         :param kwargs: Additional params that will first be consumed by headers, with leftovers passed on to order request
         :return: JSON response from API
         """
         url = urljoin(self.api_url, "/api/v2_1/orders")
-        data = self._centify(
-            {
-                "extOrderId": order_id,
-                "customerIp": customer_ip if customer_ip else "127.0.0.1",
-                "merchantPosId": self.pos_id,
-                "description": description if description else "Payment order",
-                "currencyCode": currency,
-                "totalAmount": amount,
-                "products": products
-                if products
-                else [{"name": "Total order", "unitPrice": amount, "quantity": 1}],
-            }
-        )
+
+        raw_data = {
+            "extOrderId": order_id,
+            "customerIp": customer_ip if customer_ip else "127.0.0.1",
+            "merchantPosId": self.pos_id,
+            "description": description if description else "Payment order",
+            "currencyCode": currency,
+            "totalAmount": amount,
+        }
+
+        if shopping_carts:
+            raw_data["shoppingCarts"] = shopping_carts
+        else:
+            default = [{"name": "Total order", "unitPrice": amount, "quantity": 1}]
+            products = products if products else default,
+            raw_data["products"] = products
+
+        data = self._centify(raw_data)
+
         if notify_url:
             data["notifyUrl"] = notify_url
         if buyer:

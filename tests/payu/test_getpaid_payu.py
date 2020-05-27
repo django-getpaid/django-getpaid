@@ -164,7 +164,7 @@ def test_shopping_carts_if_is_marketplace(
         content_type="application/json"
     )
     processor = PaymentProcessor(payment=payment)
-    assert "shoppingCarts" in processor.get_paywall_context(request=request)
+    assert "shopping_carts" in processor.get_paywall_context(request=request)
 
 
 def test_products_if_not_marketplace(getpaid_client, settings, payment_factory, rf):

@@ -94,6 +94,7 @@ class PaymentProcessor(BaseProcessor):
             "description": self.payment.description,
             "currency": self.payment.currency,
             "amount": self.payment.amount_required,
+            "buyer": self.payment.get_buyer_info()
         }
 
         if self.get_setting("is_marketplace", False):
@@ -107,7 +108,7 @@ class PaymentProcessor(BaseProcessor):
                     **shopping_cart,
                     "products": products
                 })
-            context["shoppingCarts"] = shopping_carts
+            context["shopping_carts"] = shopping_carts
         else:
             products = [
                 {key_trans.get(k, k): v for k, v in product.items()}
