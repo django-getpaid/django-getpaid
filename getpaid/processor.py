@@ -58,20 +58,12 @@ class BaseProcessor(ABC):
 
     @classmethod
     def get_setting(cls, name: str, default: Optional[Any] = None) -> Any:
-        config = getattr(settings, "GETPAID_BACKEND_SETTINGS", {}).get(
-            cls.slug, {}
-        )
+        config = getattr(settings, "GETPAID_BACKEND_SETTINGS", {}).get(cls.slug, {})
         optional_config = getattr(settings, "GETPAID", {})
         value = config.get(name, default)
         if value is None:
             value = optional_config.get(name, None)
         return value
-
-    @classmethod
-    def get_paywall_baseurl(cls, **kwargs):
-        if cls.get_setting("use_sandbox"):
-            return cls.sandbox_url
-        return cls.production_url
 
     @classmethod
     def get_display_name(cls, **kwargs) -> str:

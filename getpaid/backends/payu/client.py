@@ -18,6 +18,7 @@ from getpaid.exceptions import (
     RefundFailure,
 )
 from getpaid.types import ItemInfo
+
 from .types import (
     BuyerData,
     CancellationResponse,
@@ -63,6 +64,7 @@ class Client:
 
     def _get_client_params(self) -> dict:
         from . import PaymentProcessor
+
         processor = PaymentProcessor
         return {
             "api_url": processor.get_paywall_baseurl(),
@@ -136,11 +138,12 @@ class Client:
         amount: Union[Decimal, float],
         currency: Currency,
         order_id: Union[str, int],
-        description: Optional[str] = None,
-        customer_ip: Optional[str] = None,
+        description: Optional[str] = "Payment order",
+        customer_ip: Optional[str] = "127.0.0.1",
         buyer: Optional[BuyerData] = None,
         products: Optional[List[ProductData]] = None,
         notify_url: Optional[str] = None,
+        continue_url: Optional[str] = None,
         **kwargs,
     ) -> PaymentResponse:
         """
@@ -153,6 +156,7 @@ class Client:
         :param buyer: Buyer data (see :class:`Buyer`)
         :param products: List of products being bought (see :class:`Product`), defaults to amount + description
         :param notify_url: Callback url
+        :param continue_url: Continue url (after successful payment)
         :param kwargs: Additional params that will first be consumed by headers, with leftovers passed on to order request
         :return: JSON response from API
         """
@@ -160,9 +164,9 @@ class Client:
         data = self._centify(
             {
                 "extOrderId": order_id,
-                "customerIp": customer_ip if customer_ip else "127.0.0.1",
+                "customerIp": customer_ip,
                 "merchantPosId": self.pos_id,
-                "description": description if description else "Payment order",
+                "description": description,
                 "currencyCode": currency,
                 "totalAmount": amount,
                 "products": products
@@ -172,8 +176,11 @@ class Client:
         )
         if notify_url:
             data["notifyUrl"] = notify_url
+        if continue_url:
+            data["continueUrl"] = continue_url
         if buyer:
             data["buyer"] = buyer
+
         headers = self._headers(**kwargs)
         data.update(kwargs)
         encoded = json.dumps(data, cls=DjangoJSONEncoder)
@@ -228,10 +235,7 @@ class Client:
         )
         headers = self._headers()
         self.last_response = requests.get(
-            url,
-            headers=headers,
-            allow_redirects=False,
-            params={"currencyCode": "PLN"}
+            url, headers=headers, allow_redirects=False, params={"currencyCode": "PLN"}
         )
         return self._normalize(self.last_response.json())
 
