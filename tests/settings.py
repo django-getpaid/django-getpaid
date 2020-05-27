@@ -29,6 +29,7 @@ GETPAID_BACKEND_SETTINGS = {
         "oauth_id": 300746,
         "oauth_secret": "2ee86a66e5d97e3fadc400c9f19b065d",
         "confirmation_method": "PULL",  # required for local testing
+        "is_marketplace": False  # change products to shoppingCarts in paywall
     },
 }
 

@@ -1,6 +1,7 @@
 import hashlib
 import json
 import uuid
+from decimal import Decimal
 
 import pytest
 import swapper
@@ -8,11 +9,11 @@ from django.conf import settings
 from django.template.response import TemplateResponse
 from django_fsm import can_proceed
 
+from getpaid.backends.payu import PaymentProcessor
 from getpaid.backends.payu.types import OrderStatus
 from getpaid.types import BackendMethod as bm
 from getpaid.types import ConfirmationMethod as cm
 from getpaid.types import PaymentStatus as ps
-
 
 pytestmark = pytest.mark.django_db
 
@@ -23,7 +24,7 @@ url_post_payment = "https://secure.snd.payu.com/api/v2_1/orders"
 url_api_register = "https://secure.snd.payu.com/api/v2_1/orders"
 
 
-def _prep_conf(api_method: bm = bm.REST, confirm_method: cm = cm.PUSH) -> dict:
+def _prep_conf(api_method: bm = bm.REST, confirm_method: cm = cm.PUSH, is_marketplace=False) -> dict:
     return {
         settings.GETPAID_PAYU_SLUG: {
             "pos_id": 300746,
@@ -32,6 +33,7 @@ def _prep_conf(api_method: bm = bm.REST, confirm_method: cm = cm.PUSH) -> dict:
             "client_secret": "2ee86a66e5d97e3fadc400c9f19b065d",
             "paywall_method": api_method,
             "confirmation_method": confirm_method,
+            "is_marketplace": is_marketplace
         }
     }
 
@@ -41,7 +43,7 @@ def test_post_flow_begin(payment_factory, settings, requests_mock, getpaid_clien
     requests_mock.post(
         "/api/v2_1/orders",
         json={
-            "status": {"statusCode": "SUCCESS",},
+            "status": {"statusCode": "SUCCESS", },
             "redirectUri": "https://paywall.example.com/url",
             "orderId": "WZHF5FFDRJ140731GUEST000P01",
             "extOrderId": my_order_id,
@@ -65,7 +67,7 @@ def test_rest_flow_begin(
     requests_mock.post(
         "/api/v2_1/orders",
         json={
-            "status": {"statusCode": "SUCCESS",},
+            "status": {"statusCode": "SUCCESS", },
             "redirectUri": "https://paywall.example.com/url",
             "orderId": "WZHF5FFDRJ140731GUEST000P01",
             "extOrderId": my_order_id,
@@ -134,6 +136,49 @@ def test_pull_flow(
         assert can_proceed(callback_meth)
 
 
+@pytest.fixture
+def marketplace_get_items_mock(monkeypatch):
+    items = [
+        {
+            "products": [],
+            "extCustomerId" "1234"
+            "amount": Decimal('100.00'),
+            "fee": Decimal("15.00")
+        }
+    ]
+    monkeypatch.setattr(Order, "get_items", lambda self: items)
+
+
+def test_shopping_carts_if_is_marketplace(
+    marketplace_get_items_mock,
+    getpaid_client,
+    settings,
+    payment_factory,
+    rf
+):
+    settings.GETPAID_BACKEND_SETTINGS = _prep_conf(is_marketplace=True)
+    payment = payment_factory(external_id=uuid.uuid4())
+    # payment.confirm_prepared()
+    request = rf.post(
+        "",
+        content_type="application/json"
+    )
+    processor = PaymentProcessor(payment=payment)
+    assert "shoppingCarts" in processor.get_paywall_context(request=request)
+
+
+def test_products_if_not_marketplace(getpaid_client, settings, payment_factory, rf):
+    settings.GETPAID_BACKEND_SETTINGS = _prep_conf(is_marketplace=False)
+    payment = payment_factory(external_id=uuid.uuid4())
+    # payment.confirm_prepared()
+    request = rf.post(
+        "",
+        content_type="application/json"
+    )
+    processor = PaymentProcessor(payment=payment)
+    assert "products" in processor.get_paywall_context(request=request)
+
+
 # PUSH flow
 @pytest.mark.parametrize(
     "remote_status,our_status",
@@ -176,7 +221,7 @@ def test_push_flow(
                     "lastName": "Doe",
                     "language": "en",
                 },
-                "payMethod": {"type": "PBL",},
+                "payMethod": {"type": "PBL", },
                 "products": [
                     {
                         "name": "Product 1",

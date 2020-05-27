@@ -103,6 +103,13 @@ class ItemInfo(TypedDict):
     unit_price: Decimal
 
 
+class ShoppingCart(TypedDict):
+    extCustomerId: str
+    products: List[ItemInfo]
+    amount: Decimal
+    fee: Decimal
+
+
 class BuyerInfo(TypedDict):
     email: str
     first_name: Optional[str]
