@@ -13,6 +13,7 @@ DEBUG = True
 GETPAID_ORDER_MODEL = "orders.Order"
 GETPAID_PAYMENT_MODEL = "orders.CustomPayment"
 GETPAID_DUMMY_SLUG = "getpaid.backends.dummy"
+GETPAID_PAYU_SLUG = "getpaid.backends.payu"
 
 GETPAID_BACKEND_SETTINGS = {
     GETPAID_DUMMY_SLUG: {
@@ -23,6 +24,13 @@ GETPAID_BACKEND_SETTINGS = {
         "confirmation_method": "push",
         "gateway": reverse_lazy("paywall:gateway"),
     },
+    GETPAID_PAYU_SLUG: {
+        "pos_id": 300746,
+        "second_key": "b6ca15b0d1020e8094d9b5f8d163db54",
+        "oauth_id": 300746,
+        "oauth_secret": "2ee86a66e5d97e3fadc400c9f19b065d",
+        "confirmation_method": "PULL",
+    }
 }
 
 PAYWALL_MODE = "PAY"  # PAY for instant paying, LOCK for pre-auth
@@ -36,6 +44,7 @@ INSTALLED_APPS = [
     "django_fsm",
     "getpaid",
     "getpaid.backends.dummy",
+    "getpaid.backends.payu",
     "orders",
     "paywall",
 ]

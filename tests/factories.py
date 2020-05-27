@@ -14,17 +14,6 @@ class OrderFactory(factory.DjangoModelFactory):
         model = swapper.load_model("getpaid", "Order")
 
 
-class PaymentFactory(factory.DjangoModelFactory):
-    order = factory.SubFactory(OrderFactory)
-    amount_required = factory.SelfAttribute("order.total")
-    currency = factory.SelfAttribute("order.currency")
-    description = factory.SelfAttribute("order.name")
-    backend = "getpaid.backends.dummy"
-
-    class Meta:
-        model = swapper.load_model("getpaid", "Payment")
-
-
 class PaywallEntryFactory(factory.DjangoModelFactory):
     class Meta:
         model = PaymentEntry

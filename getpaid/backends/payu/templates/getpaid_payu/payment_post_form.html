@@ -1,0 +1,11 @@
+{% load i18n %}
+<p>
+    This example template is meant only for development purposes. Set it
+    using GETPAID["POST_TEMPLATE"] (globally) or
+    GETPAID_BACKEND_SETTINGS["getpaid_payu"]["POST_TEMPLATE"]
+    (for this backend only) setting.
+</p>
+<form action="{{ paywall_url }}" method="post">
+  {{ form.as_p }}
+  <input type="submit" value="{% trans "Confirm payment" %}">
+</form>

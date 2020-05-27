@@ -67,10 +67,11 @@ class BaseProcessor(ABC):
             value = optional_config.get(name, None)
         return value
 
-    def get_paywall_baseurl(self, **kwargs):
-        if self.get_setting("use_sandbox"):
-            return self.sandbox_url
-        return self.production_url
+    @classmethod
+    def get_paywall_baseurl(cls, **kwargs):
+        if cls.get_setting("use_sandbox"):
+            return cls.sandbox_url
+        return cls.production_url
 
     @classmethod
     def get_display_name(cls, **kwargs) -> str:

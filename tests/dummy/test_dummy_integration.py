@@ -14,7 +14,6 @@ from getpaid.types import BackendMethod as bm
 from getpaid.types import ConfirmationMethod as cm
 from getpaid.types import PaymentStatus as ps
 
-from .tools import Plugin
 
 pytestmark = pytest.mark.django_db
 dummy = settings.GETPAID_DUMMY_SLUG
@@ -40,7 +39,6 @@ class TestModelProcessor(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        registry.register(Plugin)
 
     def test_model_and_dummy_backend(self):
         order = Order.objects.create()
@@ -53,18 +51,6 @@ class TestModelProcessor(TestCase):
         )
         proc = payment.get_processor()
         assert isinstance(proc, registry[dummy])
-
-    def test_model_and_test_backend(self):
-        order = Order.objects.create()
-        payment = Payment.objects.create(
-            order=order,
-            currency=order.currency,
-            amount_required=order.get_total_amount(),
-            backend=Plugin.slug,
-            description=order.get_description(),
-        )
-        proc = payment.get_processor()
-        assert isinstance(proc, registry[Plugin.slug])
 
 
 def test_get_flow_begin(payment_factory, settings, live_server, requests_mock, rf):

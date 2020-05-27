@@ -1,7 +1,6 @@
 from pytest_factoryboy import register
 
-from .factories import OrderFactory, PaymentFactory, PaywallEntryFactory
+from .factories import OrderFactory, PaywallEntryFactory
 
-register(PaymentFactory)
 register(OrderFactory)
 register(PaywallEntryFactory)

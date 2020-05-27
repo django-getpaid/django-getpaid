@@ -5,7 +5,7 @@ from django.utils.translation import ugettext_lazy as _
 
 
 class DummyPluginAppConfig(AppConfig):
-    name = settings.GETPAID_DUMMY_SLUG
+    name = "getpaid.backends.dummy"
     label = "getpaid_dummy"
     verbose_name = _("Dummy paywall")
 
