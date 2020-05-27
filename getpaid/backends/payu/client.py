@@ -221,6 +221,21 @@ class Client:
         )
 
     @ensure_auth
+    def submerchant_status(self, marketplace_user):
+        url = urljoin(
+            self.api_url,
+            f"/api/v2_1/customers/ext/{marketplace_user.ext_customer_id}/status",
+        )
+        headers = self._headers()
+        self.last_response = requests.get(
+            url,
+            headers=headers,
+            allow_redirects=False,
+            params={"currentCode": "PLN"}
+        )
+        return self._normalize(self.last_response.json())
+
+    @ensure_auth
     def capture(self, order_id: str, **kwargs) -> ChargeResponse:
         url = urljoin(self.api_url, f"/api/v2_1/orders/{order_id}/status")
         data = {"orderId": order_id, "orderStatus": OrderStatus.COMPLETED}
