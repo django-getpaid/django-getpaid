@@ -32,7 +32,7 @@ from .types import (
     ChargeResponse,
     ItemInfo,
     PaymentStatusResponse,
-    RestfulResult,
+    RestfulResult, ShoppingCart,
 )
 
 logger = logging.getLogger(__name__)
@@ -79,7 +79,7 @@ class AbstractOrder(models.Model):
             raise forms.ValidationError(_("Non-failed Payments exist for this Order."))
         return True
 
-    def get_items(self) -> List[ItemInfo]:
+    def get_items(self) -> List[Union[ItemInfo, ShoppingCart]]:
         """
         There are backends that require some sort of item list to be attached
         to the payment. But it's up to you if the list is real or contains only
@@ -228,8 +228,10 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         """
         return str(self.id)
 
-    def get_items(self) -> List[ItemInfo]:
+    def get_items(self) -> List[Union[ItemInfo, ShoppingCart]]:
         """
+        If you use marketplace in payu - you can return proper payload in order
+
         Some backends require the list of items to be added to Payment.
 
         This method relays the call to Order. It is here simply because

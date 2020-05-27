@@ -85,19 +85,36 @@ class PaymentProcessor(BaseProcessor):
             "customer_ip": "customerIp",
             "notify_url": "notifyUrl",
         }
-        raw_products = self.payment.get_items()
-        products = [
-            {key_trans.get(k, k): v for k, v in product.items()}
-            for product in raw_products
-        ]
+
+        raw_items = self.payment.get_items()
+
         context = {
             "order_id": self.payment.get_unique_id(),
             "customer_ip": loc if not request else request.META.get("REMOTE_ADDR", loc),
             "description": self.payment.description,
             "currency": self.payment.currency,
             "amount": self.payment.amount_required,
-            "products": products,
         }
+
+        if self.get_setting("is_marketplace", False):
+            shopping_carts = []
+            for shopping_cart in raw_items:
+                products = [
+                    {key_trans.get(k, k): v for k, v in product.items()}
+                    for product in shopping_cart["products"]
+                ]
+                shopping_carts.append({
+                    **shopping_cart,
+                    "products": products
+                })
+            context["shoppingCarts"] = shopping_carts
+        else:
+            products = [
+                {key_trans.get(k, k): v for k, v in product.items()}
+                for product in raw_items
+            ]
+            context["products"] = products
+
         if self.get_setting("confirmation_method", self.confirmation_method) == "PUSH":
             context["notify_url"] = urljoin(
                 our_baseurl, reverse("getpaid:callback", kwargs={"pk": self.payment.pk})
