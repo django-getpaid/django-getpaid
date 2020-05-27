@@ -101,7 +101,7 @@ Inform getpaid of your Order model in ``settings.py`` and provide settings for p
 .. code-block:: python
 
     GETPAID_ORDER_MODEL = 'yourapp.MyCustomOrder'
-    GETPAID_PAYU_SLUG + "payu"
+    GETPAID_PAYU_SLUG = "getpaid.backends.payu"
 
     GETPAID_BACKEND_SETTINGS = {
         GETPAID_PAYU_SLUG: {

@@ -20,8 +20,8 @@ class TestRegistry(TestCase):
         assert issubclass(registry[payu], BaseProcessor)
 
     def test_url(self):
-        # payu plugin contains at least one example endpoint
-        assert len(registry.urls) > 0
+        # payu plugin contains no endpoints
+        assert len(registry.urls) == 0
 
     def test_choices(self):
         fraud_choices = FraudStatus.CHOICES

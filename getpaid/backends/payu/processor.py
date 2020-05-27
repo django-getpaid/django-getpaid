@@ -53,15 +53,6 @@ class PaymentProcessor(BaseProcessor):
             return "http://127.0.0.1/"
         return super().get_our_baseurl(request)
 
-    def get_client_params(self) -> dict:
-        return {
-            "api_url": self.get_paywall_baseurl(),
-            "pos_id": self.get_setting("pos_id"),
-            "second_key": self.get_setting("second_key"),
-            "oauth_id": self.get_setting("oauth_id"),
-            "oauth_secret": self.get_setting("oauth_secret"),
-        }
-
     def prepare_form_data(self, post_data):
         pos_id = self.get_setting("pos_id")
         second_key = self.get_setting("second_key")

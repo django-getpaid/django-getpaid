@@ -24,8 +24,8 @@ class TestRegistry(TestCase):
         assert len(choices) == 1
 
     def test_url(self):
-        # dummy plugin contains at least one example endpoint
-        assert len(registry.urls) > 0
+        # dummy plugin contains no urls
+        assert len(registry.urls) == 0
 
     def test_choices(self):
         fraud_choices = FraudStatus.CHOICES
