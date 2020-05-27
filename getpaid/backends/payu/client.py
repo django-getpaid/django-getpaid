@@ -231,7 +231,7 @@ class Client:
             url,
             headers=headers,
             allow_redirects=False,
-            params={"currentCode": "PLN"}
+            params={"currencyCode": "PLN"}
         )
         return self._normalize(self.last_response.json())
 
