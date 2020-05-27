@@ -13,8 +13,10 @@ GETPAID_PAYMENT_MODEL = "orders.CustomPayment"
 CONFIRMATION_METHOD = "PUSH"
 REGISTRATION_METHOD = "REST"
 
+GETPAID_DUMMY_SLUG = "getpaid.backends.dummy"
+
 GETPAID_BACKEND_SETTINGS = {
-    "getpaid.backends.dummy": {
+    GETPAID_DUMMY_SLUG: {
         "confirmation_method": CONFIRMATION_METHOD,
         "paywall_method": REGISTRATION_METHOD,
         # "push" for automatic callback,

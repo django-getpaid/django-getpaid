@@ -11,6 +11,7 @@ import os
 from urllib.parse import urljoin
 
 import requests
+from django.conf import settings
 from django.http import HttpResponse, HttpResponseRedirect
 from django.template.response import TemplateResponse
 from django.urls import reverse, reverse_lazy
@@ -24,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 
 class PaymentProcessor(BaseProcessor):
-    slug = "dummy"
+    slug = settings.GETPAID_DUMMY_SLUG
     display_name = "Dummy"
     accepted_currencies = [
         "PLN",

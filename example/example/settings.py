@@ -12,9 +12,10 @@ DEBUG = True
 
 GETPAID_ORDER_MODEL = "orders.Order"
 GETPAID_PAYMENT_MODEL = "orders.CustomPayment"
+GETPAID_DUMMY_SLUG = "getpaid.backends.dummy"
 
 GETPAID_BACKEND_SETTINGS = {
-    "getpaid.backends.dummy": {
+    GETPAID_DUMMY_SLUG: {
         "pos_id": 12345,
         "second_key": "91ae651578c5b5aa93f2d38a9be8ce11",
         "client_id": 12345,

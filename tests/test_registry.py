@@ -7,7 +7,7 @@ from getpaid.registry import registry
 
 from .tools import Plugin
 
-dummy = "getpaid.backends.dummy"
+dummy = settings.GETPAID_DUMMY_SLUG
 
 
 class TestRegistry(TestCase):

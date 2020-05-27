@@ -35,14 +35,7 @@ class BaseProcessor(ABC):
 
     def __init__(self, payment: AbstractPayment) -> None:
         self.payment = payment
-        self.path = payment.backend
         self.context = {}  # can be used by Payment's customized methods.
-        if self.slug is None:
-            self.slug = self.path
-        self.config = getattr(settings, "GETPAID_BACKEND_SETTINGS", {}).get(
-            self.path, {}
-        )
-        self.optional_config = getattr(settings, "GETPAID", {})
         if self.client_class is not None:
             self.client = self.get_client()
 
@@ -57,19 +50,21 @@ class BaseProcessor(ABC):
         return class_path
 
     def get_client(self) -> object:
-        return self.get_client_class()(**self.get_client_params())
-
-    def get_client_params(self) -> dict:
-        return {}
+        return self.get_client_class()()
 
     @classmethod
     def class_id(cls, **kwargs) -> str:
         return cls.__module__
 
-    def get_setting(self, name: str, default: Optional[Any] = None) -> Any:
-        value = self.config.get(name, default)
+    @classmethod
+    def get_setting(cls, name: str, default: Optional[Any] = None) -> Any:
+        config = getattr(settings, "GETPAID_BACKEND_SETTINGS", {}).get(
+            cls.slug, {}
+        )
+        optional_config = getattr(settings, "GETPAID", {})
+        value = config.get(name, default)
         if value is None:
-            value = self.optional_config.get(name, None)
+            value = optional_config.get(name, None)
         return value
 
     def get_paywall_baseurl(self, **kwargs):

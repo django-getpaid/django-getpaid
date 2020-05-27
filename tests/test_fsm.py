@@ -1,10 +1,11 @@
 import pytest
 import swapper
+from django.conf import settings
 from django_fsm import can_proceed
 
 from getpaid.status import PaymentStatus as ps
 
-dummy = "getpaid.backends.dummy"
+dummy = settings.GETPAID_DUMMY_SLUG
 
 Order = swapper.load_model("getpaid", "Order")
 Payment = swapper.load_model("getpaid", "Payment")
