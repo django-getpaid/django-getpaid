@@ -44,7 +44,6 @@ Install django-getpaid and at least one payment backend:
 .. code-block:: console
 
     pip install django-getpaid
-    pip install django-getpaid-payu
 
 Add them to your ``INSTALLED_APPS``:
 
@@ -53,7 +52,7 @@ Add them to your ``INSTALLED_APPS``:
     INSTALLED_APPS = [
         ...
         'getpaid',
-        'getpaid_payu',  # one of plugins
+        'getpaid.backends.payu',  # one of plugins
         ...
     ]
 
@@ -102,9 +101,10 @@ Inform getpaid of your Order model in ``settings.py`` and provide settings for p
 .. code-block:: python
 
     GETPAID_ORDER_MODEL = 'yourapp.MyCustomOrder'
+    GETPAID_PAYU_SLUG = "getpaid.backends.payu"
 
     GETPAID_BACKEND_SETTINGS = {
-        "getpaid_payu": {
+        GETPAID_PAYU_SLUG: {
             # take these from your merchant panel:
             "pos_id": 12345,
             "second_key": "91ae651578c5b5aa93f2d38a9be8ce11",
@@ -151,6 +151,10 @@ Here's the important part:
         <input type="submit" value="Checkout">
     </form>
 
+=============================
+PAYU
+=============================
+TODO: improve docs
 
 Running Tests
 =============
@@ -174,7 +178,6 @@ Created by `Krzysztof Dorosz <https://github.com/cypreess>`_.
 Redesigned and rewritten by `Dominik Kozaczko <https://github.com/dekoza>`_.
 
 Proudly sponsored by `SUNSCRAPERS <http://sunscrapers.com/>`_
-
 
 
 Disclaimer
