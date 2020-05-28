@@ -96,7 +96,7 @@ class PaymentProcessor(BaseProcessor):
         )
 
     def get_continue_url(self):
-        frontend_url = self.get_setting("frontend_host")
+        frontend_url = settings.GETPAID_FRONTEND_HOST
         return self.get_setting("continue_url").format(
             frontend_url=frontend_url, payment_id=self.payment.id
         )
