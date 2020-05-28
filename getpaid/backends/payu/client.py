@@ -275,8 +275,26 @@ class Client:
         ext_customer_id: str,
         date_from: datetime,
         date_to: datetime,
-        currency_code: str="PLN"
+        currency_code: str = "PLN",
+        limit: int = None,
+        page: int = None,
+        order_by: str = None,
+        type: str = None
     ):
+        """
+        :param ext_customer_id: customer id
+        :param date_from: urlencoded datetime - filter's begin
+        :param date_to: urlencoded datetime - filter's end
+        :param limit: optional - max records on page
+        :param type: optional,
+            PAYMENT_SENT PAYMENT_RECEIVED PAYOUT REFUND_SENT REFUND_RECEIVED RETURN ADMIN_TRANSFER_SENT
+            ADMIN_TRANSFER_RECEIVED TRANSFER_SENT TRANSFER_RECEIVE
+        :param order_by: optional,
+            use + or - before field to sort asc or desc (asc by default)
+            eventDate, creationDate, type, currencyCode
+        :param currency_code: ISO-4217 currency code
+        :param page: page number
+        """
         url = urljoin(
             self.api_url,
             f"/api/v2_1/customers/ext/{ext_customer_id}/operations",
@@ -285,6 +303,10 @@ class Client:
             "currencyCode": currency_code,
             "eventDateFrom": date_from,
             "eventDateTo": date_to,
+            "offset": page,
+            "type": type,
+            "limit": limit,
+            "orderBy": order_by
         })
         headers = self._headers()
         self.last_response = requests.get(
