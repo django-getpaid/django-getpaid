@@ -1,9 +1,10 @@
+import datetime
 import json
 from copy import deepcopy
 from decimal import Decimal
 from functools import wraps
 from typing import Callable, List, Optional, Union
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlencode
 
 import pendulum
 import requests
@@ -18,7 +19,6 @@ from getpaid.exceptions import (
     RefundFailure,
 )
 from getpaid.types import ItemInfo, ShoppingCart
-
 from .types import (
     BuyerData,
     CancellationResponse,
@@ -44,7 +44,16 @@ def ensure_auth(func: Callable) -> Callable:
 
 class Client:
     last_response = None
-    _convertables = {"amount", "total", "available", "unitPrice", "totalAmount", "fee"}
+    _convertables = {
+        "amount",
+        "total",
+        "available",
+        "unitPrice",
+        "totalAmount",
+        "fee",
+        "availableAmount",
+        "totalAmount"
+    }
 
     def __init__(
         self,
@@ -237,14 +246,49 @@ class Client:
         )
 
     @ensure_auth
-    def submerchant_status(self, marketplace_user):
+    def submerchant_status(self, ext_customer_id, currency_code="PLN"):
         url = urljoin(
             self.api_url,
-            f"/api/v2_1/customers/ext/{marketplace_user.ext_customer_id}/status",
+            f"/api/v2_1/customers/ext/{ext_customer_id}/status",
         )
         headers = self._headers()
         self.last_response = requests.get(
-            url, headers=headers, allow_redirects=False, params={"currencyCode": "PLN"}
+            url, headers=headers, allow_redirects=False, params={"currencyCode": currency_code}
+        )
+        return self._normalize(self.last_response.json())
+
+    @ensure_auth
+    def submerchant_balance(self, ext_customer_id, currency_code="PLN"):
+        url = urljoin(
+            self.api_url,
+            f"/api/v2_1/customers/ext/{ext_customer_id}/balances",
+        )
+        headers = self._headers()
+        self.last_response = requests.get(
+            url, headers=headers, allow_redirects=False, params={"currencyCode": currency_code}
+        )
+        return self._normalize(self.last_response.json())
+
+    @ensure_auth
+    def submerchant_operations(
+        self,
+        ext_customer_id: str,
+        date_from: datetime,
+        date_to: datetime,
+        currency_code: str="PLN"
+    ):
+        url = urljoin(
+            self.api_url,
+            f"/api/v2_1/customers/ext/{ext_customer_id}/operations",
+        )
+        url += "?" + urlencode({
+            "currencyCode": currency_code,
+            "eventDateFrom": date_from,
+            "eventDateTo": date_to,
+        })
+        headers = self._headers()
+        self.last_response = requests.get(
+            url, headers=headers, allow_redirects=False
         )
         return self._normalize(self.last_response.json())
 
