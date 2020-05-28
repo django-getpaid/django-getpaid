@@ -299,7 +299,7 @@ class Client:
             self.api_url,
             f"/api/v2_1/customers/ext/{ext_customer_id}/operations",
         )
-        url += "?" + urlencode({
+        params = {
             "currencyCode": currency_code,
             "eventDateFrom": date_from,
             "eventDateTo": date_to,
@@ -307,6 +307,10 @@ class Client:
             "type": type,
             "limit": limit,
             "orderBy": order_by
+        }
+
+        url += "?" + urlencode({
+            k: v for k, v in params.items() if v is not None
         })
         headers = self._headers()
         self.last_response = requests.get(
