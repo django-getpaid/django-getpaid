@@ -158,6 +158,15 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         default=0,
         help_text=_("Amount actually paid."),
     )
+    external_refund_id = models.CharField(
+        _("external refund id"), max_length=64, blank=True, db_index=True, default=""
+    )
+    refund_description = models.CharField(
+        _("refund description"), max_length=256, blank=True, db_index=True, default=""
+    )
+    refund_status_desc = models.CharField(
+        _("refund status description"), max_length=256, blank=True, db_index=True, default=""
+    )
     refunded_on = models.DateTimeField(
         _("refunded on"), blank=True, null=True, default=None, db_index=True
     )
@@ -512,7 +521,7 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
 
     @transition(
         field=status,
-        source=ps.PARTIAL,
+        source=[ps.REFUND_STARTED, ps.PARTIAL],
         target=ps.REFUNDED,
         conditions=[_is_full_refund],
     )

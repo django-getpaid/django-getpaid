@@ -1,4 +1,5 @@
 import logging
+from decimal import Decimal
 
 from django_fsm import can_proceed
 
@@ -31,7 +32,7 @@ class PayuCallbackHandler:
         refund_data = data.get("refund")
         status = refund_data.get("status")
         if status == "FINALIZED":
-            amount = int(refund_data.get("amount")) / 100
+            amount = Decimal(int(refund_data.get("amount")) / 100)
             self._handle_refund_finalized(amount)
         elif status == "CANCELED":
             self._handle_order_canceled()

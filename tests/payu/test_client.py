@@ -12,7 +12,6 @@ from getpaid.exceptions import (
     CommunicationError,
     GetPaidException,
     LockFailure,
-    RefundFailure,
 )
 
 pytestmark = pytest.mark.django_db
@@ -99,46 +98,6 @@ def test_new_order_failure(response_status, getpaid_client, requests_mock):
     )
     with raises(LockFailure):
         getpaid_client.new_order(amount=20, currency=Currency.PLN, order_id=my_order_id)
-
-
-def test_refund(getpaid_client, requests_mock):
-    ext_order_id = "WZHF5FFDRJ140731GUEST000P01"
-    requests_mock.post(
-        f"/api/v2_1/orders/{ext_order_id}/refunds",
-        json={
-            "orderId": "WZHF5FFDRJ140731GUEST000P01",
-            "refund": {
-                "refundId": "86821",
-                "extRefundId": "20151031133322",
-                "amount": "100",
-                "currencyCode": "PLN",
-                "description": "Uznanie 86821 Refund",
-                "creationDateTime": "2015-10-31T13:33:22.396+01:00",
-                "status": "PENDING",
-                "statusDateTime": "2015-10-31T13:33:22.718+01:00",
-            },
-            "status": {
-                "statusCode": "SUCCESS",
-                "statusDesc": "Refund queued for processing",
-            },
-        },
-    )
-    result = getpaid_client.refund(order_id=ext_order_id)
-    assert "orderId" in result
-    assert "status" in result
-    assert "refund" in result
-
-
-@pytest.mark.parametrize("response_status", [400, 401, 403, 500, 501])
-def test_refund_failure(response_status, getpaid_client, requests_mock):
-    ext_order_id = "WZHF5FFDRJ140731GUEST000P01"
-    requests_mock.post(
-        f"/api/v2_1/orders/{ext_order_id}/refunds",
-        text="FAILURE",
-        status_code=response_status,
-    )
-    with raises(RefundFailure):
-        getpaid_client.refund(order_id=ext_order_id)
 
 
 @pytest.mark.parametrize("response_status", [400, 401, 403, 500, 501])

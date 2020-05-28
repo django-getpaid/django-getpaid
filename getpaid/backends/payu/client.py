@@ -215,19 +215,29 @@ class Client:
     def refund(
         self,
         order_id: str,
+        ext_refund_id: str,
+        ext_customer_id: Optional[str] = None,
         amount: Optional[Union[Decimal, float]] = None,
         description: Optional[str] = None,
         **kwargs,
     ) -> RefundResponse:
         url = urljoin(self.api_url, f"/api/v2_1/orders/{order_id}/refunds")
-        data = {"description": description if description else "Refund"}
+
+        data = {
+            "description": description if description else "Zwrot",
+            "extRefundId": ext_refund_id,
+        }
+
+        if ext_customer_id:
+            data["extCustomerId"] = ext_customer_id
+
         if amount:
             data["amount"] = amount
-        encoded = json.dumps(
-            {"refund": self._centify(data), "orderId": order_id}, cls=DjangoJSONEncoder
-        )
+
+        payload = {"refund": self._centify(data)}
+
         self.last_response = requests.post(
-            url, headers=self._headers(**kwargs), data=encoded,
+            url, headers=self._headers(**kwargs), json=payload,
         )
         if self.last_response.status_code == 200:
             return self._normalize(self.last_response.json())

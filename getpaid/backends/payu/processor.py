@@ -9,6 +9,8 @@ import hashlib
 import json
 import logging
 from collections import OrderedDict
+from decimal import Decimal
+from typing import Union, Optional
 from urllib.parse import urljoin
 
 from django import http
@@ -239,3 +241,26 @@ class PaymentProcessor(BaseProcessor):
             "OpenPayu-Signature"
         ] = f"signature={signature};algorithm={algorithm};sender={pos_id}"
         return post_data
+
+    def start_refund(
+        self, amount: Optional[Union[Decimal, float, int]] = None, **kwargs
+    ) -> Decimal:
+        """
+        Refunds the given amount.
+
+        Returns the amount that is refunded.
+        """
+        client = self.get_client()
+
+        if self.get_setting("is_marketplace", False):
+            assert "ext_customer_id" in kwargs, "Add ext_customer_id if you use marketplace"
+
+        response = client.refund(
+            order_id=str(self.payment.external_id),
+            ext_refund_id=str(self.payment.id),
+            amount=amount,
+            **kwargs
+        )
+        self.payment.refund_status_desc = response["status"]["statusDesc"]
+        self.payment.refund_description = response["refund"]["description"]
+        self.payment.external_refund_id = response["refund"]["refundId"]

@@ -8,7 +8,7 @@ register(PaymentFactory)
 
 
 @pytest.fixture
-def getpaid_client(requests_mock):
+def oauth_mocked(requests_mock):
     requests_mock.post(
         "/pl/standard/user/oauth/authorize",
         json={
@@ -18,6 +18,10 @@ def getpaid_client(requests_mock):
             "grant_type": "client_credentials",
         },
     )
+
+
+@pytest.fixture
+def getpaid_client(oauth_mocked):
     yield Client(
         api_url="https://example.com/",
         pos_id=300746,
