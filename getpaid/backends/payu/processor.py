@@ -96,9 +96,9 @@ class PaymentProcessor(BaseProcessor):
         )
 
     def get_continue_url(self):
-        frontend_url = settings.GETPAID_FRONTEND_HOST
+        frontend_host = settings.GETPAID_FRONTEND_HOST
         return self.get_setting("continue_url").format(
-            frontend_url=frontend_url, payment_id=self.payment.id
+            frontend_host=frontend_host, payment_id=self.payment.id
         )
 
     def get_customer_ip(self, request=None):
@@ -173,7 +173,7 @@ class PaymentProcessor(BaseProcessor):
         results["raw_response"] = self.client.last_response
         self.payment.confirm_prepared()
         self.payment.external_id = results["ext_order_id"] = response.get("orderId", "")
-        self.payment.redirect_uri = results["url"] = response.get("redirectUri")
+        self.payment.redirect_uri = results["url"] = response.get("redirectUri", "")
         return results
 
     def charge(self, **kwargs):
@@ -217,16 +217,14 @@ class PaymentProcessor(BaseProcessor):
         order_data = response.get("orders", [None])[0]
 
         status = order_data.get("status")
-        if status == OrderStatus.NEW:
-            results["callback"] = "confirm_prepared"
-        elif status == OrderStatus.PENDING:
-            results["callback"] = "confirm_prepared"
-        elif status == OrderStatus.CANCELED:
-            results["callback"] = "fail"
-        elif status == OrderStatus.COMPLETED:
-            results["callback"] = "confirm_payment"
-        elif status == OrderStatus.WAITING_FOR_CONFIRMATION:
-            results["callback"] = "confirm_lock"
+        callback_mapping = {
+            OrderStatus.NEW: "confirm_prepared",
+            OrderStatus.PENDING: "confirm_prepared",
+            OrderStatus.CANCELED: "fail",
+            OrderStatus.COMPLETED: "confirm_payment",
+            OrderStatus.WAITING_FOR_CONFIRMATION: "confirm_lock",
+        }
+        results["callback"] = callback_mapping[status]
         return results
 
     def prepare_form_data(self, post_data, **kwargs):
