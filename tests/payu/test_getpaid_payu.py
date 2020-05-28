@@ -33,7 +33,7 @@ def _prep_conf(
             "second_key": "b6ca15b0d1020e8094d9b5f8d163db54",
             "client_id": 300746,
             "client_secret": "2ee86a66e5d97e3fadc400c9f19b065d",
-            "continue_url": "{frontend_url}platnosci/{payment_id}/koniec/",
+            "continue_url": "{frontend_host}platnosci/{payment_id}/koniec/",
             "paywall_method": api_method,
             "confirmation_method": confirm_method,
             "is_marketplace": is_marketplace,
