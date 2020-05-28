@@ -77,7 +77,7 @@ class PaymentProcessor(BaseProcessor):
             "customer_ip": self.get_customer_ip(request),
             "description": self.payment.description,
             "currency": self.payment.currency,
-            "amount": self.get_total_amount(),
+            "amount": self.payment.amount_required,
             "order_id": self.payment.get_unique_id(),
             "buyer": self.payment.get_buyer_info(),
         }
@@ -106,9 +106,6 @@ class PaymentProcessor(BaseProcessor):
         if request:
             customer_ip = request.META.get("REMOTE_ADDR", customer_ip)
         return customer_ip
-
-    def get_total_amount(self):
-        return float(self.payment.amount_required * 100)
 
     def get_shopping_carts(self):
         shopping_carts = []
