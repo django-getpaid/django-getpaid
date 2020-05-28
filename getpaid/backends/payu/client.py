@@ -53,6 +53,7 @@ class Client:
         second_key: str = None,
         oauth_id: int = None,
         oauth_secret: str = None,
+        is_marketplace: bool = None,
     ):
         default_params = self._get_client_params()
         self.api_url = api_url or default_params["api_url"]
@@ -60,6 +61,7 @@ class Client:
         self.second_key = second_key or default_params["second_key"]
         self.oauth_id = oauth_id or default_params["oauth_id"]
         self.oauth_secret = oauth_secret or default_params["oauth_secret"]
+        self.is_marketplace = is_marketplace or default_params["is_marketplace"]
         self._authorize()
 
     def _get_client_params(self) -> dict:
@@ -72,6 +74,7 @@ class Client:
             "second_key": processor.get_setting("second_key"),
             "oauth_id": processor.get_setting("oauth_id"),
             "oauth_secret": processor.get_setting("oauth_secret"),
+            "is_marketplace": processor.get_setting("is_marketplace"),
         }
 
     def _authorize(self):
@@ -162,6 +165,10 @@ class Client:
         :param kwargs: Additional params that will first be consumed by headers, with leftovers passed on to order request
         :return: JSON response from API
         """
+        if self.is_marketplace:
+            assert (
+                shopping_carts
+            ), "You must provide `shopping_carts` if marketplace used."
         url = urljoin(self.api_url, "/api/v2_1/orders")
         raw_data = {
             "extOrderId": order_id,
@@ -170,7 +177,6 @@ class Client:
             "description": description,
             "currencyCode": currency,
             "totalAmount": amount,
-            "products": products,
         }
         if notify_url:
             raw_data["notifyUrl"] = notify_url
@@ -180,7 +186,8 @@ class Client:
             raw_data["buyer"] = buyer
         if shopping_carts:
             raw_data["shoppingCarts"] = shopping_carts
-            raw_data.pop("products")
+        else:
+            raw_data["products"] = products
 
         data = self._centify(raw_data)
         headers = self._headers(**kwargs)

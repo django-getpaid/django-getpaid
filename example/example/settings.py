@@ -14,8 +14,8 @@ GETPAID_ORDER_MODEL = "orders.Order"
 GETPAID_PAYMENT_MODEL = "orders.CustomPayment"
 GETPAID_DUMMY_SLUG = "getpaid.backends.dummy"
 GETPAID_PAYU_SLUG = "getpaid.backends.payu"
-GETPAID_BACKEND_URL = "http://localhost:8080/"
-GETPAID_FRONTEND_URL = "http://localhost/"
+GETPAID_BACKEND_HOST = "http://localhost:8080/"
+GETPAID_FRONTEND_HOST = "http://localhost/"
 
 GETPAID_BACKEND_SETTINGS = {
     GETPAID_DUMMY_SLUG: {

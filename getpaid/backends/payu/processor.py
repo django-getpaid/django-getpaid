@@ -32,6 +32,15 @@ from .types import Currency, OrderStatus, ResponseStatus
 
 logger = logging.getLogger(__name__)
 
+key_trans = {
+    "unit_price": "unitPrice",
+    "first_name": "firstName",
+    "last_name": "lastName",
+    "order_id": "extOrderId",
+    "customer_ip": "customerIp",
+    "notify_url": "notifyUrl",
+}
+
 
 class PaymentProcessor(BaseProcessor):
     slug = settings.GETPAID_PAYU_SLUG
@@ -44,7 +53,7 @@ class PaymentProcessor(BaseProcessor):
     confirmation_method = "PUSH"  #: PUSH - paywall will send POST request to your server; PULL - you need to check the payment status
     post_form_class = PaymentHiddenInputsPostForm
     post_template_name = "getpaid_payu/payment_post_form.html"
-    callback_url_name = "getpaid_rest_framework:callback"
+    callback_url_name = "getpaid:callback"
     client_class = Client
     _token = None
     _token_expires = None
@@ -62,26 +71,32 @@ class PaymentProcessor(BaseProcessor):
         return self.get_setting("paywall_method", self.method)
 
     def get_paywall_context(self, request=None, camelize_keys=False, **kwargs):
-        return {
+        context = {
             "notify_url": self.get_notify_url(),
             "continue_url": self.get_continue_url(),
             "customer_ip": self.get_customer_ip(request),
             "description": self.payment.description,
-            "currency_code": self.payment.currency,
-            "total_amount": self.get_total_amount(),
+            "currency": self.payment.currency,
+            "amount": self.get_total_amount(),
             "order_id": self.payment.get_unique_id(),
             "buyer": self.payment.get_buyer_info(),
-            "products": self.get_products(),
         }
 
+        if self.get_setting("is_marketplace", False):
+            context["shopping_carts"] = self.get_shopping_carts()
+        else:
+            context["products"] = self.get_products()
+
+        return context
+
     def get_notify_url(self):
-        backend_url = settings.GETPAID_BACKEND_URL
+        backend_url = settings.GETPAID_BACKEND_HOST
         return urljoin(
             backend_url, reverse(self.callback_url_name, kwargs={"pk": self.payment.pk})
         )
 
     def get_continue_url(self):
-        frontend_url = settings.GETPAID_FRONTEND_URL
+        frontend_url = self.get_setting("frontend_host")
         return self.get_setting("continue_url").format(
             frontend_url=frontend_url, payment_id=self.payment.id
         )
@@ -95,71 +110,24 @@ class PaymentProcessor(BaseProcessor):
     def get_total_amount(self):
         return float(self.payment.amount_required * 100)
 
+    def get_shopping_carts(self):
+        shopping_carts = []
+        raw_items = self.payment.get_items()
+        for shopping_cart in raw_items:
+            products = [
+                {key_trans.get(k, k): v for k, v in product.items()}
+                for product in shopping_cart["products"]
+            ]
+            shopping_carts.append({**shopping_cart, "products": products})
+        return shopping_carts
+
     def get_products(self):
-        key_trans = {"unit_price": "unitPrice"}
         raw_products = self.payment.get_items()
         products = []
         for product in raw_products:
-            if "unit_price" in product:
-                product["unit_price"] *= 100
             transformed_product = {key_trans.get(k, k): v for k, v in product.items()}
             products.append(transformed_product)
         return products
-
-    # def get_paywall_context(self, request=None, camelize_keys=False, **kwargs):
-    #     # TODO: configurable buyer info inclusion
-    #     """
-    #     "buyer" is optional
-    #     :param request: request creating the payment
-    #     :return: dict that unpacked will be accepted by :meth:`Client.new_order`
-    #     """
-    #     loc = "127.0.0.1"
-    #     our_baseurl = self.get_our_baseurl(request)
-    #     key_trans = {
-    #         "unit_price": "unitPrice",
-    #         "first_name": "firstName",
-    #         "last_name": "lastName",
-    #         "order_id": "extOrderId",
-    #         "customer_ip": "customerIp",
-    #         "notify_url": "notifyUrl",
-    #     }
-    #
-    #     raw_items = self.payment.get_items()
-    #
-    #     context = {
-    #         "order_id": self.payment.get_unique_id(),
-    #         "customer_ip": loc if not request else request.META.get("REMOTE_ADDR", loc),
-    #         "description": self.payment.description,
-    #         "currency": self.payment.currency,
-    #         "amount": self.payment.amount_required,
-    #     }
-    #
-    #     if self.get_setting("is_marketplace", False):
-    #         shopping_carts = []
-    #         for shopping_cart in raw_items:
-    #             products = [
-    #                 {key_trans.get(k, k): v for k, v in product.items()}
-    #                 for product in shopping_cart["products"]
-    #             ]
-    #             shopping_carts.append({
-    #                 **shopping_cart,
-    #                 "products": products
-    #             })
-    #         context["shoppingCarts"] = shopping_carts
-    #     else:
-    #         products = [
-    #             {key_trans.get(k, k): v for k, v in product.items()}
-    #             for product in raw_items
-    #         ]
-    #         context["products"] = products
-    #
-    #     if self.get_setting("confirmation_method", self.confirmation_method) == "PUSH":
-    #         context["notify_url"] = urljoin(
-    #             our_baseurl, reverse("getpaid:callback", kwargs={"pk": self.payment.pk})
-    #         )
-    #     if camelize_keys:
-    #         return {key_trans.get(k, k): v for k, v in context.items()}
-    #     return context
 
     @atomic()
     def prepare_transaction(self, request=None, view=None, **kwargs):
