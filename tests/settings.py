@@ -15,6 +15,8 @@ REGISTRATION_METHOD = "REST"
 
 GETPAID_DUMMY_SLUG = "getpaid.backends.dummy"
 GETPAID_PAYU_SLUG = "getpaid.backends.payu"
+GETPAID_BACKEND_HOST = "http://localhost:8080/"
+GETPAID_FRONTEND_HOST = "http://localhost/"
 
 GETPAID_BACKEND_SETTINGS = {
     GETPAID_DUMMY_SLUG: {
@@ -29,7 +31,8 @@ GETPAID_BACKEND_SETTINGS = {
         "oauth_id": 300746,
         "oauth_secret": "2ee86a66e5d97e3fadc400c9f19b065d",
         "confirmation_method": "PULL",  # required for local testing
-        "is_marketplace": False  # change products to shoppingCarts in paywall
+        "continue_url": "{frontend_host}platnosci/{payment_id}/koniec/",
+        "is_marketplace": False,  # change products to shoppingCarts in paywall
     },
 }
 

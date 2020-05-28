@@ -59,7 +59,7 @@ dictionary. Use plugin's dotted path - just as you put it in  ``INSTALLED_APPS``
             "second_key": "91ae651578c5b5aa93f2d38a9be8ce11",
             "oauth_id": 12345,
             "oauth_secret": "12f071174cb7eb79d4aac5bc2f07563f"
-            "continue_url": "{frontend_url}platnosci/{payment_id}/koniec/",
+            "continue_url": "{frontend_host}platnosci/{payment_id}/koniec/",
         }
     }
 

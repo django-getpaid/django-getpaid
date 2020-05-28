@@ -24,16 +24,19 @@ url_post_payment = "https://secure.snd.payu.com/api/v2_1/orders"
 url_api_register = "https://secure.snd.payu.com/api/v2_1/orders"
 
 
-def _prep_conf(api_method: bm = bm.REST, confirm_method: cm = cm.PUSH, is_marketplace=False) -> dict:
+def _prep_conf(
+    api_method: bm = bm.REST, confirm_method: cm = cm.PUSH, is_marketplace=False
+) -> dict:
     return {
         settings.GETPAID_PAYU_SLUG: {
             "pos_id": 300746,
             "second_key": "b6ca15b0d1020e8094d9b5f8d163db54",
             "client_id": 300746,
             "client_secret": "2ee86a66e5d97e3fadc400c9f19b065d",
+            "continue_url": "{frontend_host}platnosci/{payment_id}/koniec/",
             "paywall_method": api_method,
             "confirmation_method": confirm_method,
-            "is_marketplace": is_marketplace
+            "is_marketplace": is_marketplace,
         }
     }
 
@@ -43,7 +46,7 @@ def test_post_flow_begin(payment_factory, settings, requests_mock, getpaid_clien
     requests_mock.post(
         "/api/v2_1/orders",
         json={
-            "status": {"statusCode": "SUCCESS", },
+            "status": {"statusCode": "SUCCESS",},
             "redirectUri": "https://paywall.example.com/url",
             "orderId": "WZHF5FFDRJ140731GUEST000P01",
             "extOrderId": my_order_id,
@@ -67,7 +70,7 @@ def test_rest_flow_begin(
     requests_mock.post(
         "/api/v2_1/orders",
         json={
-            "status": {"statusCode": "SUCCESS", },
+            "status": {"statusCode": "SUCCESS",},
             "redirectUri": "https://paywall.example.com/url",
             "orderId": "WZHF5FFDRJ140731GUEST000P01",
             "extOrderId": my_order_id,
@@ -78,7 +81,6 @@ def test_rest_flow_begin(
     settings.GETPAID_BACKEND_SETTINGS = _prep_conf(api_method=bm.REST)
 
     payment = payment_factory(external_id=uuid.uuid4())
-    requests_mock.post(str(url_api_register), json={"url": str(url_post_payment)})
     result = payment.prepare_transaction(None)
 
     assert result.status_code == 302
@@ -141,28 +143,20 @@ def marketplace_get_items_mock(monkeypatch):
     items = [
         {
             "products": [],
-            "extCustomerId" "1234"
-            "amount": Decimal('100.00'),
-            "fee": Decimal("15.00")
+            "extCustomerId" "1234" "amount": Decimal("100.00"),
+            "fee": Decimal("15.00"),
         }
     ]
     monkeypatch.setattr(Order, "get_items", lambda self: items)
 
 
 def test_shopping_carts_if_is_marketplace(
-    marketplace_get_items_mock,
-    getpaid_client,
-    settings,
-    payment_factory,
-    rf
+    marketplace_get_items_mock, getpaid_client, settings, payment_factory, rf
 ):
     settings.GETPAID_BACKEND_SETTINGS = _prep_conf(is_marketplace=True)
     payment = payment_factory(external_id=uuid.uuid4())
     # payment.confirm_prepared()
-    request = rf.post(
-        "",
-        content_type="application/json"
-    )
+    request = rf.post("", content_type="application/json")
     processor = PaymentProcessor(payment=payment)
     assert "shopping_carts" in processor.get_paywall_context(request=request)
 
@@ -171,10 +165,7 @@ def test_products_if_not_marketplace(getpaid_client, settings, payment_factory, 
     settings.GETPAID_BACKEND_SETTINGS = _prep_conf(is_marketplace=False)
     payment = payment_factory(external_id=uuid.uuid4())
     # payment.confirm_prepared()
-    request = rf.post(
-        "",
-        content_type="application/json"
-    )
+    request = rf.post("", content_type="application/json")
     processor = PaymentProcessor(payment=payment)
     assert "products" in processor.get_paywall_context(request=request)
 
@@ -221,7 +212,7 @@ def test_push_flow(
                     "lastName": "Doe",
                     "language": "en",
                 },
-                "payMethod": {"type": "PBL", },
+                "payMethod": {"type": "PBL",},
                 "products": [
                     {
                         "name": "Product 1",

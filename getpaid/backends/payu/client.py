@@ -18,6 +18,7 @@ from getpaid.exceptions import (
     RefundFailure,
 )
 from getpaid.types import ItemInfo, ShoppingCart
+
 from .types import (
     BuyerData,
     CancellationResponse,
@@ -52,6 +53,7 @@ class Client:
         second_key: str = None,
         oauth_id: int = None,
         oauth_secret: str = None,
+        is_marketplace: bool = None,
     ):
         default_params = self._get_client_params()
         self.api_url = api_url or default_params["api_url"]
@@ -59,10 +61,12 @@ class Client:
         self.second_key = second_key or default_params["second_key"]
         self.oauth_id = oauth_id or default_params["oauth_id"]
         self.oauth_secret = oauth_secret or default_params["oauth_secret"]
+        self.is_marketplace = is_marketplace or default_params["is_marketplace"]
         self._authorize()
 
     def _get_client_params(self) -> dict:
         from . import PaymentProcessor
+
         processor = PaymentProcessor
         return {
             "api_url": processor.get_paywall_baseurl(),
@@ -70,6 +74,7 @@ class Client:
             "second_key": processor.get_setting("second_key"),
             "oauth_id": processor.get_setting("oauth_id"),
             "oauth_secret": processor.get_setting("oauth_secret"),
+            "is_marketplace": processor.get_setting("is_marketplace"),
         }
 
     def _authorize(self):
@@ -136,12 +141,13 @@ class Client:
         amount: Union[Decimal, float],
         currency: Currency,
         order_id: Union[str, int],
-        description: Optional[str] = None,
-        customer_ip: Optional[str] = None,
+        description: Optional[str] = "Payment order",
+        customer_ip: Optional[str] = "127.0.0.1",
         buyer: Optional[BuyerData] = None,
         products: Optional[List[ProductData]] = None,
         shopping_carts: Optional[List[ShoppingCart]] = None,
         notify_url: Optional[str] = None,
+        continue_url: Optional[str] = None,
         **kwargs,
     ) -> PaymentResponse:
         """
@@ -155,33 +161,35 @@ class Client:
         :param products: List of products being bought (see :class:`Product`), defaults to amount + description
         :param shopping_carts: List of carts in marketplace (only if is_marketplace set as True)
         :param notify_url: Callback url
+        :param continue_url: Continue url (after successful payment)
         :param kwargs: Additional params that will first be consumed by headers, with leftovers passed on to order request
         :return: JSON response from API
         """
+        if self.is_marketplace:
+            assert (
+                shopping_carts
+            ), "You must provide `shopping_carts` if marketplace used."
         url = urljoin(self.api_url, "/api/v2_1/orders")
-
         raw_data = {
             "extOrderId": order_id,
-            "customerIp": customer_ip if customer_ip else "127.0.0.1",
+            "customerIp": customer_ip,
             "merchantPosId": self.pos_id,
-            "description": description if description else "Payment order",
+            "description": description,
             "currencyCode": currency,
             "totalAmount": amount,
         }
-
+        if notify_url:
+            raw_data["notifyUrl"] = notify_url
+        if continue_url:
+            raw_data["continueUrl"] = continue_url
+        if buyer:
+            raw_data["buyer"] = buyer
         if shopping_carts:
             raw_data["shoppingCarts"] = shopping_carts
         else:
-            default = [{"name": "Total order", "unitPrice": amount, "quantity": 1}]
-            products = products if products else default,
             raw_data["products"] = products
 
         data = self._centify(raw_data)
-
-        if notify_url:
-            data["notifyUrl"] = notify_url
-        if buyer:
-            data["buyer"] = buyer
         headers = self._headers(**kwargs)
         data.update(kwargs)
         encoded = json.dumps(data, cls=DjangoJSONEncoder)
@@ -236,10 +244,7 @@ class Client:
         )
         headers = self._headers()
         self.last_response = requests.get(
-            url,
-            headers=headers,
-            allow_redirects=False,
-            params={"currencyCode": "PLN"}
+            url, headers=headers, allow_redirects=False, params={"currencyCode": "PLN"}
         )
         return self._normalize(self.last_response.json())
 
