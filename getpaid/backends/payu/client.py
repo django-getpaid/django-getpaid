@@ -17,6 +17,7 @@ from getpaid.exceptions import (
     GetPaidException,
     LockFailure,
     RefundFailure,
+    PayoutFailure,
 )
 from getpaid.types import ItemInfo, ShoppingCart
 from .types import (
@@ -370,3 +371,57 @@ class Client:
 
     def get_paymethods(self, lang: Optional[str] = None):
         raise NotImplementedError
+
+    @ensure_auth
+    def payout(
+        self,
+        shop_id: str,
+        description: str = "",
+        customer_name: str = "",
+        amount: Optional[Decimal] = None,
+        ext_customer_id: str = None,
+        currency_code: str = "PLN",
+        ext_payout_id: str = None,
+        **kwargs,
+    ):
+        """
+        Get own shop info
+
+        :param shop_id: Public shop_id
+        :param kwargs:
+        :return:
+        """
+        if self.is_marketplace:
+            assert ext_customer_id
+            assert ext_payout_id
+            assert customer_name
+
+        data = {
+            "shopId": shop_id,
+            "payout": {"currencyCode": currency_code, "description": description},
+        }
+
+        if amount:
+            data["amount"] = amount
+
+        if ext_payout_id:
+            data["payout"]["extPayoutId"] = ext_payout_id
+
+        if ext_customer_id:
+            data["account"] = {"extCustomerId": ext_customer_id}
+
+        if customer_name:
+            data["customerAddress"] = {"name": customer_name}
+
+        payload = self._centify(data)
+
+        url = urljoin(self.api_url, f"/api/v2_1/payouts")
+        self.last_response = requests.post(
+            url, headers=self._headers(**kwargs), json=payload
+        )
+        if self.last_response.status_code == 201:
+            return self._normalize(self.last_response.json())
+
+        raise PayoutFailure(
+            "Payout not available", context={"raw_response": self.last_response}
+        )

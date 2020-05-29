@@ -24,7 +24,8 @@ from django_fsm import (
 
 from . import FraudStatus as fs
 from . import PaymentStatus as ps
-from .exceptions import ChargeFailure, GetPaidException
+from . import PayoutStatus
+from .exceptions import ChargeFailure, GetPaidException, PayoutFailure
 from .processor import BaseProcessor
 from .registry import registry
 from .types import (
@@ -120,7 +121,36 @@ class AbstractOrder(models.Model):
         raise NotImplementedError
 
 
-class AbstractPayment(ConcurrentTransitionMixin, models.Model):
+class BackendFieldMixin(models.Model):
+    backend = models.CharField(_("backend"), max_length=100, db_index=True)
+    _processor = None
+
+    class Meta:
+        abstract = True
+
+    def get_processor(self) -> BaseProcessor:
+        """
+        Returns the processor instance for the backend that
+        was chosen for this Payment. By default it takes it from global
+        backend registry and tries to import it when it's not there.
+        You most probably don't want to mess with this.
+        """
+        if self.backend in registry:
+            processor = registry[self.backend]
+        else:
+            # last resort if backend has been removed from INSTALLED_APPS
+            module = import_module(self.backend)
+            processor = getattr(module, "PaymentProcessor")
+        return processor(self)
+
+    @property
+    def processor(self) -> BaseProcessor:
+        if self._processor is None:
+            self._processor = self.get_processor()
+        return self._processor
+
+
+class AbstractPayment(ConcurrentTransitionMixin, BackendFieldMixin, models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     order = models.ForeignKey(
         swapper.get_model_name("getpaid", "Order"),
@@ -140,7 +170,6 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
     status = FSMField(
         _("status"), choices=ps.CHOICES, default=ps.NEW, db_index=True, protected=True,
     )
-    backend = models.CharField(_("backend"), max_length=100, db_index=True)
     created_on = models.DateTimeField(_("created on"), auto_now_add=True, db_index=True)
     last_payment_on = models.DateTimeField(
         _("paid on"), blank=True, null=True, default=None, db_index=True
@@ -195,8 +224,6 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
     fraud_message = models.TextField(_("fraud message"), blank=True)
     redirect_uri = models.URLField(max_length=1024, blank=True)
 
-    _processor = None
-
     class Meta:
         abstract = True
         ordering = ["-created_on"]
@@ -209,29 +236,8 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
     # First some helpful properties and internals
 
     @property
-    def processor(self) -> BaseProcessor:
-        if self._processor is None:
-            self._processor = self.get_processor()
-        return self._processor
-
-    @property
     def fully_paid(self) -> bool:
         return self.amount_paid >= self.amount_required
-
-    def get_processor(self) -> BaseProcessor:
-        """
-        Returns the processor instance for the backend that
-        was chosen for this Payment. By default it takes it from global
-        backend registry and tries to import it when it's not there.
-        You most probably don't want to mess with this.
-        """
-        if self.backend in registry:
-            processor = registry[self.backend]
-        else:
-            # last resort if backend has been removed from INSTALLED_APPS
-            module = import_module(self.backend)
-            processor = getattr(module, "PaymentProcessor")
-        return processor(self)
 
     # Then some customization enablers
 
@@ -570,3 +576,75 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
 class Payment(AbstractPayment):
     class Meta(AbstractPayment.Meta):
         swappable = swapper.swappable_setting("getpaid", "Payment")
+
+
+class AbstractPayout(BackendFieldMixin, models.Model):
+    shop_id = models.CharField(max_length=128, db_index=True)
+    customer_name = models.CharField(max_length=200, blank=True,)
+    description = models.CharField(max_length=128, blank=True,)
+    amount = models.CharField(max_length=128, blank=True,)
+    ext_customer_id = models.CharField(max_length=128, blank=True, db_index=True)
+    currency_code = models.CharField(max_length=128, default="PLN")
+    external_id = models.CharField(
+        _("status"), max_length=128, blank=True, db_index=True
+    )
+    status = FSMField(
+        _("status"),
+        choices=PayoutStatus.CHOICES,
+        default=PayoutStatus.NEW,
+        db_index=True,
+        protected=True,
+    )
+    created_on = models.DateTimeField(_("created on"), auto_now_add=True, db_index=True)
+    failed_code = models.CharField(_("Reason of failure"), max_length=128, blank=True,)
+
+    class Meta:
+        abstract = True
+
+    def __str__(self):
+        translated_str = _("Payout for {customer_name} ({amount} {currency})")
+        return translated_str.format(
+            customer_name=self.customer_name,
+            amount=self.amount,
+            currency=self.currency_code,
+        )
+
+    def start_payout(self):
+        try:
+            response = self._get_client_response()
+            self.external_id = response["payout"]["payoutId"]
+            self.mark_as_success()
+            self.save()
+        except PayoutFailure as e:
+            response = e.context["raw_response"].json()
+            self.failed_code = response.get("status").get("code")
+            self.mark_as_failed()
+            self.save()
+            raise
+
+    def _get_client_response(self):
+        client = self.processor.client
+        if not hasattr(client, "payout"):
+            raise NotImplementedError(f"Client {client} does not support payouts.")
+        return client.payout(
+            shop_id=self.shop_id,
+            description=self.description,
+            customer_name=self.customer_name,
+            amount=self.amount,
+            ext_customer_id=self.ext_customer_id,
+            currency_code=self.currency_code,
+            ext_payout_id=str(self.id),
+        )
+
+    @transition(field="status", source=PayoutStatus.NEW, target=PayoutStatus.SUCCESS)
+    def mark_as_success(self):
+        pass
+
+    @transition(field="status", source=PayoutStatus.NEW, target=PayoutStatus.FAILED)
+    def mark_as_failed(self):
+        pass
+
+
+class Payout(AbstractPayout):
+    class Meta(AbstractPayout.Meta):
+        swappable = swapper.swappable_setting("getpaid", "Payout")
