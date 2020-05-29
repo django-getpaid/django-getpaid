@@ -253,13 +253,15 @@ class PaymentProcessor(BaseProcessor):
         client = self.get_client()
 
         if self.get_setting("is_marketplace", False):
-            assert "ext_customer_id" in kwargs, "Add ext_customer_id if you use marketplace"
+            assert (
+                "ext_customer_id" in kwargs
+            ), "Add ext_customer_id if you use marketplace"
 
         response = client.refund(
             order_id=str(self.payment.external_id),
             ext_refund_id=str(self.payment.id),
             amount=amount,
-            **kwargs
+            **kwargs,
         )
         self.payment.refund_status_desc = response["status"]["statusDesc"]
         self.payment.refund_description = response["refund"]["description"]

@@ -33,8 +33,8 @@ url_api_operate = reverse_lazy("paywall:api_operate")
         ({"internal": {"amount": 100}}, {"internal": {"amount": Decimal("1")}}),
         ({"internal": [{"amount": 100}]}, {"internal": [{"amount": Decimal("1")}]}),
         (
-            [{"internal": [{"amount": 100}]}, ],
-            [{"internal": [{"amount": Decimal("1")}]}, ],
+            [{"internal": [{"amount": 100}]},],
+            [{"internal": [{"amount": Decimal("1")}]},],
         ),
     ],
 )
@@ -73,7 +73,7 @@ def test_new_order(response_status, getpaid_client, requests_mock):
     requests_mock.post(
         "/api/v2_1/orders",
         json={
-            "status": {"statusCode": "SUCCESS", },
+            "status": {"statusCode": "SUCCESS",},
             "redirectUri": "https://paywall.example.com/url",
             "orderId": "WZHF5FFDRJ140731GUEST000P01",
             "extOrderId": my_order_id,

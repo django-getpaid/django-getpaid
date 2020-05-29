@@ -12,3 +12,4 @@ requests-mock==1.7.0
 ipdb
 pytest-cov==2.8.1
 pytest-django
+black

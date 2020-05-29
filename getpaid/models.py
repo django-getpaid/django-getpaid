@@ -32,7 +32,8 @@ from .types import (
     ChargeResponse,
     ItemInfo,
     PaymentStatusResponse,
-    RestfulResult, ShoppingCart,
+    RestfulResult,
+    ShoppingCart,
 )
 
 logger = logging.getLogger(__name__)
@@ -165,7 +166,11 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         _("refund description"), max_length=256, blank=True, db_index=True, default=""
     )
     refund_status_desc = models.CharField(
-        _("refund status description"), max_length=256, blank=True, db_index=True, default=""
+        _("refund status description"),
+        max_length=256,
+        blank=True,
+        db_index=True,
+        default="",
     )
     refunded_on = models.DateTimeField(
         _("refunded on"), blank=True, null=True, default=None, db_index=True

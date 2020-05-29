@@ -52,7 +52,7 @@ class Client:
         "totalAmount",
         "fee",
         "availableAmount",
-        "totalAmount"
+        "totalAmount",
     }
 
     def __init__(
@@ -258,24 +258,28 @@ class Client:
     @ensure_auth
     def submerchant_status(self, ext_customer_id, currency_code="PLN"):
         url = urljoin(
-            self.api_url,
-            f"/api/v2_1/customers/ext/{ext_customer_id}/status",
+            self.api_url, f"/api/v2_1/customers/ext/{ext_customer_id}/status",
         )
         headers = self._headers()
         self.last_response = requests.get(
-            url, headers=headers, allow_redirects=False, params={"currencyCode": currency_code}
+            url,
+            headers=headers,
+            allow_redirects=False,
+            params={"currencyCode": currency_code},
         )
         return self._normalize(self.last_response.json())
 
     @ensure_auth
     def submerchant_balance(self, ext_customer_id, currency_code="PLN"):
         url = urljoin(
-            self.api_url,
-            f"/api/v2_1/customers/ext/{ext_customer_id}/balances",
+            self.api_url, f"/api/v2_1/customers/ext/{ext_customer_id}/balances",
         )
         headers = self._headers()
         self.last_response = requests.get(
-            url, headers=headers, allow_redirects=False, params={"currencyCode": currency_code}
+            url,
+            headers=headers,
+            allow_redirects=False,
+            params={"currencyCode": currency_code},
         )
         return self._normalize(self.last_response.json())
 
@@ -289,7 +293,7 @@ class Client:
         limit: int = None,
         page: int = None,
         order_by: str = None,
-        type: str = None
+        type: str = None,
     ):
         """
         :param ext_customer_id: customer id
@@ -306,8 +310,7 @@ class Client:
         :param page: page number
         """
         url = urljoin(
-            self.api_url,
-            f"/api/v2_1/customers/ext/{ext_customer_id}/operations",
+            self.api_url, f"/api/v2_1/customers/ext/{ext_customer_id}/operations",
         )
         params = {
             "currencyCode": currency_code,
@@ -316,16 +319,12 @@ class Client:
             "offset": page,
             "type": type,
             "limit": limit,
-            "orderBy": order_by
+            "orderBy": order_by,
         }
 
-        url += "?" + urlencode({
-            k: v for k, v in params.items() if v is not None
-        })
+        url += "?" + urlencode({k: v for k, v in params.items() if v is not None})
         headers = self._headers()
-        self.last_response = requests.get(
-            url, headers=headers, allow_redirects=False
-        )
+        self.last_response = requests.get(url, headers=headers, allow_redirects=False)
         return self._normalize(self.last_response.json())
 
     @ensure_auth
