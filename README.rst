@@ -173,7 +173,9 @@ Credits
 Created by `Krzysztof Dorosz <https://github.com/cypreess>`_.
 Redesigned and rewritten by `Dominik Kozaczko <https://github.com/dekoza>`_.
 
-Proudly sponsored by `SUNSCRAPERS <http://sunscrapers.com/>`_
+Currently sponsored by `ClearCode <https://clearcode.cc>`_
+
+Development of version 2.0 sponsored by `SUNSCRAPERS <https://sunscrapers.com/>`_
 
 
 
