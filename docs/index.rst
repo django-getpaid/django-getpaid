@@ -52,6 +52,7 @@ Contributors:
 
 Sponsors:
 
+* `ClearCode <https://clearcode.cc/>`_
 * `Sunscrapers <https://sunscrapers.com/>`_
 
 You are welcome to contribute to this project via `github <http://github.com>`_ fork & pull request.
