@@ -48,7 +48,7 @@ class OrderRestViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
 
     def create_payment(self, order):
         payment_data = self.request.data.get("payment", {})
-        return PaymentCreator(order, payment_data)
+        return PaymentCreator(order, payment_data).create()
 
 
 class PostGetter(View):
