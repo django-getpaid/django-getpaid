@@ -32,7 +32,8 @@ from .types import (
     ChargeResponse,
     ItemInfo,
     PaymentStatusResponse,
-    RestfulResult, ShoppingCart,
+    RestfulResult,
+    ShoppingCart,
 )
 
 logger = logging.getLogger(__name__)
@@ -77,6 +78,12 @@ class AbstractOrder(models.Model):
         """
         if self.payments.exclude(status=ps.FAILED).exists():
             raise forms.ValidationError(_("Non-failed Payments exist for this Order."))
+        return True
+
+    def is_retry_payment_possible(self) -> bool:
+        """
+        Method used to validate if retry payment is possible.
+        """
         return True
 
     def get_items(self) -> List[Union[ItemInfo, ShoppingCart]]:
@@ -165,7 +172,11 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         _("refund description"), max_length=256, blank=True, db_index=True, default=""
     )
     refund_status_desc = models.CharField(
-        _("refund status description"), max_length=256, blank=True, db_index=True, default=""
+        _("refund status description"),
+        max_length=256,
+        blank=True,
+        db_index=True,
+        default="",
     )
     refunded_on = models.DateTimeField(
         _("refunded on"), blank=True, null=True, default=None, db_index=True
