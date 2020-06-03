@@ -80,12 +80,6 @@ class AbstractOrder(models.Model):
             raise forms.ValidationError(_("Non-failed Payments exist for this Order."))
         return True
 
-    def is_retry_payment_possible(self) -> bool:
-        """
-        Method used to validate if retry payment is possible.
-        """
-        return True
-
     def get_items(self) -> List[Union[ItemInfo, ShoppingCart]]:
         """
         There are backends that require some sort of item list to be attached
