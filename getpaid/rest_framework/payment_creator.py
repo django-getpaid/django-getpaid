@@ -1,9 +1,6 @@
 from rest_framework import serializers
 
-from getpaid.rest_framework.serializers import (
-    PaymentCreateSerializer,
-    PaymentRetrySerializer,
-)
+from getpaid.rest_framework.serializers import PaymentCreateSerializer
 
 
 class PaymentCreator:
@@ -27,7 +24,3 @@ class PaymentCreator:
             raise serializers.ValidationError({"payment": serializer_error})
         payment = payment_serializer.save()
         return payment, payment_serializer
-
-
-class PaymentRetryCreator(PaymentCreator):
-    payment_serializer = PaymentRetrySerializer
