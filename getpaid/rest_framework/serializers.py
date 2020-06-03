@@ -46,6 +46,22 @@ class PaymentCreateSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 
+class PaymentRetrySerializer(PaymentCreateSerializer):
+    """
+    Used to validate retry payment.
+    """
+
+    def validate(self, attrs):
+        validated_data = super().validate(attrs)
+        self._check_if_retry_payment_possible(validated_data)
+        return validated_data
+
+    def _check_if_retry_payment_possible(self, validated_data):
+        if hasattr(validated_data["order"], "is_retry_payment_possible"):
+            if not validated_data["order"].is_retry_payment_possible():
+                raise serializers.ValidationError(_("Retry payment is not possible."))
+
+
 class PaymentDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Payment
