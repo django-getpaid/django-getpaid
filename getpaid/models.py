@@ -277,6 +277,61 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         """
         return self.processor.get_template_names(view=view)
 
+    def on_confirm_prepared(self, **kwargs):
+        """
+        Additional callback for `confirm_prepared` transition.
+        """
+
+    def on_confirm_lock(self, amount, **kwargs):
+        """
+        Additional callback for `confirm_lock` transition.
+        """
+
+    def on_confirm_charge_sent(self, **kwargs):
+        """
+        Additional callback for `confirm_prepared` transition.
+        """
+
+    def on_confirm_payment(self, amount, **kwargs):
+        """
+        Additional callback for `confirm_payment` transition.
+        """
+
+    def on_mark_as_paid(self, **kwargs):
+        """
+        Additional callback for `mark_as_paid` transition.
+        """
+
+    def on_release_lock(self, **kwargs):
+        """
+        Additional callback for `release_lock` transition.
+        """
+
+    def on_start_refund(self, amount, **kwargs):
+        """
+        Additional callback for `start_refund` transition.
+        """
+
+    def on_cancel_refund(self, **kwargs):
+        """
+        Additional callback for `cancel_refund` transition.
+        """
+
+    def on_confirm_refund(self, amount, **kwargs):
+        """
+        Additional callback for `confirm_refund` transition.
+        """
+
+    def on_mark_as_refunded(self, **kwargs):
+        """
+        Additional callback for `mark_as_refunded` transition.
+        """
+
+    def on_fail(self, **kwargs):
+        """
+        Additional callback for `fail` transition.
+        """
+
     def handle_paywall_callback(self, request, **kwargs) -> HttpResponse:
         """
         Interfaces processor's ``handle_paywall_callback``.
@@ -397,6 +452,7 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         """
         Used to confirm that paywall registered POSTed form.
         """
+        self.on_confirm_prepared(**kwargs)
 
     @transition(field=status, source=[ps.NEW, ps.PREPARED], target=ps.PRE_AUTH)
     def confirm_lock(
@@ -408,6 +464,7 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         if amount is None:
             amount = self.amount_required
         self.amount_locked = amount
+        self.on_confirm_lock(amount, **kwargs)
 
     @atomic
     def charge(
@@ -451,6 +508,7 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         Used during async charge cycle - after you send charge request,
         the confirmation will be sent to callback endpoint.
         """
+        self.on_confirm_charge_sent(**kwargs)
 
     @transition(
         field=status,
@@ -468,6 +526,7 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
                 self.amount_locked = self.amount_required
             amount = self.amount_locked
         self.amount_paid += amount
+        self.on_confirm_payment(amount, **kwargs)
 
     def _check_fully_paid(self) -> bool:
         return self.fully_paid
@@ -479,6 +538,7 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         """
         Marks payment as fully paid if condition is met.
         """
+        self.on_mark_as_paid(**kwargs)
 
     @transition(field=status, source=ps.PRE_AUTH, target=ps.REFUNDED)
     def release_lock(self, **kwargs) -> Decimal:
@@ -487,7 +547,9 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         """
         self.amount_refunded = self.amount_locked
         self.amount_locked = 0
-        return self.processor.release_lock(**kwargs)
+        ret = self.processor.release_lock(**kwargs)
+        self.on_release_lock(**kwargs)
+        return ret
 
     @transition(field=status, source=[ps.PAID, ps.PARTIAL], target=ps.REFUND_STARTED)
     def start_refund(
@@ -500,14 +562,18 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
             amount = self.amount_paid
         if amount > self.amount_paid:
             raise ValueError("Cannot refund more than amount paid.")
-        return self.processor.start_refund(amount=amount, **kwargs)
+        ret = self.processor.start_refund(amount=amount, **kwargs)
+        self.on_start_refund(amount, **kwargs)
+        return ret
 
     @transition(field=status, source=ps.REFUND_STARTED, target=ps.PARTIAL)
     def cancel_refund(self, **kwargs) -> bool:
         """
         Interfaces processor's :meth:`~getpaid.processor.BaseProcessor.charge`.
         """
-        return self.processor.cancel_refund()
+        ret = self.processor.cancel_refund()
+        self.on_cancel_refund(**kwargs)
+        return ret
 
     @transition(field=status, source=ps.REFUND_STARTED, target=ps.PARTIAL)
     def confirm_refund(
@@ -520,6 +586,7 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
             amount = self.amount_paid
         self.amount_refunded += amount
         self.refunded_on = now()
+        self.on_confirm_refund(amount, **kwargs)
 
     def _is_full_refund(self) -> bool:
         return self.amount_refunded == self.amount_paid
@@ -534,6 +601,7 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         """
         Verify if refund was partial or full.
         """
+        self.on_mark_as_refunded(**kwargs)
 
     @transition(
         field=status, source=[ps.NEW, ps.PRE_AUTH, ps.PREPARED], target=ps.FAILED
@@ -542,6 +610,7 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         """
         Sets Payment as failed.
         """
+        self.on_fail(**kwargs)
 
     # Finally: Fraud-related actions.
     # The "uber-private" ones should be used only by processor.
