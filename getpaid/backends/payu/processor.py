@@ -10,7 +10,7 @@ import json
 import logging
 from collections import OrderedDict
 from decimal import Decimal
-from typing import Union, Optional
+from typing import Optional, Union
 from urllib.parse import urljoin
 
 from django import http
@@ -57,6 +57,7 @@ class PaymentProcessor(BaseProcessor):
     post_template_name = "getpaid_payu/payment_post_form.html"
     callback_url_name = "getpaid:callback"
     client_class = Client
+    callback_handler_class = PayuCallbackHandler
     _token = None
     _token_expires = None
 
@@ -160,7 +161,7 @@ class PaymentProcessor(BaseProcessor):
         given_signature, expected_signature = self.get_signatures(request)
         if given_signature == expected_signature:
             data = json.loads(request.body)
-            PayuCallbackHandler(self.payment).handle(data)
+            self.callback_handler_class(self.payment).handle(data)
             return HttpResponse(status=http_status.HTTP_200_OK)
         else:
             logger.error(
