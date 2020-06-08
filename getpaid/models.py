@@ -182,7 +182,7 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         _("external id"), max_length=64, blank=True, db_index=True, default=""
     )
     description = models.CharField(
-        _("description"), max_length=128, blank=True, default=""
+        _("description"), max_length=256, blank=True, default=""
     )
     fraud_status = FSMField(
         _("fraud status"),

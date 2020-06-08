@@ -42,7 +42,7 @@ class PaymentCreateSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data["amount_required"] = self._order.get_total_amount()
-        validated_data["description"] = self._order.get_description()
+        validated_data["description"] = self._order.get_description()[:256]
         return super().create(validated_data)
 
 
