@@ -651,7 +651,13 @@ class AbstractPayout(BackendFieldMixin, models.Model):
     shop_id = models.CharField(max_length=128, db_index=True)
     customer_name = models.CharField(max_length=200, blank=True,)
     description = models.CharField(max_length=128, blank=True,)
-    amount = models.CharField(max_length=128, blank=True,)
+    amount = models.DecimalField(
+        _("amount requested"),
+        blank=True,
+        max_digits=20,
+        decimal_places=2,
+        null=True
+    )
     ext_customer_id = models.CharField(max_length=128, blank=True, db_index=True)
     currency_code = models.CharField(max_length=128, default="PLN")
     external_id = models.CharField(

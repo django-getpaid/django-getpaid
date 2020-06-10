@@ -315,12 +315,12 @@ class Client:
         )
         params = {
             "currencyCode": currency_code,
-            "eventDateFrom": date_from.replace(microsecond=0),
-            "eventDateTo": date_to.replace(microsecond=0),
+            "eventDateFrom": date_from.replace(microsecond=0).isoformat(),
+            "eventDateTo": date_to.replace(microsecond=0).isoformat(),
             "offset": page,
             "type": type,
             "limit": limit,
-            "orderBy": order_by,
+            "sortBy": order_by,
         }
 
         url += "?" + urlencode({k: v for k, v in params.items() if v is not None})
