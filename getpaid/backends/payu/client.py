@@ -315,8 +315,8 @@ class Client:
         )
         params = {
             "currencyCode": currency_code,
-            "eventDateFrom": date_from,
-            "eventDateTo": date_to,
+            "eventDateFrom": date_from.replace(microsecond=0),
+            "eventDateTo": date_to.replace(microsecond=0),
             "offset": page,
             "type": type,
             "limit": limit,
