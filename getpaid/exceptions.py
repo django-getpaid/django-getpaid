@@ -16,6 +16,10 @@ class LockFailure(CommunicationError):
     pass
 
 
+class PayoutFailure(CommunicationError):
+    pass
+
+
 class RefundFailure(CommunicationError):
     pass
 

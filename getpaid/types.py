@@ -77,6 +77,31 @@ class PaymentStatus(str, Enum):
         return cls.choices
 
 
+class PayoutStatus(str, Enum):
+    """
+    Internal payout statuses.
+    """
+
+    NEW = "new"
+    FAILED = "failed"
+    SUCCESS = "success"
+
+    @classproperty
+    def choices(cls):
+        return (
+            (cls.NEW.value, pgettext_lazy("payout status", "new")),
+            (cls.FAILED.value, pgettext_lazy("payout status", "failed")),
+            (cls.SUCCESS.value, pgettext_lazy("payout status", "success")),
+        )
+
+    @classproperty
+    def CHOICES(cls):
+        """
+        Backward compatibility with pre-Enum version.
+        """
+        return cls.choices
+
+
 class BackendMethod(str, Enum):
     GET = "GET"
     POST = "POST"
