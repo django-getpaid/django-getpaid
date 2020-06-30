@@ -11,6 +11,10 @@ Order = swapper.load_model("getpaid", "Order")
 
 
 class PaymentDetailViewSet(viewsets.GenericViewSet):
+    # Pop `redirect_uri` from response to let frontend know
+    # if it should redirect user or not.
+    POP_REDIRECT_URI_WHEN_PENDING = True
+
     serializer_class = PaymentDetailSerializer
     permission_classes = [permissions.IsAuthenticated]
     queryset = Payment.objects.all()
@@ -24,6 +28,11 @@ class PaymentDetailViewSet(viewsets.GenericViewSet):
         if not payment.redirect_uri and payment.status == ps.NEW:
             payment.prepare_transaction(request=request, view=self)
         response_data = self.get_serializer(payment).data
+        if self.POP_REDIRECT_URI_WHEN_PENDING is True and (
+            payment.status not in (ps.NEW, ps.PREPARED)
+        ):
+            response_data.pop("redirect_uri")
+
         return Response(response_data)
 
 
