@@ -12,6 +12,8 @@ DEBUG = True
 
 GETPAID_ORDER_MODEL = "orders.Order"
 GETPAID_PAYMENT_MODEL = "orders.CustomPayment"
+GETPAID_PAYOUT_MODEL = "orders.CustomPayout"
+
 GETPAID_DUMMY_SLUG = "getpaid.backends.dummy"
 GETPAID_PAYU_SLUG = "getpaid.backends.payu"
 GETPAID_BACKEND_HOST = "http://localhost:8080/"

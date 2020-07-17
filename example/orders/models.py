@@ -1,7 +1,7 @@
 from django.db import models
 from django.urls import reverse
 
-from getpaid.models import AbstractOrder, AbstractPayment
+from getpaid.models import AbstractOrder, AbstractPayment, AbstractPayout
 
 ORDER_STATUS_CHOICES = (("W", "Waiting for payment"), ("P", "Payment complete"))
 
@@ -42,6 +42,14 @@ class Order(AbstractOrder):
 
 
 class CustomPayment(AbstractPayment):
+    """
+    Needed for test purposes.
+    """
+
+    custom = models.BooleanField(default=True, editable=False)
+
+
+class CustomPayout(AbstractPayout):
     """
     Needed for test purposes.
     """
