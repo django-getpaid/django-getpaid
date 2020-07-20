@@ -642,11 +642,6 @@ class AbstractPayment(ConcurrentTransitionMixin, BackendFieldMixin, models.Model
         self.fraud_message += f"\n==MANUAL ACCEPT==\n{message}"
 
 
-class Payment(AbstractPayment):
-    class Meta(AbstractPayment.Meta):
-        swappable = swapper.swappable_setting("getpaid", "Payment")
-
-
 class AbstractPayout(BackendFieldMixin, models.Model):
     shop_id = models.CharField(max_length=128, db_index=True)
     customer_name = models.CharField(max_length=200, blank=True,)
@@ -718,8 +713,3 @@ class AbstractPayout(BackendFieldMixin, models.Model):
     @transition(field="status", source=PayoutStatus.NEW, target=PayoutStatus.FAILED)
     def mark_as_failed(self):
         pass
-
-
-class Payout(AbstractPayout):
-    class Meta(AbstractPayout.Meta):
-        swappable = swapper.swappable_setting("getpaid", "Payout")
