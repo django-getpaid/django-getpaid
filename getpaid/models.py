@@ -213,6 +213,9 @@ class AbstractPayment(ConcurrentTransitionMixin, BackendFieldMixin, models.Model
     description = models.CharField(
         _("description"), max_length=256, blank=True, default=""
     )
+    message = models.TextField(
+        _("wiadomość do klienta"), max_length=256, blank=True
+    )
     fraud_status = FSMField(
         _("fraud status"),
         max_length=20,

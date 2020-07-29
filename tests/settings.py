@@ -15,6 +15,7 @@ GETPAID_PAYOUT_MODEL = "orders.CustomPayout"
 CONFIRMATION_METHOD = "PUSH"
 REGISTRATION_METHOD = "REST"
 
+GETPAID_TRANSFER_SLUG = "getpaid.backends.transfer"
 GETPAID_DUMMY_SLUG = "getpaid.backends.dummy"
 GETPAID_PAYU_SLUG = "getpaid.backends.payu"
 GETPAID_BACKEND_HOST = "http://localhost:8080/"
@@ -26,6 +27,9 @@ GETPAID_BACKEND_SETTINGS = {
         "paywall_method": REGISTRATION_METHOD,
         # "push" for automatic callback,
         # "pull" if you want to call fetch_status separately
+    },
+    GETPAID_TRANSFER_SLUG: {
+        # "message_template_name": "payments/message_template_name.html,
     },
     GETPAID_PAYU_SLUG: {
         "pos_id": 300746,
@@ -49,6 +53,7 @@ INSTALLED_APPS = [
     "getpaid",
     "getpaid.backends.dummy",
     "getpaid.backends.payu",
+    "getpaid.backends.transfer",
     "orders",
     "paywall",
 ]

@@ -1,0 +1,9 @@
+{% load i18n %}
+<p>
+Prosimy o wykonanie przelewu na numer konta:
+
+ACCOUNT_NUMBER
+
+Tytułem przelewu {{ order.id }}
+Kwota przelewu {{ payment.amount_required }} {{ payment.currency }}
+</p>
