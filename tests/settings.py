@@ -29,7 +29,7 @@ GETPAID_BACKEND_SETTINGS = {
         # "pull" if you want to call fetch_status separately
     },
     GETPAID_TRANSFER_SLUG: {
-        # "message_template_name": "payments/message_template_name.html,
+        # "message_template_name": "transfer/transfer_payment_message.html,
     },
     GETPAID_PAYU_SLUG: {
         "pos_id": 300746,

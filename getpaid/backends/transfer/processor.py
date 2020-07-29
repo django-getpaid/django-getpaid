@@ -18,7 +18,7 @@ class PaymentProcessor(BaseProcessor):
     accepted_currencies = [
         "PLN",
     ]
-    default_message_template = "transfer/payment_details.html"
+    default_message_template = "transfer/transfer_payment_message.html"
 
     def prepare_transaction(self, request=None, view=None, **kwargs):
         message_template_name = self.get_setting(
