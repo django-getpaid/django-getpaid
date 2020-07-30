@@ -30,7 +30,6 @@ def test_prepare_transaction_set_message(payment_factory):
     payment = payment_factory()
     payment.prepare_transaction()
     template = PaymentProcessor.default_message_template
-    assert payment.message == render_to_string(template, {
-        "order": payment.order,
-        "payment": payment,
-    })
+    assert payment.message == render_to_string(
+        template, {"order": payment.order, "payment": payment,}
+    )

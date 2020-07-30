@@ -2,6 +2,7 @@ import pytest
 from pytest_factoryboy import register
 
 from getpaid.backends.payu.client import Client
+
 from .factories import PaymentFactory
 
 register(PaymentFactory)

@@ -1,6 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
-from urllib.parse import urljoin, urlencode
+from urllib.parse import urlencode, urljoin
 
 from django.conf import settings
 
@@ -75,7 +75,11 @@ def test_submerchant_operations(getpaid_client, requests_mock):
         getpaid_client.api_url, f"/api/v2_1/customers/ext/{ext_id}/operations"
     )
     url += "?" + urlencode(
-        {"currencyCode": "PLN", "eventDateFrom": date_from.isoformat(), "eventDateTo": date_to.isoformat(),}
+        {
+            "currencyCode": "PLN",
+            "eventDateFrom": date_from.isoformat(),
+            "eventDateTo": date_to.isoformat(),
+        }
     )
     requests_mock.get(
         url,

@@ -30,8 +30,7 @@ GETPAID_BACKEND_SETTINGS = {
         "gateway": reverse_lazy("paywall:gateway"),
     },
     GETPAID_TRANSFER_SLUG: {
-        "bank_account_number": "PL8901 8012 8012 8012 1234",
-        "title": "{order.id} {payment.id}"
+        # "message_template_name": "transfer/transfer_payment_message.html,
     },
     GETPAID_PAYU_SLUG: {
         "pos_id": 300746,

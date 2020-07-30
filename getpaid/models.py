@@ -213,9 +213,7 @@ class AbstractPayment(ConcurrentTransitionMixin, BackendFieldMixin, models.Model
     description = models.CharField(
         _("description"), max_length=256, blank=True, default=""
     )
-    message = models.TextField(
-        _("wiadomość do klienta"), max_length=256, blank=True
-    )
+    message = models.TextField(_("wiadomość do klienta"), max_length=256, blank=True)
     fraud_status = FSMField(
         _("fraud status"),
         max_length=20,
@@ -650,11 +648,7 @@ class AbstractPayout(BackendFieldMixin, models.Model):
     customer_name = models.CharField(max_length=200, blank=True,)
     description = models.CharField(max_length=128, blank=True,)
     amount = models.DecimalField(
-        _("amount requested"),
-        blank=True,
-        max_digits=20,
-        decimal_places=2,
-        null=True
+        _("amount requested"), blank=True, max_digits=20, decimal_places=2, null=True
     )
     ext_customer_id = models.CharField(max_length=128, blank=True, db_index=True)
     currency_code = models.CharField(max_length=128, default="PLN")

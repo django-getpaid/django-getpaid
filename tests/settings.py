@@ -28,9 +28,7 @@ GETPAID_BACKEND_SETTINGS = {
         # "push" for automatic callback,
         # "pull" if you want to call fetch_status separately
     },
-    GETPAID_TRANSFER_SLUG: {
-        # "message_template_name": "transfer/transfer_payment_message.html,
-    },
+    GETPAID_TRANSFER_SLUG: {},
     GETPAID_PAYU_SLUG: {
         "pos_id": 300746,
         "second_key": "b6ca15b0d1020e8094d9b5f8d163db54",

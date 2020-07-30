@@ -14,7 +14,6 @@ from getpaid.types import BackendMethod as bm
 from getpaid.types import ConfirmationMethod as cm
 from getpaid.types import PaymentStatus as ps
 
-
 pytestmark = pytest.mark.django_db
 dummy = settings.GETPAID_DUMMY_SLUG
 
