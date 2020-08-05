@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Any, List, Optional, Union
 
 from django.http import HttpResponse
-from django.utils.decorators import classproperty
+from django.utils.functional import classproperty
 from django.utils.translation import pgettext_lazy
 from typing_extensions import TypedDict
 
