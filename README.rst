@@ -126,6 +126,22 @@ An example view and its hookup to urls.py can look like this:
         path("gp/", include("getpaid.urls")),
     ]
 
+You can optionally override callback handler. Example for PayU backend:
+
+.. code-block:: python
+
+    from getpaid.backends.payu.processor import PaymentProcessor as GetpaidPayuProcessor
+
+    class PayuCallbackHandler:
+        def __init__(self, payment):
+            self.payment = payment
+
+        def handle(self, data):
+            pass
+
+    class PayuPaymentProcessor(GetpaidPayuProcessor):
+        callback_handler_class = PayuCallbackHandler
+
 =============================
 PAYU
 =============================
