@@ -119,37 +119,12 @@ An example view and its hookup to urls.py can look like this:
 
 .. code-block:: python
 
-    # orders/views.py
-    from getpaid.forms import PaymentMethodForm
-
-    class OrderView(DetailView):
-        model = Order
-
-        def get_context_data(self, **kwargs):
-            context = super(OrderView, self).get_context_data(**kwargs)
-            context["payment_form"] = PaymentMethodForm(
-                initial={"order": self.object, "currency": self.object.currency}
-            )
-            return context
-
     # main urls.py
 
     urlpatterns = [
         # ...
-        path("order/<int:pk>/", OrderView.as_view(), name="order_detail"),
+        path("gp/", include("getpaid.urls")),
     ]
-
-You'll also need a template (``order_detail.html`` in this case) for this view.
-Here's the important part:
-
-.. code-block::
-
-    <h2>Choose payment broker:</h2>
-    <form action="{% url 'getpaid:create-payment' %}" method="post">
-        {% csrf_token %}
-        {{ payment_form.as_p }}
-        <input type="submit" value="Checkout">
-    </form>
 
 =============================
 PAYU
