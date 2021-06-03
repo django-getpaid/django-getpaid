@@ -3,6 +3,12 @@
 History
 =======
 
+Version 2.2.2 (2021-06-03)
+--------------------------
+
+* Fix classproperty bug for Django >= 3.1
+* Add Python 3.9 and Django 3.2 to test matrix
+
 Version 2.2.1 (2020-05-26)
 --------------------------
 

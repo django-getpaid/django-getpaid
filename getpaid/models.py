@@ -12,7 +12,7 @@ from django.forms import BaseForm
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import resolve_url
 from django.utils.timezone import now
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django.views import View
 from django_fsm import (
     ConcurrentTransitionMixin,
@@ -132,12 +132,17 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         decimal_places=2,
         max_digits=20,
         help_text=_(
-            "Amount required to fulfill the payment; in selected currency, normal notation"
+            "Amount required to fulfill the payment; "
+            "in selected currency, normal notation"
         ),
     )
     currency = models.CharField(_("currency"), max_length=3)
     status = FSMField(
-        _("status"), choices=ps.CHOICES, default=ps.NEW, db_index=True, protected=True,
+        _("status"),
+        choices=ps.CHOICES,
+        default=ps.NEW,
+        db_index=True,
+        protected=True,
     )
     backend = models.CharField(_("backend"), max_length=100, db_index=True)
     created_on = models.DateTimeField(_("created on"), auto_now_add=True, db_index=True)
@@ -338,7 +343,8 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         **kwargs,
     ) -> HttpResponse:
         """
-        Interfaces processor's :meth:`~getpaid.processor.BaseProcessor.prepare_transaction`.
+        Interfaces processor's
+        :meth:`~getpaid.processor.BaseProcessor.prepare_transaction`.
         """
         return self.processor.prepare_transaction(request=request, view=None, **kwargs)
 
@@ -413,7 +419,10 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
             else:
                 logger.debug(
                     "Cannot mark as fully paid, left as partially paid.",
-                    extra={"payment_id": self.id, "payment_status": self.status,},
+                    extra={
+                        "payment_id": self.id,
+                        "payment_status": self.status,
+                    },
                 )
         elif result.get("async_call", False):
             if can_proceed(self.confirm_charge_sent):
@@ -421,7 +430,10 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
             else:
                 logger.debug(
                     "Cannot confirm charge sent.",
-                    extra={"payment_id": self.id, "payment_status": self.status,},
+                    extra={
+                        "payment_id": self.id,
+                        "payment_status": self.status,
+                    },
                 )
         else:
             raise ChargeFailure("Error occurred while trying to charge locked amount.")
