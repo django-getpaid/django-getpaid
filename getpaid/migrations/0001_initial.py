@@ -7,15 +7,10 @@ import swapper
 from django.db import migrations, models
 
 
-def get_dependencies():
-    app_name, _, model_name = swapper.get_model_name("getpaid", "Order").rpartition(".")
-    return [(app_name, "0001_initial")]
-
-
 class Migration(migrations.Migration):
     initial = True
 
-    dependencies = get_dependencies()
+    dependencies = [swapper.dependency("getpaid", "Order")]
 
     operations = [
         migrations.CreateModel(

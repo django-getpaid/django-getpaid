@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "django-getpaid"
-version = "2.2.2"
+version = "2.2.3"
 description = "Multi-broker payment processor for Django."
 authors = ["Dominik Kozaczko <dominik@kozaczko.info>"]
 license = "MIT"
@@ -51,10 +51,10 @@ tox = "^3.23.1"
 factory-boy = "^3.2.0"
 ipdb = "^0.13.9"
 pre-commit = "^2.13.0"
-black = "^21.5b2"
+black = "^21.6b0"
 isort = "^5.8.0"
 readme-renderer = "^29.0"
-monkeytype = "^20.4.2"
+monkeytype = "^21.5.0"
 
 [tool.poetry.extras]
 docs = [
