@@ -97,7 +97,7 @@ exclude = '''
     | build
     | dist
     | docs
-    | migrations
+    | .+/migrations
   )/
 
 )

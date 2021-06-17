@@ -5,5 +5,9 @@ from . import views
 app_name = "dummy"
 
 urlpatterns = [
-    path("callback/", views.CallbackView.as_view(), name="callback",),
+    path(
+        "callback/",
+        views.CallbackView.as_view(),
+        name="callback",
+    ),
 ]
