@@ -1,11 +1,3 @@
-# flake8: noqa
-try:
-    import importlib.metadata as importlib_metadata
-except ModuleNotFoundError:
-    import importlib_metadata
-
-from .types import FraudStatus, PaymentStatus
-
-__version__ = importlib_metadata.version("django-getpaid")
+__version__ = "2.2.4"
 
 default_app_config = "getpaid.apps.GetpaidConfig"
