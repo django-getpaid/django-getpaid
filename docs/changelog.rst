@@ -4,6 +4,23 @@
 History
 =======
 
+Version 2.3.0 (2021-06-18)
+--------------------------
+
+* Refactor abstract models to another file to fix confused migrations.
+* Update docs to cover potential issue with migrations.
+
+Version 2.2.2 (2021-06-03)
+--------------------------
+
+* Fix classproperty bug for Django >= 3.1
+* Add Python 3.9 and Django 3.2 to test matrix
+
+Version 2.2.1 (2020-05-26)
+--------------------------
+
+* Fix choices for internal statuses
+
 Version 2.2.0 (2020-05-03)
 ------------------------------
 
