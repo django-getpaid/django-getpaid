@@ -13,7 +13,7 @@ from django.views import View
 from getpaid.types import ChargeResponse, PaymentStatusResponse
 
 if TYPE_CHECKING:
-    from .models import AbstractPayment
+    from .abstracts import AbstractPayment
 else:
     from django.db.models import Model as AbstractPayment
 
@@ -29,9 +29,11 @@ class BaseProcessor(ABC):
     post_template_name = None
     client_class = None
     client = None
+    #: List of potentially successful HTTP status codes returned by paywall
+    # when creating payment
     ok_statuses = [
         200,
-    ]  #: List of potentially successful HTTP status codes returned by paywall when creating payment
+    ]
 
     def __init__(self, payment: AbstractPayment) -> None:
         self.payment = payment

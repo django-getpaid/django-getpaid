@@ -3,6 +3,13 @@
 History
 =======
 
+
+Version 2.3.0 (2021-06-18)
+--------------------------
+
+* Refactor abstract models to another file to fix confused migrations.
+* Update docs to cover potential issue with migrations.
+
 Version 2.2.2 (2021-06-03)
 --------------------------
 

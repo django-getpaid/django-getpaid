@@ -1,16 +1,16 @@
 from django.db import models
 from django.urls import reverse
 
-from getpaid.models import AbstractOrder, AbstractPayment
+from getpaid.abstracts import AbstractOrder, AbstractPayment
 
 ORDER_STATUS_CHOICES = (("W", "Waiting for payment"), ("P", "Payment complete"))
 
 
 class Order(AbstractOrder):
     """
-    This is an example Order object. This one is very simple - is only one item,
-    but you can easily create more complicated models with multi-items it does not matter
-    for payment processing.
+    This is an example Order object. This one is very simple - only one item,
+    but you can easily create more complicated models with multi-items
+    as it does not matter for payment processing.
     """
 
     name = models.CharField(

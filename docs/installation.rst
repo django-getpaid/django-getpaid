@@ -27,33 +27,18 @@ For example if you want to install PayU integration, run:
     pip install django-getpaid-payu
 
 
-Enable app and plugin
----------------------
-
-Next, add ``"getpaid"`` and any plugin to ``INSTALLED_APPS`` in your ``settings.py``.
-Plugins have the format ``getpaid_<backend_name>``:
-
-.. code-block:: python
-
-    INSTALLED_APPS = [
-        # ...
-        "getpaid",
-        "getpaid_payu",
-    ]
-
-
 Create Order model
 ------------------
 
 You need to create your own model for an order. It should inherit from
-``getpaid.models.AbstractOrder`` (if not, it must implement its methods)
+``getpaid.abstracts.AbstractOrder`` (if not, it must implement its methods)
 and you need to implement some methods. It could look like this example:
 
 .. code-block:: python
 
     from django.conf import settings
     from django.db import models
-    from getpaid.models import AbstractOrder
+    from getpaid.abstracts import AbstractOrder
 
     class CustomOrder(AbstractOrder):
         buyer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -103,6 +88,23 @@ and you need to implement some methods. It could look like this example:
             }]
 
 
+Run ``manage.py makemigrations`` because ``getpaid`` will need that to initialize properly.
+
+Enable app and plugin
+---------------------
+
+Next, add ``"getpaid"`` and any plugin to ``INSTALLED_APPS`` in your ``settings.py``.
+Plugins have the format ``getpaid_<backend_name>``:
+
+.. code-block:: python
+
+    INSTALLED_APPS = [
+        # ...
+        "getpaid",
+        "getpaid_payu",
+    ]
+
+
 Tell ``getpaid`` what model handles orders
 ------------------------------------------
 
@@ -110,6 +112,8 @@ Put this inside your ``settings.py``::
 
     GETPAID_ORDER_MODEL = "yourapp.CustomOrder"
 
+
+Run ``manage.py migrate`` to reflect models onto database.
 
 (Optional) Provide custom Payment model
 ---------------------------------------
