@@ -46,33 +46,12 @@ Install django-getpaid and at least one payment backend:
     pip install django-getpaid
     pip install django-getpaid-payu
 
-Add them to your ``INSTALLED_APPS``:
-
-.. code-block:: python
-
-    INSTALLED_APPS = [
-        ...
-        'getpaid',
-        'getpaid_payu',  # one of plugins
-        ...
-    ]
-
-Add getpaid to URL patterns:
-
-.. code-block:: python
-
-    urlpatterns = [
-        ...
-        path('payments/', include('getpaid.urls')),
-        ...
-    ]
-
-Define an ``Order`` model by subclassing ``getpaid.models.AbstractOrder``
+Define an ``Order`` model by subclassing ``getpaid.abstracts.AbstractOrder``
 and define some required methods:
 
 .. code-block:: python
 
-    from getpaid.models import AbstractOrder
+    from getpaid.abstracts import AbstractOrder
 
     class MyCustomOrder(AbstractOrder):
         amount = models.DecimalField(decimal_places=2, max_digits=8)
@@ -112,6 +91,42 @@ Inform getpaid of your Order model in ``settings.py`` and provide settings for p
             "oauth_secret": "12f071174cb7eb79d4aac5bc2f07563f",
         },
     }
+
+Create a migration for your model BEFORE adding ``getpaid`` to ``INSTALLED_APPS``:
+
+.. code-block:: console
+
+    ./manage.py makemigrations
+
+
+Add ``getpaid`` and broker plugin to your ``INSTALLED_APPS``:
+
+.. code-block:: python
+
+    INSTALLED_APPS = [
+        ...
+        'getpaid',
+        'getpaid_payu',  # one of plugins
+        ...
+    ]
+
+Migrate the database:
+
+.. code-block:: console
+
+    ./manage.py migrate
+
+Add getpaid to URL patterns:
+
+.. code-block:: python
+
+    urlpatterns = [
+        ...
+        path('payments/', include('getpaid.urls')),
+        ...
+    ]
+
+
 
 Write a view that will create the Payment.
 

@@ -88,12 +88,26 @@ and you need to implement some methods. It could look like this example:
             }]
 
 
+Make migration for your custom model
+------------------------------------
+
+
 Run ``manage.py makemigrations`` because ``getpaid`` will need that to initialize properly.
+
+
+Tell ``getpaid`` what model handles the orders
+----------------------------------------------
+
+Put this inside your ``settings.py``::
+
+    GETPAID_ORDER_MODEL = "yourapp.CustomOrder"
+
+
 
 Enable app and plugin
 ---------------------
 
-Next, add ``"getpaid"`` and any plugin to ``INSTALLED_APPS`` in your ``settings.py``.
+Next, add ``"getpaid"`` and the plugin to ``INSTALLED_APPS`` in your ``settings.py``.
 Plugins have the format ``getpaid_<backend_name>``:
 
 .. code-block:: python
@@ -104,17 +118,6 @@ Plugins have the format ``getpaid_<backend_name>``:
         "getpaid_payu",
     ]
 
-
-Tell ``getpaid`` what model handles orders
-------------------------------------------
-
-Put this inside your ``settings.py``::
-
-    GETPAID_ORDER_MODEL = "yourapp.CustomOrder"
-
-
-Run ``manage.py migrate`` to reflect models onto database.
-
 (Optional) Provide custom Payment model
 ---------------------------------------
 
@@ -123,7 +126,14 @@ If you want, you can provide your own Payment model. Read more in :doc:`customiz
 .. note::
 
     Payment model behaves like django.auth.User model - after you use the original,
-    migration to a custom version is VERY hard.
+    migration to a custom version is quite hard.
+
+
+Migrate
+-------
+
+Run ``manage.py migrate`` to reflect models onto database.
+
 
 
 Add getpaid to urls
