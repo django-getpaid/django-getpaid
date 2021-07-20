@@ -24,7 +24,7 @@ class PaymentCreateSerializer(serializers.ModelSerializer):
 
         super().__init__(*args, **kwargs)
         self._order = self.initial.get("order")
-        currency = getattr(self._order, "currency", None) or self.data.get("currency")
+        currency = getattr(self._order, "currency", None) or self.initial_data.get("currency")
         backends = registry.get_choices(currency)
         self.fields["backend"] = serializers.ChoiceField(choices=backends)
         self.fields["order"] = serializers.HiddenField(default=self._order)
