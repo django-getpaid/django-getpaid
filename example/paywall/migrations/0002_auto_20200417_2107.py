@@ -13,7 +13,10 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RemoveField(model_name="paymententry", name="payment",),
+        migrations.RemoveField(
+            model_name="paymententry",
+            name="payment",
+        ),
         migrations.AddField(
             model_name="paymententry",
             name="ext_id",

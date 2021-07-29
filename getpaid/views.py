@@ -34,7 +34,8 @@ class FallbackView(RedirectView):
     """
     This view (in form of either SuccessView or FailureView) can be used as
     general return view from paywall after completing/rejecting the payment.
-    Final url is returned by :meth:`getpaid.models.AbstractPayment.get_return_redirect_url`
+    Final url is returned by
+    :meth:`getpaid.models.AbstractPayment.get_return_redirect_url`
     which allows for customization.
     """
 
@@ -66,8 +67,10 @@ failure = FailureView.as_view()
 
 class CallbackDetailView(View):
     """
-    This view can be used if paywall supports setting callback url with payment data.
-    The flow is then passed to :meth:`getpaid.models.AbstractPayment.handle_paywall_callback`.
+    This view can be used if paywall supports
+    setting callback url with payment data.
+    The flow is then passed to
+    :meth:`getpaid.models.AbstractPayment.handle_paywall_callback`.
     """
 
     def post(self, request, pk, *args, **kwargs):

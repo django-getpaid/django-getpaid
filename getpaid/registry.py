@@ -28,7 +28,8 @@ class PluginRegistry(object):
 
     def register(self, module_or_proc):
         """
-        Register module containing PaymentProcessor class or a PaymentProcessor directly.
+        Register module containing PaymentProcessor class
+        or a PaymentProcessor directly.
         """
         if hasattr(module_or_proc, "__base__") and issubclass(
             module_or_proc, BaseProcessor
