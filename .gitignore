@@ -68,3 +68,7 @@ virtualenv
 # Codacy
 /.codacy-coverage
 /codacy-coverage.json
+
+# Sublime text (editor)
+*.sublime-project
+*.sublime-workspace
