@@ -4,6 +4,13 @@ History
 =======
 
 
+Version 2.3.1 (development)
+---------------------------
+
+* Drop support for Python <3.7
+* Add Python 3.10 to test matrix
+* Add Django 4.0 to test matrix
+
 Version 2.3.0 (2021-06-18)
 --------------------------
 
