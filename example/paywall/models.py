@@ -17,11 +17,17 @@ class PaymentEntry(models.Model):
     callback = models.URLField(blank=True)
     success_url = models.URLField(blank=True)
     failure_url = models.URLField(blank=True)
-    payment_status = FSMField(protected=True, choices=ps.CHOICES, default=ps.PREPARED)
-    fraud_status = FSMField(protected=True, choices=fs.CHOICES, default=fs.UNKNOWN)
+    payment_status = FSMField(
+        protected=True, choices=ps.CHOICES, default=ps.PREPARED
+    )
+    fraud_status = FSMField(
+        protected=True, choices=fs.CHOICES, default=fs.UNKNOWN
+    )
 
     def _send_status_to_callback(self, status):
-        requests.post(self.callback, json={"id": str(self.id), "new_status": status})
+        requests.post(
+            self.callback, json={'id': str(self.id), 'new_status': status}
+        )
 
     @transition(field=payment_status, source=ps.PREPARED, target=ps.PRE_AUTH)
     def send_confirm_lock(self):
@@ -32,7 +38,9 @@ class PaymentEntry(models.Model):
         self._send_status_to_callback(ps.PAID)
 
     @transition(
-        field=payment_status, source=[ps.PREPARED, ps.PRE_AUTH], target=ps.FAILED
+        field=payment_status,
+        source=[ps.PREPARED, ps.PRE_AUTH],
+        target=ps.FAILED,
     )
     def send_fail(self):
         self._send_status_to_callback(ps.FAILED)

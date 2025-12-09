@@ -8,15 +8,15 @@ from . import models
 @admin.register(models.Payment)
 class PaymentAdmin(admin.ModelAdmin):
     list_display = (
-        "id",
-        "order_id",
-        "amount_required",
-        "currency",
-        "status",
-        "backend",
-        "created_on",
-        "last_payment_on",
-        "amount_paid",
+        'id',
+        'order_id',
+        'amount_required',
+        'currency',
+        'status',
+        'backend',
+        'created_on',
+        'last_payment_on',
+        'amount_paid',
     )
-    search_fields = ("id", "order_id")
-    date_hierarchy = "created_on"
+    search_fields = ('id', 'order_id')
+    date_hierarchy = 'created_on'

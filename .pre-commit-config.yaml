@@ -1,27 +1,57 @@
 repos:
--   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.0.1
+  - repo: local
     hooks:
-    - id: check-docstring-first
-    - id: check-merge-conflict
-    - id: debug-statements
-    - id: end-of-file-fixer
-    - id: trailing-whitespace
-    - id: check-toml
-    - id: check-yaml
-    - id: check-json
-
-- repo: https://github.com/pycqa/isort
-  rev: 5.10.1
-  hooks:
-    - id: isort
-
-- repo: https://github.com/psf/black
-  rev: 21.12b0
-  hooks:
-    - id: black
-
-- repo: https://github.com/pycqa/flake8
-  rev: 4.0.1
-  hooks:
-    - id: flake8
+      - id: check-added-large-files
+        name: Check for added large files
+        entry: check-added-large-files
+        language: system
+      - id: check-toml
+        name: Check Toml
+        entry: check-toml
+        language: system
+        types: [ toml ]
+      - id: check-yaml
+        name: Check Yaml
+        entry: check-yaml
+        language: system
+        types: [ yaml ]
+      - id: darglint
+        name: darglint
+        entry: darglint
+        language: system
+        types: [ python ]
+        stages: [ manual ]
+      - id: end-of-file-fixer
+        name: Fix End of Files
+        entry: end-of-file-fixer
+        language: system
+        types: [ text ]
+        stages: [ commit, push, manual ]
+      - id: trailing-whitespace
+        name: Trim Trailing Whitespace
+        entry: trailing-whitespace-fixer
+        language: system
+        types: [ text ]
+        stages: [ commit, push, manual ]
+      - id: lint
+        name: ruff lint
+        description: Run ruff to lint Python files.
+        entry: ruff check
+        language: python
+        types_or: [ python, pyi ]
+        require_serial: true
+        args: [ --fix ]
+      - id: format
+        name: ruff format
+        description: Run ruff to format Python files.
+        entry: ruff format
+        language: python
+        types_or: [ python, pyi ]
+        require_serial: true
+      - id: poetry-check
+        name: poetry-check
+        description: run poetry check to validate config
+        entry: poetry check
+        language: python
+        pass_filenames: false
+        files: ^(.*/)?pyproject\.toml$

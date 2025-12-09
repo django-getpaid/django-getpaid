@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
+from collections.abc import Mapping
 from decimal import Decimal
 from importlib import import_module
-from typing import TYPE_CHECKING, Any, List, Mapping, Optional, Type, Union
+from typing import TYPE_CHECKING, Any
 
 from django.conf import settings
 from django.contrib.sites.shortcuts import get_current_site
@@ -41,19 +42,19 @@ class BaseProcessor(ABC):
         self.context = {}  # can be used by Payment's customized methods.
         if self.slug is None:
             self.slug = self.path
-        self.config = getattr(settings, "GETPAID_BACKEND_SETTINGS", {}).get(
+        self.config = getattr(settings, 'GETPAID_BACKEND_SETTINGS', {}).get(
             self.path, {}
         )
-        self.optional_config = getattr(settings, "GETPAID", {})
+        self.optional_config = getattr(settings, 'GETPAID', {})
         if self.client_class is not None:
             self.client = self.get_client()
 
-    def get_client_class(self) -> Type:
-        class_path = self.get_setting("CLIENT_CLASS")
+    def get_client_class(self) -> type:
+        class_path = self.get_setting('CLIENT_CLASS')
         if not class_path:
             class_path = self.client_class
         if class_path and not callable(class_path):
-            module_name, _, class_name = class_path.rpartition(".")
+            module_name, _, class_name = class_path.rpartition('.')
             module = import_module(module_name)
             return getattr(module, class_name)
         return class_path
@@ -68,7 +69,7 @@ class BaseProcessor(ABC):
     def class_id(cls, **kwargs) -> str:
         return cls.__module__
 
-    def get_setting(self, name: str, default: Optional[Any] = None) -> Any:
+    def get_setting(self, name: str, default: Any | None = None) -> Any:
         value = self.config.get(name, default)
         if value is None:
             value = self.optional_config.get(name, None)
@@ -79,7 +80,7 @@ class BaseProcessor(ABC):
         return cls.display_name
 
     @classmethod
-    def get_accepted_currencies(cls, **kwargs) -> List[str]:
+    def get_accepted_currencies(cls, **kwargs) -> list[str]:
         return cls.accepted_currencies
 
     @classmethod
@@ -99,26 +100,28 @@ class BaseProcessor(ABC):
         Note that this way 'https' is enforced on production environment.
         """
         if request is None:
-            return "http://127.0.0.1/"
-        scheme = "http" if settings.DEBUG else "https"
-        return f"{scheme}://{get_current_site(request).domain}/"
+            return 'http://127.0.0.1/'
+        scheme = 'http' if settings.DEBUG else 'https'
+        return f'{scheme}://{get_current_site(request).domain}/'
 
-    def get_template_names(self, view: Optional[View] = None, **kwargs) -> List[str]:
-        template_name = self.get_setting("POST_TEMPLATE")
+    def get_template_names(
+        self, view: View | None = None, **kwargs
+    ) -> list[str]:
+        template_name = self.get_setting('POST_TEMPLATE')
         if template_name is None:
             template_name = self.post_template_name
-        if template_name is None and hasattr(view, "get_template_names"):
+        if template_name is None and hasattr(view, 'get_template_names'):
             return view.get_template_names()
         if template_name is None:
             raise ImproperlyConfigured("Couldn't determine template name!")
         return [template_name]
 
-    def get_form_class(self, **kwargs) -> Type:
-        form_class_path = self.get_setting("POST_FORM_CLASS")
+    def get_form_class(self, **kwargs) -> type:
+        form_class_path = self.get_setting('POST_FORM_CLASS')
         if not form_class_path:
             return self.post_form_class
         if isinstance(form_class_path, str):
-            module_path, class_name = form_class_path.rsplit(".", 1)
+            module_path, class_name = form_class_path.rsplit('.', 1)
             module = import_module(module_path)
             return getattr(module, class_name)
         return self.post_form_class
@@ -147,7 +150,7 @@ class BaseProcessor(ABC):
 
     @abstractmethod
     def prepare_transaction(
-        self, request: HttpRequest, view: Optional[View] = None, **kwargs
+        self, request: HttpRequest, view: View | None = None, **kwargs
     ) -> HttpResponse:
         """
         Prepare Response for the view asking to prepare transaction.
@@ -156,7 +159,9 @@ class BaseProcessor(ABC):
         """
         raise NotImplementedError
 
-    def handle_paywall_callback(self, request: HttpRequest, **kwargs) -> HttpResponse:
+    def handle_paywall_callback(
+        self, request: HttpRequest, **kwargs
+    ) -> HttpResponse:
         """
         This method handles the callback from paywall for the purpose
         of asynchronously updating the payment status in our system.
@@ -173,7 +178,7 @@ class BaseProcessor(ABC):
         raise NotImplementedError
 
     def charge(
-        self, amount: Optional[Union[Decimal, float, int]] = None, **kwargs
+        self, amount: Decimal | float | int | None = None, **kwargs
     ) -> ChargeResponse:
         """
         (Optional)
@@ -193,7 +198,7 @@ class BaseProcessor(ABC):
         raise NotImplementedError
 
     def start_refund(
-        self, amount: Optional[Union[Decimal, float, int]] = None, **kwargs
+        self, amount: Decimal | float | int | None = None, **kwargs
     ) -> Decimal:
         """
         Refunds the given amount.

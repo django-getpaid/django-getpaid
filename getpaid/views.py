@@ -1,5 +1,6 @@
 import swapper
 from django import http
+from django.http import HttpRequest
 from django.shortcuts import get_object_or_404
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
@@ -9,7 +10,7 @@ from .forms import PaymentMethodForm
 
 
 class CreatePaymentView(CreateView):
-    model = swapper.load_model("getpaid", "Payment")
+    model = swapper.load_model('getpaid', 'Payment')
     form_class = PaymentMethodForm
 
     def get(self, request, *args, **kwargs):
@@ -17,7 +18,7 @@ class CreatePaymentView(CreateView):
         This view operates only on POST requests from order view where
         you select payment method
         """
-        return http.HttpResponseNotAllowed(["POST"])
+        return http.HttpResponseNotAllowed(['POST'])
 
     def form_valid(self, form):
         payment = form.save()
@@ -43,8 +44,8 @@ class FallbackView(RedirectView):
     permanent = False
 
     def get_redirect_url(self, *args, **kwargs):
-        Payment = swapper.load_model("getpaid", "Payment")
-        payment = get_object_or_404(Payment, pk=self.kwargs["pk"])
+        Payment = swapper.load_model('getpaid', 'Payment')
+        payment = get_object_or_404(Payment, pk=self.kwargs['pk'])
 
         return payment.get_return_redirect_url(
             request=self.request, success=self.success
@@ -73,8 +74,8 @@ class CallbackDetailView(View):
     :meth:`getpaid.models.AbstractPayment.handle_paywall_callback`.
     """
 
-    def post(self, request, pk, *args, **kwargs):
-        Payment = swapper.load_model("getpaid", "Payment")
+    def post(self, request: HttpRequest, pk, *args, **kwargs):
+        Payment = swapper.load_model('getpaid', 'Payment')
         payment = get_object_or_404(Payment, pk=pk)
         return payment.handle_paywall_callback(request, *args, **kwargs)
 

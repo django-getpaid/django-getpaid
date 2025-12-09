@@ -1,1 +1,1 @@
-default_app_config = "paywall.apps.Config"
+default_app_config = 'paywall.apps.Config'

@@ -8,7 +8,7 @@ class QuestionForm(forms.Form):
     """
 
     authorize_payment = forms.ChoiceField(
-        label=_("authorization"), choices=((1, _("yes")), (0, _("no")))
+        label=_('authorization'), choices=((1, _('yes')), (0, _('no')))
     )
 
     callback = forms.CharField(widget=forms.HiddenInput, required=False)

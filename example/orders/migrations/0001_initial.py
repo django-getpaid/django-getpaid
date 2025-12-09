@@ -7,59 +7,59 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name="Order",
+            name='Order',
             fields=[
                 (
-                    "id",
+                    'id',
                     models.AutoField(
                         auto_created=True,
                         primary_key=True,
                         serialize=False,
-                        verbose_name="ID",
+                        verbose_name='ID',
                     ),
                 ),
                 (
-                    "name",
+                    'name',
                     models.CharField(
-                        default="Lock, Stock and Two Smoking Barrels", max_length=100
+                        default='Lock, Stock and Two Smoking Barrels',
+                        max_length=100,
                     ),
                 ),
                 (
-                    "total",
+                    'total',
                     models.DecimalField(
-                        decimal_places=2, default="199.99", max_digits=8
+                        decimal_places=2, default='199.99', max_digits=8
                     ),
                 ),
-                ("currency", models.CharField(default="EUR", max_length=3)),
+                ('currency', models.CharField(default='EUR', max_length=3)),
                 (
-                    "status",
+                    'status',
                     models.CharField(
                         blank=True,
                         choices=[
-                            ("W", "Waiting for payment"),
-                            ("P", "Payment complete"),
+                            ('W', 'Waiting for payment'),
+                            ('P', 'Payment complete'),
                         ],
-                        default="W",
+                        default='W',
                         max_length=1,
                     ),
                 ),
             ],
             options={
-                "abstract": False,
+                'abstract': False,
             },
         ),
         migrations.CreateModel(
-            name="CustomPayment",
+            name='CustomPayment',
             fields=[
                 (
-                    "id",
+                    'id',
                     models.UUIDField(
                         default=uuid.uuid4,
                         editable=False,
@@ -68,150 +68,155 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 (
-                    "amount_required",
+                    'amount_required',
                     models.DecimalField(
                         decimal_places=2,
-                        help_text="Amount required to fulfill the payment; in selected currency, normal notation",
+                        help_text='Amount required to fulfill the payment; in selected currency, normal notation',
                         max_digits=20,
-                        verbose_name="amount required",
+                        verbose_name='amount required',
                     ),
                 ),
-                ("currency", models.CharField(max_length=3, verbose_name="currency")),
                 (
-                    "status",
+                    'currency',
+                    models.CharField(max_length=3, verbose_name='currency'),
+                ),
+                (
+                    'status',
                     models.CharField(
                         choices=[
-                            ("new", "new"),
-                            ("in_progress", "in progress"),
-                            ("accepted_for_proc", "accepted for processing"),
-                            ("partially_paid", "partially paid"),
-                            ("paid", "paid"),
-                            ("cancelled", "cancelled"),
-                            ("failed", "failed"),
-                            ("refund_started", "refund started"),
-                            ("refunded", "refunded"),
+                            ('new', 'new'),
+                            ('in_progress', 'in progress'),
+                            ('accepted_for_proc', 'accepted for processing'),
+                            ('partially_paid', 'partially paid'),
+                            ('paid', 'paid'),
+                            ('cancelled', 'cancelled'),
+                            ('failed', 'failed'),
+                            ('refund_started', 'refund started'),
+                            ('refunded', 'refunded'),
                         ],
                         db_index=True,
-                        default="new",
+                        default='new',
                         max_length=20,
-                        verbose_name="status",
+                        verbose_name='status',
                     ),
                 ),
                 (
-                    "backend",
+                    'backend',
                     models.CharField(
-                        db_index=True, max_length=100, verbose_name="backend"
+                        db_index=True, max_length=100, verbose_name='backend'
                     ),
                 ),
                 (
-                    "created_on",
+                    'created_on',
                     models.DateTimeField(
-                        auto_now_add=True, db_index=True, verbose_name="created on"
+                        auto_now_add=True,
+                        db_index=True,
+                        verbose_name='created on',
                     ),
                 ),
                 (
-                    "last_payment_on",
+                    'last_payment_on',
                     models.DateTimeField(
                         blank=True,
                         db_index=True,
                         default=None,
                         null=True,
-                        verbose_name="paid on",
+                        verbose_name='paid on',
                     ),
                 ),
                 (
-                    "amount_locked",
+                    'amount_locked',
                     models.DecimalField(
                         decimal_places=2,
                         default=0,
-                        help_text="Amount locked with this payment, ready to charge.",
+                        help_text='Amount locked with this payment, ready to charge.',
                         max_digits=20,
-                        verbose_name="amount paid",
+                        verbose_name='amount paid',
                     ),
                 ),
                 (
-                    "amount_paid",
+                    'amount_paid',
                     models.DecimalField(
                         decimal_places=2,
                         default=0,
-                        help_text="Amount actually paid.",
+                        help_text='Amount actually paid.',
                         max_digits=20,
-                        verbose_name="amount paid",
+                        verbose_name='amount paid',
                     ),
                 ),
                 (
-                    "refunded_on",
+                    'refunded_on',
                     models.DateTimeField(
                         blank=True,
                         db_index=True,
                         default=None,
                         null=True,
-                        verbose_name="refunded on",
+                        verbose_name='refunded on',
                     ),
                 ),
                 (
-                    "amount_refunded",
+                    'amount_refunded',
                     models.DecimalField(
                         decimal_places=4,
                         default=0,
                         max_digits=20,
-                        verbose_name="amount refunded",
+                        verbose_name='amount refunded',
                     ),
                 ),
                 (
-                    "external_id",
+                    'external_id',
                     models.CharField(
                         blank=True,
                         db_index=True,
-                        default="",
+                        default='',
                         max_length=64,
-                        verbose_name="external id",
+                        verbose_name='external id',
                     ),
                 ),
                 (
-                    "description",
+                    'description',
                     models.CharField(
                         blank=True,
-                        default="",
+                        default='',
                         max_length=128,
-                        verbose_name="description",
+                        verbose_name='description',
                     ),
                 ),
                 (
-                    "fraud_status",
+                    'fraud_status',
                     models.CharField(
                         choices=[
-                            ("unknown", "unknown"),
-                            ("accepted", "accepted"),
-                            ("rejected", "rejected"),
-                            ("check", "check"),
+                            ('unknown', 'unknown'),
+                            ('accepted', 'accepted'),
+                            ('rejected', 'rejected'),
+                            ('check', 'check'),
                         ],
                         db_index=True,
-                        default="unknown",
+                        default='unknown',
                         max_length=20,
-                        verbose_name="fraud status",
+                        verbose_name='fraud status',
                     ),
                 ),
                 (
-                    "fraud_message",
-                    models.TextField(blank=True, verbose_name="fraud message"),
+                    'fraud_message',
+                    models.TextField(blank=True, verbose_name='fraud message'),
                 ),
-                ("custom", models.BooleanField(default=True, editable=False)),
+                ('custom', models.BooleanField(default=True, editable=False)),
                 (
-                    "order",
+                    'order',
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
-                        related_name="payments",
-                        to="orders.Order",
-                        verbose_name="order",
+                        related_name='payments',
+                        to='orders.Order',
+                        verbose_name='order',
                     ),
                 ),
             ],
             options={
-                "verbose_name": "Payment",
-                "verbose_name_plural": "Payments",
-                "ordering": ["-created_on"],
-                "abstract": False,
+                'verbose_name': 'Payment',
+                'verbose_name_plural': 'Payments',
+                'ordering': ['-created_on'],
+                'abstract': False,
             },
         ),
     ]

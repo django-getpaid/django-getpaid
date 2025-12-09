@@ -13,7 +13,7 @@ def importable(name):
         return False
 
 
-class PluginRegistry(object):
+class PluginRegistry:
     def __init__(self):
         self._backends = {}
 
@@ -31,7 +31,7 @@ class PluginRegistry(object):
         Register module containing PaymentProcessor class
         or a PaymentProcessor directly.
         """
-        if hasattr(module_or_proc, "__base__") and issubclass(
+        if hasattr(module_or_proc, '__base__') and issubclass(
             module_or_proc, BaseProcessor
         ):
             self._backends[module_or_proc.slug] = module_or_proc
@@ -68,11 +68,11 @@ class PluginRegistry(object):
         """
         return [
             path(
-                "{}/".format(p.slug),
-                include(("{}.urls".format(name), p.slug), namespace=p.slug),
+                f'{p.slug}/',
+                include((f'{name}.urls', p.slug), namespace=p.slug),
             )
             for name, p in self._backends.items()
-            if importable("{}.urls".format(name))
+            if importable(f'{name}.urls')
         ]
 
     def get_all_supported_currency_choices(self):

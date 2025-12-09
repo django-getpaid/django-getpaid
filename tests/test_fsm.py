@@ -4,10 +4,10 @@ from django_fsm import can_proceed
 
 from getpaid.status import PaymentStatus as ps
 
-dummy = "getpaid.backends.dummy"
+dummy = 'getpaid.backends.dummy'
 
-Order = swapper.load_model("getpaid", "Order")
-Payment = swapper.load_model("getpaid", "Payment")
+Order = swapper.load_model('getpaid', 'Order')
+Payment = swapper.load_model('getpaid', 'Payment')
 
 pytestmark = pytest.mark.django_db
 

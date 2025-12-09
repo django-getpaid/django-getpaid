@@ -2,7 +2,6 @@ import logging
 import uuid
 from decimal import Decimal
 from importlib import import_module
-from typing import List, Optional, Union
 
 import swapper
 from django import forms
@@ -25,11 +24,15 @@ from django_fsm import (
 from getpaid.exceptions import ChargeFailure, GetPaidException
 from getpaid.processor import BaseProcessor
 from getpaid.registry import registry
-from getpaid.types import BuyerInfo, ChargeResponse
+from getpaid.types import (
+    BuyerInfo,
+    ChargeResponse,
+    ItemInfo,
+    PaymentStatusResponse,
+    RestfulResult,
+)
 from getpaid.types import FraudStatus as fs
-from getpaid.types import ItemInfo
 from getpaid.types import PaymentStatus as ps
-from getpaid.types import PaymentStatusResponse, RestfulResult
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +49,12 @@ class AbstractOrder(models.Model):
     class Meta:
         abstract = True
 
-    def get_return_url(self, *args, success=None, **kwargs) -> str:
+    def get_return_url(
+        self,
+        *args,
+        success: bool | None = None,
+        **kwargs,
+    ) -> str:
         """
         Method used to determine the final url the client should see after
         returning from gateway. Client will be redirected to this url after
@@ -72,10 +80,12 @@ class AbstractOrder(models.Model):
         verbose error message.
         """
         if self.payments.exclude(status=ps.FAILED).exists():
-            raise forms.ValidationError(_("Non-failed Payments exist for this Order."))
+            raise forms.ValidationError(
+                _('Non-failed Payments exist for this Order.')
+            )
         return True
 
-    def get_items(self) -> List[ItemInfo]:
+    def get_items(self) -> list[ItemInfo]:
         """
         There are backends that require some sort of item list to be attached
         to the payment. But it's up to you if the list is real or contains only
@@ -86,9 +96,9 @@ class AbstractOrder(models.Model):
         """
         return [
             {
-                "name": self.get_description(),
-                "quantity": 1,
-                "unit_price": self.get_total_amount(),
+                'name': self.get_description(),
+                'quantity': 1,
+                'unit_price': self.get_total_amount(),
             }
         ]
 
@@ -118,79 +128,81 @@ class AbstractOrder(models.Model):
 class AbstractPayment(ConcurrentTransitionMixin, models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     order = models.ForeignKey(
-        swapper.get_model_name("getpaid", "Order"),
-        verbose_name=_("order"),
+        swapper.get_model_name('getpaid', 'Order'),
+        verbose_name=_('order'),
         on_delete=models.CASCADE,
-        related_name="payments",
+        related_name='payments',
     )
     amount_required = models.DecimalField(
-        _("amount required"),
+        _('amount required'),
         decimal_places=2,
         max_digits=20,
         help_text=_(
-            "Amount required to fulfill the payment; "
-            "in selected currency, normal notation"
+            'Amount required to fulfill the payment; '
+            'in selected currency, normal notation'
         ),
     )
-    currency = models.CharField(_("currency"), max_length=3)
+    currency = models.CharField(_('currency'), max_length=3)
     status = FSMField(
-        _("status"),
+        _('status'),
         choices=ps.CHOICES,
         default=ps.NEW,
         db_index=True,
         protected=True,
     )
-    backend = models.CharField(_("backend"), max_length=100, db_index=True)
-    created_on = models.DateTimeField(_("created on"), auto_now_add=True, db_index=True)
+    backend = models.CharField(_('backend'), max_length=100, db_index=True)
+    created_on = models.DateTimeField(
+        _('created on'), auto_now_add=True, db_index=True
+    )
     last_payment_on = models.DateTimeField(
-        _("paid on"), blank=True, null=True, default=None, db_index=True
+        _('paid on'), blank=True, null=True, default=None, db_index=True
     )
     amount_locked = models.DecimalField(
-        _("amount paid"),
+        _('amount paid'),
         decimal_places=2,
         max_digits=20,
         default=0,
-        help_text=_("Amount locked with this payment, ready to charge."),
+        help_text=_('Amount locked with this payment, ready to charge.'),
     )
     amount_paid = models.DecimalField(
-        _("amount paid"),
+        _('amount paid'),
         decimal_places=2,
         max_digits=20,
         default=0,
-        help_text=_("Amount actually paid."),
+        help_text=_('Amount actually paid.'),
     )
     refunded_on = models.DateTimeField(
-        _("refunded on"), blank=True, null=True, default=None, db_index=True
+        _('refunded on'), blank=True, null=True, default=None, db_index=True
     )
     amount_refunded = models.DecimalField(
-        _("amount refunded"), decimal_places=4, max_digits=20, default=0
+        _('amount refunded'), decimal_places=4, max_digits=20, default=0
     )
     external_id = models.CharField(
-        _("external id"), max_length=64, blank=True, db_index=True, default=""
+        _('external id'), max_length=64, blank=True, db_index=True, default=''
     )
     description = models.CharField(
-        _("description"), max_length=128, blank=True, default=""
+        _('description'), max_length=128, blank=True, default=''
     )
     fraud_status = FSMField(
-        _("fraud status"),
+        _('fraud status'),
         max_length=20,
         choices=fs.CHOICES,
         default=fs.UNKNOWN,
         db_index=True,
         protected=True,
     )
-    fraud_message = models.TextField(_("fraud message"), blank=True)
+    fraud_message = models.TextField(_('fraud message'), blank=True)
 
     _processor = None
 
     class Meta:
         abstract = True
-        ordering = ["-created_on"]
-        verbose_name = _("Payment")
-        verbose_name_plural = _("Payments")
+        ordering = ['-created_on']
+        verbose_name = _('Payment')
+        verbose_name_plural = _('Payments')
 
     def __str__(self):
-        return "Payment #{self.id}".format(self=self)
+        return f'Payment #{self.id}'
 
     # First some helpful properties and internals
 
@@ -216,7 +228,7 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         else:
             # last resort if backend has been removed from INSTALLED_APPS
             module = import_module(self.backend)
-            processor = getattr(module, "PaymentProcessor")
+            processor = module.PaymentProcessor
         return processor(self)
 
     # Then some customization enablers
@@ -228,7 +240,7 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         """
         return str(self.id)
 
-    def get_items(self) -> List[ItemInfo]:
+    def get_items(self) -> list[ItemInfo]:
         """
         Some backends require the list of items to be added to Payment.
 
@@ -252,7 +264,7 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         """
         return self.processor.get_form(*args, **kwargs)
 
-    def get_template_names(self, view=None) -> List[str]:
+    def get_template_names(self, view: View | None = None) -> list[str]:
         """
         Interfaces processor's ``get_template_names``.
 
@@ -261,7 +273,9 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         """
         return self.processor.get_template_names(view=view)
 
-    def handle_paywall_callback(self, request, **kwargs) -> HttpResponse:
+    def handle_paywall_callback(
+        self, request: HttpRequest, **kwargs
+    ) -> HttpResponse:
         """
         Interfaces processor's ``handle_paywall_callback``.
 
@@ -293,33 +307,35 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         Payment's status.
         """
         status_report = self.fetch_status()
-        callback_name = status_report.get("callback")
+        callback_name = status_report.get('callback')
         if callback_name:
             callback = getattr(self, callback_name)
-            amount = status_report.get("amount", None)
+            amount = status_report.get('amount', None)
             try:
                 if can_proceed(callback):
-                    status_report["callback_result"] = callback(amount=amount)
+                    status_report['callback_result'] = callback(amount=amount)
                     self.save()
-                    status_report["saved"] = True
+                    status_report['saved'] = True
                 else:
                     logger.debug(
-                        f"Cannot run fetch+update callback {callback_name}.",
+                        f'Cannot run fetch+update callback {callback_name}.',
                         extra={
-                            "payment_id": self.id,
-                            "payment_status": self.status,
-                            "callback": callback_name,
+                            'payment_id': self.id,
+                            'payment_status': self.status,
+                            'callback': callback_name,
                         },
                     )
             except (GetPaidException, TransitionNotAllowed) as e:
-                status_report["exception"] = e
+                status_report['exception'] = e
         return status_report
 
-    def get_return_redirect_url(self, request, success: bool) -> str:
+    def get_return_redirect_url(
+        self, request: HttpRequest, success: bool
+    ) -> str:
         if success:
-            url = self.processor.get_setting("SUCCESS_URL")
+            url = self.processor.get_setting('SUCCESS_URL')
         else:
-            url = self.processor.get_setting("FAILURE_URL")
+            url = self.processor.get_setting('FAILURE_URL')
 
         if url is not None:
             # we may want to return to Order summary or smth
@@ -327,27 +343,31 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
             return resolve_url(url, **kwargs)
         return resolve_url(self.order.get_return_url(self, success=success))
 
-    def get_return_redirect_kwargs(self, request, success: bool) -> dict:
-        return {"pk": self.id}
+    def get_return_redirect_kwargs(
+        self, request: HttpRequest, success: bool
+    ) -> dict:
+        return {'pk': self.id}
 
     # Actions / FSM transitions
 
     def prepare_transaction(
         self,
-        request: Optional[HttpRequest] = None,
-        view: Optional[View] = None,
+        request: HttpRequest | None = None,
+        view: View | None = None,
         **kwargs,
     ) -> HttpResponse:
         """
         Interfaces processor's
         :meth:`~getpaid.processor.BaseProcessor.prepare_transaction`.
         """
-        return self.processor.prepare_transaction(request=request, view=None, **kwargs)
+        return self.processor.prepare_transaction(
+            request=request, view=None, **kwargs
+        )
 
     def prepare_transaction_for_rest(
         self,
-        request: Optional[HttpRequest] = None,
-        view: Optional[View] = None,
+        request: HttpRequest | None = None,
+        view: View | None = None,
         **kwargs,
     ) -> RestfulResult:
         """
@@ -355,26 +375,26 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         Django REST Framework.
         """
         result = self.prepare_transaction(request=request, view=view, **kwargs)
-        data = {"status_code": result.status_code, "result": result}
+        data = {'status_code': result.status_code, 'result': result}
         if result.status_code == 200:
-            data["target_url"] = result.context_data["paywall_url"]
-            data["form"] = {
-                "fields": [
+            data['target_url'] = result.context_data['paywall_url']
+            data['form'] = {
+                'fields': [
                     {
-                        "name": name,
-                        "value": field.initial,
-                        "label": field.label or name,
-                        "widget": field.widget.__class__.__name__,
-                        "help_text": field.help_text,
-                        "required": field.required,
+                        'name': name,
+                        'value': field.initial,
+                        'label': field.label or name,
+                        'widget': field.widget.__class__.__name__,
+                        'help_text': field.help_text,
+                        'required': field.required,
                     }
-                    for name, field in result.context_data["form"].fields
+                    for name, field in result.context_data['form'].fields
                 ],
             }
         elif result.status_code == 302:
-            data["target_url"] = result.url
+            data['target_url'] = result.url
         else:
-            data["message"] = result.content
+            data['message'] = result.content
         return data
 
     @transition(field=status, source=ps.NEW, target=ps.PREPARED)
@@ -385,7 +405,7 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
 
     @transition(field=status, source=[ps.NEW, ps.PREPARED], target=ps.PRE_AUTH)
     def confirm_lock(
-        self, amount: Optional[Union[Decimal, float, int]] = None, **kwargs
+        self, amount: Decimal | float | int | None = None, **kwargs
     ) -> None:
         """
         Used to confirm that certain amount has been locked (pre-authed).
@@ -396,7 +416,7 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
 
     @atomic
     def charge(
-        self, amount: Optional[Union[Decimal, float, int]] = None, **kwargs
+        self, amount: Decimal | float | int | None = None, **kwargs
     ) -> ChargeResponse:
         """
         Interfaces processor's :meth:`~getpaid.processor.BaseProcessor.charge`.
@@ -404,35 +424,37 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         if amount is None:
             amount = self.amount_locked
         if amount > self.amount_locked:
-            raise ValueError("Cannot charge more than locked value.")
+            raise ValueError('Cannot charge more than locked value.')
         result = self.processor.charge(amount=amount, **kwargs)
-        if "amount_charged" in result or result.get("success", False):
-            self.amount_paid = result.get("amount_charged", amount)
+        if 'amount_charged' in result or result.get('success', False):
+            self.amount_paid = result.get('amount_charged', amount)
             self.amount_locked -= self.amount_paid
             self.confirm_payment()
             if can_proceed(self.mark_as_paid):
                 self.mark_as_paid()
             else:
                 logger.debug(
-                    "Cannot mark as fully paid, left as partially paid.",
+                    'Cannot mark as fully paid, left as partially paid.',
                     extra={
-                        "payment_id": self.id,
-                        "payment_status": self.status,
+                        'payment_id': self.id,
+                        'payment_status': self.status,
                     },
                 )
-        elif result.get("async_call", False):
+        elif result.get('async_call', False):
             if can_proceed(self.confirm_charge_sent):
                 self.confirm_charge_sent()
             else:
                 logger.debug(
-                    "Cannot confirm charge sent.",
+                    'Cannot confirm charge sent.',
                     extra={
-                        "payment_id": self.id,
-                        "payment_status": self.status,
+                        'payment_id': self.id,
+                        'payment_status': self.status,
                     },
                 )
         else:
-            raise ChargeFailure("Error occurred while trying to charge locked amount.")
+            raise ChargeFailure(
+                'Error occurred while trying to charge locked amount.'
+            )
         self.save()
         return result
 
@@ -449,7 +471,7 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         target=ps.PARTIAL,
     )
     def confirm_payment(
-        self, amount: Optional[Union[Decimal, float, int]] = None, **kwargs
+        self, amount: Decimal | float | int | None = None, **kwargs
     ) -> None:
         """
         Used when receiving callback confirmation.
@@ -464,7 +486,10 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         return self.fully_paid
 
     @transition(
-        field=status, source=ps.PARTIAL, target=ps.PAID, conditions=[_check_fully_paid]
+        field=status,
+        source=ps.PARTIAL,
+        target=ps.PAID,
+        conditions=[_check_fully_paid],
     )
     def mark_as_paid(self, **kwargs) -> None:
         """
@@ -480,9 +505,11 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         self.amount_locked = 0
         return self.processor.release_lock(**kwargs)
 
-    @transition(field=status, source=[ps.PAID, ps.PARTIAL], target=ps.REFUND_STARTED)
+    @transition(
+        field=status, source=[ps.PAID, ps.PARTIAL], target=ps.REFUND_STARTED
+    )
     def start_refund(
-        self, amount: Optional[Union[Decimal, float, int]] = None, **kwargs
+        self, amount: Decimal | float | int | None = None, **kwargs
     ) -> Decimal:
         """
         Interfaces processor's :meth:`~getpaid.processor.BaseProcessor.charge`.
@@ -490,7 +517,7 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         if amount is None:
             amount = self.amount_paid
         if amount > self.amount_paid:
-            raise ValueError("Cannot refund more than amount paid.")
+            raise ValueError('Cannot refund more than amount paid.')
         return self.processor.start_refund(amount=amount, **kwargs)
 
     @transition(field=status, source=ps.REFUND_STARTED, target=ps.PARTIAL)
@@ -502,7 +529,7 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
 
     @transition(field=status, source=ps.REFUND_STARTED, target=ps.PARTIAL)
     def confirm_refund(
-        self, amount: Optional[Union[Decimal, float, int]] = None, **kwargs
+        self, amount: Decimal | float | int | None = None, **kwargs
     ) -> None:
         """
         Used when receiving callback confirmation.
@@ -527,7 +554,9 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         """
 
     @transition(
-        field=status, source=[ps.NEW, ps.PRE_AUTH, ps.PREPARED], target=ps.FAILED
+        field=status,
+        source=[ps.NEW, ps.PRE_AUTH, ps.PREPARED],
+        target=ps.FAILED,
     )
     def fail(self, **kwargs) -> None:
         """
@@ -538,21 +567,21 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
     # The "uber-private" ones should be used only by processor.
 
     @transition(field=fraud_status, source=fs.UNKNOWN, target=fs.REJECTED)
-    def ___mark_as_fraud(self, message: str = "") -> None:
+    def ___mark_as_fraud(self, message: str = '') -> None:
         self.fraud_message = message
 
     @transition(field=fraud_status, source=fs.UNKNOWN, target=fs.ACCEPTED)
-    def ___mark_as_legit(self, message: str = "") -> None:
+    def ___mark_as_legit(self, message: str = '') -> None:
         self.fraud_message = message
 
     @transition(field=fraud_status, source=fs.UNKNOWN, target=fs.CHECK)
-    def ___mark_for_check(self, message: str = "") -> None:
+    def ___mark_for_check(self, message: str = '') -> None:
         self.fraud_message = message
 
     @transition(field=fraud_status, source=fs.CHECK, target=fs.REJECTED)
-    def mark_as_fraud(self, message: str = "", **kwargs) -> None:
-        self.fraud_message += f"\n==MANUAL REJECT==\n{message}"
+    def mark_as_fraud(self, message: str = '', **kwargs) -> None:
+        self.fraud_message += f'\n==MANUAL REJECT==\n{message}'
 
     @transition(field=fraud_status, source=fs.CHECK, target=fs.ACCEPTED)
-    def mark_as_legit(self, message: str = "", **kwargs) -> None:
-        self.fraud_message += f"\n==MANUAL ACCEPT==\n{message}"
+    def mark_as_legit(self, message: str = '', **kwargs) -> None:
+        self.fraud_message += f'\n==MANUAL ACCEPT==\n{message}'

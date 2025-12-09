@@ -163,6 +163,15 @@ Here's the important part:
     </form>
 
 
+==================
+Supported Versions
+==================
+
+The project currently targets Django 5.2 LTS as the baseline and is
+continuously tested against Django 5.2, 5.3, 5.4 and 6.0 on Python 3.10–3.14.
+Those combinations mirror the environments defined in ``tox.ini``.
+
+
 Running Tests
 =============
 
@@ -170,6 +179,8 @@ Running Tests
 
     poetry install
     poetry run tox
+    # or run a specific environment, e.g. Django 5.2 on Python 3.13
+    tox -e py313-django52
 
 
 Alternatives

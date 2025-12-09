@@ -4,30 +4,29 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ("paywall", "0002_auto_20200417_2107"),
+        ('paywall', '0002_auto_20200417_2107'),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name="paymententry",
-            name="callback",
+            model_name='paymententry',
+            name='callback',
             field=models.URLField(blank=True),
         ),
         migrations.AlterField(
-            model_name="paymententry",
-            name="description",
+            model_name='paymententry',
+            name='description',
             field=models.TextField(blank=True),
         ),
         migrations.AlterField(
-            model_name="paymententry",
-            name="failure_url",
+            model_name='paymententry',
+            name='failure_url',
             field=models.URLField(blank=True),
         ),
         migrations.AlterField(
-            model_name="paymententry",
-            name="success_url",
+            model_name='paymententry',
+            name='success_url',
             field=models.URLField(blank=True),
         ),
     ]

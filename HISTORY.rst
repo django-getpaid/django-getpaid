@@ -4,6 +4,12 @@ History
 =======
 
 
+Version 2.99.0 (unreleased)
+---------------------------
+
+* Switch the test and CI matrix to Django 5.2–6.0 on Python 3.10–3.14 and
+  update ``tox.ini`` to run under tox 4.
+
 Version 2.3.1 (development)
 ---------------------------
 

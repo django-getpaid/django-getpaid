@@ -3,24 +3,24 @@ from django.urls import include, path
 from . import views
 from .registry import registry
 
-app_name = "getpaid"
+app_name = 'getpaid'
 
 urlpatterns = [
-    path("new/", views.new_payment, name="create-payment"),
+    path('new/', views.new_payment, name='create-payment'),
     path(
-        "success/<uuid:pk>/",
+        'success/<uuid:pk>/',
         views.success,
-        name="payment-success",
+        name='payment-success',
     ),
     path(
-        "failure/<uuid:pk>/",
+        'failure/<uuid:pk>/',
         views.failure,
-        name="payment-failure",
+        name='payment-failure',
     ),
     path(
-        "callback/<uuid:pk>/",
+        'callback/<uuid:pk>/',
         views.callback,
-        name="callback",
+        name='callback',
     ),
-    path("", include(registry.urls)),
+    path('', include(registry.urls)),
 ]

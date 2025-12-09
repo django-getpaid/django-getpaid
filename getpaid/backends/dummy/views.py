@@ -13,8 +13,8 @@ class CallbackView(View):
     """
 
     def post(self, request, *args, **kwargs):
-        external_id = json.loads(request.data).get("paymentId")
-        Payment = swapper.load_model("getpaid", "Payment")
+        external_id = json.loads(request.data).get('paymentId')
+        Payment = swapper.load_model('getpaid', 'Payment')
         payment = get_object_or_404(
             Payment, external_id=external_id, backend=PaymentProcessor.path
         )

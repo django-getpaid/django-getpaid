@@ -1,1 +1,1 @@
-default_app_config = "orders.apps.Config"
+default_app_config = 'orders.apps.Config'

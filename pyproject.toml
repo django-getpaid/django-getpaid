@@ -1,19 +1,31 @@
-[tool.poetry]
+[project]
 name = "django-getpaid"
-version = "0.0.0"  # placeholder, version governed by plugin
+version = "2.99.0-pre.1"
 description = "Multi-broker payment processor for Django."
-authors = ["Dominik Kozaczko <dominik@kozaczko.info>"]
-license = "MIT"
+authors = [
+    {name = "Dominik Kozaczko",email = "dominik@kozaczko.info"}
+]
+license = {text = "MIT"}
 readme = "README.rst"
-documentation = "https://django-getpaid.readthedocs.io/"
-repository = "https://github.com/django-getpaid/django-getpaid"
+requires-python = ">=3.10,<4"
+dynamic = ["dependencies", "classifiers"]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+
+[tool.poetry]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Framework :: Django",
-    "Framework :: Django :: 2.2",
-    "Framework :: Django :: 3.1",
-    "Framework :: Django :: 3.2",
-    "Framework :: Django :: 4.0",
+    "Framework :: Django :: 5.2",
+#    "Framework :: Django :: 6.0",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Office/Business :: Financial",
     "Topic :: Office/Business :: Financial :: Point-Of-Sale"
 ]
@@ -21,101 +33,114 @@ packages = [
     { include = "getpaid" }
 ]
 
+
 [tool.poetry.dependencies]
-python = "^3.7"
-django-model-utils = "^4.1.1"
-pendulum = "^2.1.2"
-
-swapper = "^1.1.2"
-django-fsm = "^2.8.0"
-typing-extensions = "^3.10.0"
-
-pytest = { version = "^6.2.4", optional = true }
-codecov = { version = "^2.1.11", optional = true }
-coverage = { version = "^5.5", optional = true }
-requests = { version = "^2.25.1", optional = true }
-requests-mock = { version = "^1.9.3", optional = true }
-pytest-cov = { version = "^2.12.1", optional = true }
-pytest-django = { version = "^4.4.0", optional = true }
-pytest-factoryboy = { version = "^2.1.0", optional = true }
-asgiref = { version = "^3.3.4", optional = true }
+pendulum = "^3.1.0"
+swapper = "^1.4.0"
+django-fsm = "^3.0.1"
+typing-extensions = "^4.15.0"
+django-model-utils = "^5.0.0"
 
 
 [tool.poetry.group.dev.dependencies]
-tox = "^3.24.4"
-factory-boy = "^3.2.1"
-ipdb = "^0.13.9"
-pre-commit = "^2.16.0"
-black = "^21.12-beta.0"
-isort = "^5.10.1"
-readme-renderer = "^31.0"
-monkeytype = "^21.5.0"
+ipdb = "^0.13.13"
+ruff = "^0.14.8"
+pre-commit-hooks = "^6.0.0"
+pre-commit = "^4.5.0"
 
-[tool.poetry.group.docs.dependencies]
-Sphinx = "^4.3.1"
-sphinx-rtd-theme = "^1.0.0"
-
-[tool.poetry.group.graph.dependencies]
-graphviz = "^0.19"
 
 [tool.poetry.group.test.dependencies]
-pytest = "^6.2.4"
-codecov = "^2.1.11"
-coverage = "^5.5"
-requests = "^2.25.1"
-requests-mock = "^1.9.3"
-pytest-cov = "^2.12.1"
-pytest-django = "^4.4.0"
-pytest-factoryboy = "^2.1.0"
-asgiref = "^3.3.4"
+pytest = "^9.0.2"
+tox = "^4.32.0"
+httpx = "^0.28.1"
+pytest-django = "^4.11.1"
+pytest-factoryboy = "^2.8.1"
+factory-boy = "^3.3.3"
+monkeytype = "^23.3.0"
+requests = "^2.32.5"
+requests-mock = "^1.12.1"
 
-[tool.poetry.extras]
-test = [
-    "pytest",
-    "codecov",
-    "coverage",
-    "requests",
-    "requests-mock",
-    "pytest-cov",
-    "pytest-django",
-    "pytest-factoryboy",
-    "asgiref"
+
+[tool.ruff]
+# Ruff config: https://docs.astral.sh/ruff/settings
+preview = true
+fix = true
+target-version = "py312"
+line-length = 80
+
+[tool.ruff.format]
+quote-style = "single"
+docstring-code-format = true
+
+[tool.ruff.lint]
+select = [
+  "A",    # flake8-builtins
+  "B",    # flake8-bugbear
+  "C4",   # flake8-comprehensions
+  "C90",  # maccabe
+  "COM",  # flake8-commas
+#  "D",    # pydocstyle
+  "DTZ",  # flake8-datetimez
+#  "E",    # pycodestyle
+#  "ERA",  # flake8-eradicate
+  "EXE",  # flake8-executable
+  "F",    # pyflakes
+  "FBT",  # flake8-boolean-trap
+  "FLY",  # pyflint
+  "FURB", # refurb
+#  "G",    # flake8-logging-format
+  "I",    # isort
+  "ICN",  # flake8-import-conventions
+  "ISC",  # flake8-implicit-str-concat
+  "LOG",  # flake8-logging
+  "N",    # pep8-naming
+  "PERF", # perflint
+  "PIE",  # flake8-pie
+  "PL",   # pylint
+  "PT",   # flake8-pytest-style
+  "PTH",  # flake8-use-pathlib
+  "Q",    # flake8-quotes
+  "RET",  # flake8-return
+  "RSE",  # flake8-raise
+  "RUF",  # ruff
+  "S",    # flake8-bandit
+  "SIM",  # flake8-simpify
+  "SLF",  # flake8-self
+  "SLOT", # flake8-slots
+  "T100", # flake8-debugger
+  "TRY",  # tryceratops
+  "UP",   # pyupgrade
+  "W",    # pycodestyle
+  "YTT",  # flake8-2020
 ]
+ignore = [
+  "A005",   # allow to shadow stdlib and builtin module names
+  "COM812", # trailing comma, conflicts with `ruff format`
+  # Different doc rules that we don't really care about:
+  "D100",
+  "D104",
+  "D106",
+  "D203",
+  "D212",
+  "D401",
+  "D404",
+  "D405",
+  "ISC001",  # implicit string concat conflicts with `ruff format`
+  "ISC003",  # prefer explicit string concat over implicit concat
+  "PLR09",   # we have our own complexity rules
+  "PLR2004", # do not report magic numbers
+  "PLR6301", # do not require classmethod / staticmethod when self not used
+  "TRY003",  # long exception messages from `tryceratops`
+  "RUF012", # Mutable class attributes should be annotated with `typing.ClassVar`
+]
+external = [ "WPS" ]
 
-[tool.black]
-line-length = 88
-target-version = ['py37', 'py38', 'py39', 'py310']
-include = '\.pyi?$'
-exclude = '''
-
-(
-  /(
-      \.cache
-    | \.eggs
-    | \.git
-    | \.hg
-    | \.mypy_cache
-    | \.pytest_cache
-    | \.tox
-    | \.venv
-    | __pycache__
-    | _build
-    | buck-out
-    | build
-    | dist
-    | docs
-    | .+/migrations
-  )/
-
-)
-'''
-
-[tool.poetry-version-plugin]
-source = "init"
-
-[tool.isort]
-profile="black"
-
-[build-system]
-requires = ["poetry-core>=1.1.0a6"]
-build-backend = "poetry.core.masonry.api"
+# Plugin configs:
+flake8-quotes.inline-quotes = "single"
+mccabe.max-complexity = 9
+pydocstyle.convention = "google"
+#
+#[tool.tox]
+#requires =["tox >= 4.20"]
+#env_list = ["py{310,311,312,313}-django52", "py{310,311,312,313,314}-django60"]
+#
