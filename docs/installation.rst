@@ -14,6 +14,13 @@ Get it from PyPI
 
 We do not recommend using development version as it may contain bugs.
 
+If you plan to run the project's test suite, install it with the ``tests``
+extra so that pytest and friends are available:
+
+.. code-block:: shell
+
+    pip install 'django-getpaid[tests]'
+
 
 Install at least one plugin
 ---------------------------

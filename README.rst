@@ -175,9 +175,12 @@ Those combinations mirror the environments defined in ``tox.ini``.
 Running Tests
 =============
 
+Install the project with the ``tests`` extra so pytest and friends are
+available, then invoke tox:
+
 .. code-block:: console
 
-    poetry install
+    poetry install -E tests
     poetry run tox
     # or run a specific environment, e.g. Django 5.2 on Python 3.13
     tox -e py313-django52
