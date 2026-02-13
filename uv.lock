@@ -282,7 +282,7 @@ version = "3.0.0a1"
 source = { editable = "." }
 dependencies = [
     { name = "django" },
-    { name = "getpaid-core" },
+    { name = "python-getpaid-core" },
     { name = "swapper" },
 ]
 
@@ -290,7 +290,6 @@ dependencies = [
 dev = [
     { name = "django" },
     { name = "furo" },
-    { name = "getpaid-core" },
     { name = "httpx" },
     { name = "myst-parser" },
     { name = "pre-commit" },
@@ -300,6 +299,7 @@ dev = [
     { name = "pytest-cov" },
     { name = "pytest-django" },
     { name = "pytest-factoryboy" },
+    { name = "python-getpaid-core" },
     { name = "ruff" },
     { name = "sphinx" },
     { name = "tox" },
@@ -309,7 +309,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "django", specifier = ">=5.2" },
-    { name = "getpaid-core", specifier = ">=0.1.0" },
+    { name = "python-getpaid-core", specifier = ">=0.1.0" },
     { name = "swapper", specifier = ">=1.4" },
 ]
 
@@ -317,7 +317,6 @@ requires-dist = [
 dev = [
     { name = "django", specifier = ">=6.0.2" },
     { name = "furo", specifier = ">=2025.12.19" },
-    { name = "getpaid-core", directory = "../getpaid-core" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "myst-parser", specifier = ">=5.0.0" },
     { name = "pre-commit", specifier = ">=4.5.1" },
@@ -327,6 +326,7 @@ dev = [
     { name = "pytest-cov", specifier = ">=7.0.0" },
     { name = "pytest-django", specifier = ">=4.11.1" },
     { name = "pytest-factoryboy", specifier = ">=2.8.1" },
+    { name = "python-getpaid-core", directory = "../getpaid-core" },
     { name = "ruff", specifier = ">=0.15.1" },
     { name = "sphinx", specifier = ">=9.1.0" },
     { name = "tox", specifier = ">=4.35.0" },
@@ -389,36 +389,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/ec/20/5f5ad4da6a5a27c80f2ed2ee9aee3f9e36c66e56e21c00fde467b2f8f88f/furo-2025.12.19.tar.gz", hash = "sha256:188d1f942037d8b37cd3985b955839fea62baa1730087dc29d157677c857e2a7", size = 1661473, upload-time = "2025-12-19T17:34:40.889Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f4/b2/50e9b292b5cac13e9e81272c7171301abc753a60460d21505b606e15cf21/furo-2025.12.19-py3-none-any.whl", hash = "sha256:bb0ead5309f9500130665a26bee87693c41ce4dbdff864dbfb6b0dae4673d24f", size = 339262, upload-time = "2025-12-19T17:34:38.905Z" },
-]
-
-[[package]]
-name = "getpaid-core"
-version = "0.1.0"
-source = { directory = "../getpaid-core" }
-dependencies = [
-    { name = "anyio" },
-    { name = "httpx" },
-    { name = "transitions" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "anyio", specifier = ">=4.0" },
-    { name = "httpx", specifier = ">=0.27.0" },
-    { name = "transitions", specifier = ">=0.9.0" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "furo", specifier = ">=2025.12.19" },
-    { name = "myst-parser", specifier = ">=4.0.1" },
-    { name = "pre-commit", specifier = ">=4.0" },
-    { name = "pytest", specifier = ">=8.0" },
-    { name = "pytest-asyncio", specifier = ">=0.24.0" },
-    { name = "pytest-cov", specifier = ">=5.0" },
-    { name = "respx", specifier = ">=0.22.0" },
-    { name = "ruff", specifier = ">=0.9.0" },
-    { name = "sphinx", specifier = ">=8.1.3" },
 ]
 
 [[package]]
@@ -782,6 +752,36 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/91/8a/a0f9c58bf176b0d39b630a6e29cccebec9a429dfeb62204bbb9b632fb798/pytest_factoryboy-2.8.1.tar.gz", hash = "sha256:2221d48b31b8b8ccaa739c6a162fb50a43a4de6dff6043f249d2807a3462548d", size = 16906, upload-time = "2025-07-01T04:05:38.901Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/06/2f/4f73a79196b4acb0f902520a805caa22f8ba0adbecdfb028a371404c2537/pytest_factoryboy-2.8.1-py3-none-any.whl", hash = "sha256:91c762cb236bf34b11efdf2e54bafae33114488235621e8b2c4bd9fd77838784", size = 16413, upload-time = "2025-07-01T04:05:37.344Z" },
+]
+
+[[package]]
+name = "python-getpaid-core"
+version = "0.1.0"
+source = { directory = "../getpaid-core" }
+dependencies = [
+    { name = "anyio" },
+    { name = "httpx" },
+    { name = "transitions" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "anyio", specifier = ">=4.0" },
+    { name = "httpx", specifier = ">=0.27.0" },
+    { name = "transitions", specifier = ">=0.9.0" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "furo", specifier = ">=2025.12.19" },
+    { name = "myst-parser", specifier = ">=4.0.1" },
+    { name = "pre-commit", specifier = ">=4.0" },
+    { name = "pytest", specifier = ">=8.0" },
+    { name = "pytest-asyncio", specifier = ">=0.24.0" },
+    { name = "pytest-cov", specifier = ">=5.0" },
+    { name = "respx", specifier = ">=0.22.0" },
+    { name = "ruff", specifier = ">=0.9.0" },
+    { name = "sphinx", specifier = ">=8.1.3" },
 ]
 
 [[package]]
