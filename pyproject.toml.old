@@ -1,0 +1,147 @@
+[project]
+name = "django-getpaid"
+dynamic = ["version", "classifiers", "readme", "dependencies"]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+
+[tool.poetry]
+version = "2.99.0-pre.1"
+description = "Multi-broker payment processor for Django."
+authors = ["Dominik Kozaczko <dominik@kozaczko.info>"]
+license = "MIT"
+readme = "README.rst"
+documentation = "https://django-getpaid.readthedocs.io/"
+repository = "https://github.com/django-getpaid/django-getpaid"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Framework :: Django",
+    "Framework :: Django :: 5.2",
+#    "Framework :: Django :: 6.0",  # Not yet accepted
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Office/Business :: Financial",
+    "Topic :: Office/Business :: Financial :: Point-Of-Sale",
+]
+packages = [
+    { include = "getpaid" },
+]
+
+
+[tool.poetry.dependencies]
+python = ">=3.10,<4"
+Django = ">=4.2"
+swapper = "^1.4.0"
+django-fsm = "^3.0.1"
+pytest = { version = "^9.0.2", optional = true }
+pytest-django = { version = "^4.11.1", optional = true }
+pytest-factoryboy = { version = "^2.8.1", optional = true }
+factory-boy = { version = "^3.3.3", optional = true }
+httpx = { version = "^0.28.1", optional = true }
+pytest-cov = { version = "^7.0.0", optional = true }
+
+
+[tool.poetry.extras]
+tests = [
+    "pytest",
+    "pytest-django",
+    "pytest-factoryboy",
+    "factory-boy",
+    "httpx",
+    "pytest-cov",
+]
+
+
+[tool.poetry.group.dev.dependencies]
+ipdb = "^0.13.13"
+ruff = "^0.14.8"
+pre-commit-hooks = "^6.0.0"
+pre-commit = "^4.5.0"
+tox = "^4.32.0"
+
+
+[tool.ruff]
+# Ruff config: https://docs.astral.sh/ruff/settings
+preview = true
+fix = true
+target-version = "py312"
+line-length = 80
+
+[tool.ruff.format]
+quote-style = "single"
+docstring-code-format = true
+
+[tool.ruff.lint]
+select = [
+  "A",    # flake8-builtins
+  "B",    # flake8-bugbear
+  "C4",   # flake8-comprehensions
+  "C90",  # maccabe
+  "COM",  # flake8-commas
+#  "D",    # pydocstyle
+  "DTZ",  # flake8-datetimez
+#  "E",    # pycodestyle
+#  "ERA",  # flake8-eradicate
+  "EXE",  # flake8-executable
+  "F",    # pyflakes
+  "FBT",  # flake8-boolean-trap
+  "FLY",  # pyflint
+  "FURB", # refurb
+#  "G",    # flake8-logging-format
+  "I",    # isort
+  "ICN",  # flake8-import-conventions
+  "ISC",  # flake8-implicit-str-concat
+  "LOG",  # flake8-logging
+  "N",    # pep8-naming
+  "PERF", # perflint
+  "PIE",  # flake8-pie
+  "PL",   # pylint
+  "PT",   # flake8-pytest-style
+  "PTH",  # flake8-use-pathlib
+  "Q",    # flake8-quotes
+  "RET",  # flake8-return
+  "RSE",  # flake8-raise
+  "RUF",  # ruff
+  "S",    # flake8-bandit
+  "SIM",  # flake8-simpify
+  "SLF",  # flake8-self
+  "SLOT", # flake8-slots
+  "T100", # flake8-debugger
+  "TRY",  # tryceratops
+  "UP",   # pyupgrade
+  "W",    # pycodestyle
+  "YTT",  # flake8-2020
+]
+ignore = [
+  "A005",   # allow to shadow stdlib and builtin module names
+  "COM812", # trailing comma, conflicts with `ruff format`
+  # Different doc rules that we don't really care about:
+  "D100",
+  "D104",
+  "D106",
+  "D203",
+  "D212",
+  "D401",
+  "D404",
+  "D405",
+  "ISC001",  # implicit string concat conflicts with `ruff format`
+  "ISC003",  # prefer explicit string concat over implicit concat
+  "PLR09",   # we have our own complexity rules
+  "PLR2004", # do not report magic numbers
+  "PLR6301", # do not require classmethod / staticmethod when self not used
+  "TRY003",  # long exception messages from `tryceratops`
+  "RUF012", # Mutable class attributes should be annotated with `typing.ClassVar`
+]
+external = [ "WPS" ]
+# Plugin configs:
+flake8-quotes.inline-quotes = "single"
+mccabe.max-complexity = 9
+pydocstyle.convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101"]
