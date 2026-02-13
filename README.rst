@@ -1,7 +1,7 @@
 .. image:: https://img.shields.io/pypi/v/django-getpaid.svg
     :target: https://pypi.org/project/django-getpaid/
     :alt: Latest PyPI version
-.. image:: https://github.com/django-getpaid/django-getpaid/actions/workflows/run_tox.yml/badge.svg
+.. image:: https://github.com/django-getpaid/django-getpaid/actions/workflows/ci.yml/badge.svg
     :target: https://github.com/django-getpaid/django-getpaid/actions/
 .. image:: https://img.shields.io/pypi/wheel/django-getpaid.svg
     :target: https://pypi.org/project/django-getpaid/
@@ -62,9 +62,6 @@ and define some required methods:
 
         def get_buyer_info(self):
             return {"email": self.buyer.email}
-
-        def get_currency(self):
-            return "EUR"
 
         def get_description(self):
             return self.description
@@ -168,7 +165,7 @@ Supported Versions
 ==================
 
 The project currently targets Django 5.2 LTS as the baseline and is
-continuously tested against Django 5.2, 5.3, 5.4 and 6.0 on Python 3.10–3.14.
+continuously tested against Django 5.2 and 6.0 on Python 3.10–3.14.
 Those combinations mirror the environments defined in ``tox.ini``.
 
 

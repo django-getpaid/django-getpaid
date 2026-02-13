@@ -41,7 +41,7 @@ to provide properties linking your fieldnames to expected names.
 
    .. attribute:: amount_required
 
-      Decimal value with 4 decimal places. Total value of the Order that needs to be paid.
+      Decimal value with 2 decimal places. Total value of the Order that needs to be paid.
 
    .. attribute:: currency
 

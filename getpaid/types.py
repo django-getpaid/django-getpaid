@@ -1,16 +1,10 @@
 from decimal import Decimal
 from enum import Enum
-from typing import Any
+from typing import Any, TypedDict
 
 from django.http import HttpResponse
+from django.utils.functional import classproperty
 from django.utils.translation import pgettext_lazy
-from typing_extensions import TypedDict
-
-try:
-    # Django 3.1 and above
-    from django.utils.functional import classproperty
-except ImportError:
-    from django.utils.decorators import classproperty
 
 
 class FraudStatus(str, Enum):

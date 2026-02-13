@@ -30,11 +30,14 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.sessions',
     'django.contrib.contenttypes',
+    'django.contrib.sites',
     'getpaid',
     'getpaid.backends.dummy',
     'orders',
     'paywall',
 ]
+
+SITE_ID = 1
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

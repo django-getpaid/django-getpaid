@@ -24,7 +24,6 @@ Contents:
    :maxdepth: 1
 
    installation
-   migration
    catalog
    settings
    customization

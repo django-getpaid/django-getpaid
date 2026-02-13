@@ -158,7 +158,7 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         _('paid on'), blank=True, null=True, default=None, db_index=True
     )
     amount_locked = models.DecimalField(
-        _('amount paid'),
+        _('amount locked'),
         decimal_places=2,
         max_digits=20,
         default=0,
@@ -175,7 +175,7 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         _('refunded on'), blank=True, null=True, default=None, db_index=True
     )
     amount_refunded = models.DecimalField(
-        _('amount refunded'), decimal_places=4, max_digits=20, default=0
+        _('amount refunded'), decimal_places=2, max_digits=20, default=0
     )
     external_id = models.CharField(
         _('external id'), max_length=64, blank=True, db_index=True, default=''
@@ -194,6 +194,28 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
     fraud_message = models.TextField(_('fraud message'), blank=True)
 
     _processor = None
+
+    #: Allowlist of FSM transition method names that may be invoked via
+    #: fetch_and_update_status(). Any callback name not in this set will be
+    #: rejected to prevent arbitrary method invocation from external sources.
+    ALLOWED_CALLBACKS = frozenset({
+        'confirm_prepared',
+        'confirm_lock',
+        'confirm_charge_sent',
+        'confirm_payment',
+        'mark_as_paid',
+        'release_lock',
+        'start_refund',
+        'cancel_refund',
+        'confirm_refund',
+        'mark_as_refunded',
+        'fail',
+        'flag_as_fraud',
+        'flag_as_legit',
+        'flag_for_check',
+        'mark_as_fraud',
+        'mark_as_legit',
+    })
 
     class Meta:
         abstract = True
@@ -309,6 +331,21 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         status_report = self.fetch_status()
         callback_name = status_report.get('callback')
         if callback_name:
+            if callback_name not in self.ALLOWED_CALLBACKS:
+                logger.warning(
+                    'Disallowed callback %r requested for payment %s.',
+                    callback_name,
+                    self.id,
+                    extra={
+                        'payment_id': self.id,
+                        'payment_status': self.status,
+                        'callback': callback_name,
+                    },
+                )
+                status_report['exception'] = ValueError(
+                    f'Disallowed callback: {callback_name!r}'
+                )
+                return status_report
             callback = getattr(self, callback_name)
             amount = status_report.get('amount', None)
             try:
@@ -361,7 +398,7 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         :meth:`~getpaid.processor.BaseProcessor.prepare_transaction`.
         """
         return self.processor.prepare_transaction(
-            request=request, view=None, **kwargs
+            request=request, view=view, **kwargs
         )
 
     def prepare_transaction_for_rest(
@@ -388,7 +425,9 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
                         'help_text': field.help_text,
                         'required': field.required,
                     }
-                    for name, field in result.context_data['form'].fields
+                    for name, field in result.context_data[
+                        'form'
+                    ].fields.items()
                 ],
             }
         elif result.status_code == 302:
@@ -427,9 +466,9 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
             raise ValueError('Cannot charge more than locked value.')
         result = self.processor.charge(amount=amount, **kwargs)
         if 'amount_charged' in result or result.get('success', False):
-            self.amount_paid = result.get('amount_charged', amount)
-            self.amount_locked -= self.amount_paid
-            self.confirm_payment()
+            amount_charged = result.get('amount_charged', amount)
+            self.amount_locked -= amount_charged
+            self.confirm_payment(amount=amount_charged)
             if can_proceed(self.mark_as_paid):
                 self.mark_as_paid()
             else:
@@ -564,18 +603,22 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         """
 
     # Finally: Fraud-related actions.
-    # The "uber-private" ones should be used only by processor.
+    # The "flag_*" methods are for processors (automatic decisions).
+    # The "mark_*" methods are for manual review decisions.
 
     @transition(field=fraud_status, source=fs.UNKNOWN, target=fs.REJECTED)
-    def ___mark_as_fraud(self, message: str = '') -> None:
+    def flag_as_fraud(self, message: str = '', **kwargs) -> None:
+        """Flag payment as fraudulent (automatic processor decision)."""
         self.fraud_message = message
 
     @transition(field=fraud_status, source=fs.UNKNOWN, target=fs.ACCEPTED)
-    def ___mark_as_legit(self, message: str = '') -> None:
+    def flag_as_legit(self, message: str = '', **kwargs) -> None:
+        """Flag payment as legitimate (automatic processor decision)."""
         self.fraud_message = message
 
     @transition(field=fraud_status, source=fs.UNKNOWN, target=fs.CHECK)
-    def ___mark_for_check(self, message: str = '') -> None:
+    def flag_for_check(self, message: str = '', **kwargs) -> None:
+        """Flag payment for manual review (automatic processor decision)."""
         self.fraud_message = message
 
     @transition(field=fraud_status, source=fs.CHECK, target=fs.REJECTED)

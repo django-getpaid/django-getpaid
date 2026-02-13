@@ -8,6 +8,7 @@ class DummyPluginAppConfig(AppConfig):
     name = 'getpaid.backends.dummy'
     label = 'getpaid_dummy'
     verbose_name = _('Dummy paywall')
+    default_auto_field = 'django.db.models.AutoField'
 
     def ready(self):
         if not settings.DEBUG:

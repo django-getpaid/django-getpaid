@@ -76,14 +76,14 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'django-getpaid'
-copyright = '2012-2013 Krzysztof Dorosz, 2013-2020 Dominik Kozaczko'
+copyright = '2012-2013 Krzysztof Dorosz, 2013-2025 Dominik Kozaczko'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
 # The short X.Y version.
-version = '2.2'
+version = '.'.join(getpaid.__version__.split('.')[:2])
 # The full version, including alpha/beta/rc tags.
 release = getpaid.__version__
 

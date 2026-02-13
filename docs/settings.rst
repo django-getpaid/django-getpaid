@@ -95,20 +95,24 @@ Use full dotted path name.
 ``SUCCESS_URL``
 ---------------
 
-Default: ``"getpaid:payment-success"``
+Default: None
 
 Allows setting custom view name for successful returns from paywall.
 Again, this can also be set on a per-backend basis.
+When not set, the client is redirected to the URL returned by the Order's
+``get_return_url()`` method.
 
 If the view requires kwargs to be resolved, you need to override
 
 ``FAILURE_URL``
 ---------------
 
-Default: ``"getpaid:payment-failure"``
+Default: None
 
 Allows setting custom view name for fail returns from paywall.
 Again, this can also be set on a per-backend basis.
+When not set, the client is redirected to the URL returned by the Order's
+``get_return_url()`` method.
 
 ``HIDE_LONELY_PLUGIN``
 ----------------------

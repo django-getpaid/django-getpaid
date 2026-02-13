@@ -81,7 +81,7 @@ class PluginRegistry:
         in CHOICES format.
         """
         currencies = set()
-        for backend in self._backends:
+        for backend in self._backends.values():
             currencies.update(backend.accepted_currencies or [])
         return [(c.upper(), c.upper()) for c in currencies]
 

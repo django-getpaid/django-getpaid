@@ -62,11 +62,8 @@ and you need to implement some methods. It could look like this example:
         def get_description(self):
             return self.description
 
-        def get_currency(self):
-            return self.currency
-
         # either one of those two is required:
-        def get_redirect_url(self, *args, success=None, **kwargs):
+        def get_return_url(self, *args, success=None, **kwargs):
             # this method will be called to get the url that will be displayed
             # after returning from the paywall page and you can use `success` param
             # to differentiate the behavior in case the backend supports it.
@@ -161,21 +158,19 @@ For each installed plugin you can configure it in ``settings.py``:
 
 .. code-block:: python
 
-    GETPAID = {
-        "BACKENDS":{
-            "getpaid_payu": {   # dotted import path of the plugin
-                # refer to backend docs and take these from your merchant panel:
-                "pos_id": 12345,
-                "second_key": "91ae651578c5b5aa93f2d38a9be8ce11",
-                "client_id": 12345,
-                "client_secret": "12f071174cb7eb79d4aac5bc2f07563f",
-            },
+    GETPAID_BACKEND_SETTINGS = {
+        "getpaid_payu": {   # dotted import path of the plugin
+            # refer to backend docs and take these from your merchant panel:
+            "pos_id": 12345,
+            "second_key": "91ae651578c5b5aa93f2d38a9be8ce11",
+            "client_id": 12345,
+            "client_secret": "12f071174cb7eb79d4aac5bc2f07563f",
+        },
 
-            # this plugin is meant only for testing purposes
-            "getpaid.backends.dummy": {
-                "confirmation_method": "push",
-            },
-        }
+        # this plugin is meant only for testing purposes
+        "getpaid.backends.dummy": {
+            "confirmation_method": "push",
+        },
     }
 
 

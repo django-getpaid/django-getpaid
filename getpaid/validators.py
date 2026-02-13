@@ -8,11 +8,15 @@ def run_getpaid_validators(data: dict) -> dict:
     getpaid_settings = getattr(settings, 'GETPAID', {})
     global_validators = getpaid_settings.get('VALIDATORS', [])
     backend_validators = (
-        getpaid_settings.get('BACKENDS', {})
+        getpaid_settings
+        .get('BACKENDS', {})
         .get(backend, {})
         .get('VALIDATORS', [])
     )
-    for path in set(global_validators).union(backend_validators):
+    unique_validators = list(
+        dict.fromkeys(global_validators + backend_validators)
+    )
+    for path in unique_validators:
         module_name, validator_name = path.rsplit('.', 1)
         module = import_module(module_name)
         validator = getattr(module, validator_name)

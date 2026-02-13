@@ -33,6 +33,22 @@ class TestRegistry(TestCase):
         # dummy plugin contains at least one example endpoint
         assert len(registry.urls) > 0
 
+    def test_get_all_supported_currency_choices(self):
+        """Test that get_all_supported_currency_choices returns currencies
+        from registered backends (not iterating dict keys as strings)."""
+        choices = registry.get_all_supported_currency_choices()
+        # Plugin has accepted_currencies = ['EUR', 'USD']
+        # Dummy has accepted_currencies = ['PLN', 'EUR', 'GBP', 'USD']
+        currency_codes = {code for code, _label in choices}
+        # At minimum, the Plugin's currencies should appear
+        assert 'EUR' in currency_codes
+        assert 'USD' in currency_codes
+        # Each choice should be (CODE, CODE) tuple
+        for code, label in choices:
+            assert code == label
+            assert len(code) == 3
+            assert code == code.upper()
+
     def test_choices(self):
         fraud_choices = FraudStatus.CHOICES
         assert type(fraud_choices) == tuple

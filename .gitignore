@@ -24,6 +24,7 @@ pip-log.txt
 
 # Unit test / coverage reports
 .coverage
+coverage.xml
 .tox
 nosetests.xml
 htmlcov
@@ -63,7 +64,7 @@ virtualenv
 .virtualenv
 
 # poetry
-# /poetry.lock
+/poetry.lock
 
 # Codacy
 /.codacy-coverage
@@ -72,3 +73,6 @@ virtualenv
 # Sublime text (editor)
 *.sublime-project
 *.sublime-workspace
+
+/.smithers
+

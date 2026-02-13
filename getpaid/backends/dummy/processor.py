@@ -1,25 +1,30 @@
-""" "
-Settings:
-    pos_id
-    second_key
-    client_id
-    client_secret
+"""
+Dummy payment backend for development and testing.
+
+This is a self-contained processor that simulates payment flows without
+making any external HTTP calls. It supports all three payment initiation
+methods (REST, POST, GET) and both confirmation methods (PUSH, PULL).
+
+Settings (via GETPAID_BACKEND_SETTINGS['getpaid.backends.dummy']):
+    paywall_method: 'REST' | 'POST' | 'GET' (default: 'REST')
+    confirmation_method: 'PUSH' | 'PULL' (default: 'PUSH')
 """
 
 import json
 import logging
-import os
-from urllib.parse import urljoin
+from decimal import Decimal
 
-import requests
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import (
+    HttpResponse,
+    HttpResponseBadRequest,
+    HttpResponseRedirect,
+)
 from django.template.response import TemplateResponse
-from django.urls import reverse, reverse_lazy
 from django_fsm import can_proceed
 
 from getpaid.post_forms import PaymentHiddenInputsPostForm
 from getpaid.processor import BaseProcessor
-from getpaid.status import PaymentStatus as ps
+from getpaid.types import PaymentStatus as ps
 
 logger = logging.getLogger(__name__)
 
@@ -27,18 +32,12 @@ logger = logging.getLogger(__name__)
 class PaymentProcessor(BaseProcessor):
     slug = 'dummy'
     display_name = 'Dummy'
-    accepted_currencies = [
-        'PLN',
-        'EUR',
-    ]
+    accepted_currencies = ['PLN', 'EUR']
     ok_statuses = [200]
-    method = 'REST'  # Supported modes: REST, POST, GET
-    confirmation_method = 'PUSH'  # PUSH or PULL
+    method = 'REST'
+    confirmation_method = 'PUSH'
     post_form_class = PaymentHiddenInputsPostForm
-    post_template_name = 'dummy/payment_post_form.html'
-    _token = None
-    standard_url = reverse_lazy('paywall:gateway')
-    api_url = reverse_lazy('paywall:api_register')
+    post_template_name = 'getpaid_dummy/payment_post_form.html'
 
     def get_paywall_method(self):
         return self.get_setting('paywall_method', self.method)
@@ -48,157 +47,140 @@ class PaymentProcessor(BaseProcessor):
             'confirmation_method', self.confirmation_method
         ).upper()
 
-    def get_paywall_baseurl(self, request=None, **kwargs):
-        if request is None:
-            base = os.environ.get('_PAYWALL_URL')
-        else:
-            base = os.environ['_PAYWALL_URL'] = request.build_absolute_uri('/')
-        if self.get_paywall_method() == 'REST':
-            return urljoin(base, str(self.api_url))
-        return urljoin(base, str(self.standard_url))
-
-    def get_params(self):
-        base = self.get_paywall_baseurl()
-        params = {
-            'ext_id': self.payment.id,
-            'value': self.payment.amount_required,
-            'currency': self.payment.currency,
-            'description': self.payment.description,
-            'success_url': urljoin(
-                base,
-                reverse(
-                    'getpaid:payment-success',
-                    kwargs={'pk': str(self.payment.pk)},
-                ),
-            ),
-            'failure_url': urljoin(
-                base,
-                reverse(
-                    'getpaid:payment-failure',
-                    kwargs={'pk': str(self.payment.pk)},
-                ),
-            ),
-        }
-        if self.get_confirmation_method() == 'PUSH':
-            params['callback'] = urljoin(
-                base,
-                reverse(
-                    'getpaid:callback', kwargs={'pk': str(self.payment.pk)}
-                ),
-            )
-        return {k: str(v) for k, v in params.items()}
-
-    # Specifics
     def prepare_transaction(self, request, view=None, **kwargs):
-        target_url = self.get_paywall_baseurl(request)
-        params = self.get_params()
+        """
+        Simulate payment preparation. No external HTTP calls are made.
+
+        - REST/GET: Confirms prepared, returns redirect to success URL.
+        - POST: Confirms prepared, returns a template response with a form.
+        """
         method = self.get_paywall_method()
-        if method == 'REST':
-            response = requests.post(target_url, json=params)
-            if response.status_code in self.ok_statuses:
-                self.payment.confirm_prepared()
-                self.payment.save()
-            return HttpResponseRedirect(response.json()['url'])
+        self.payment.confirm_prepared()
+        self.payment.save()
+
         if method == 'POST':
-            self.payment.confirm_prepared()
-            self.payment.save()
+            params = {
+                'amount': str(self.payment.amount_required),
+                'currency': self.payment.currency,
+                'description': self.payment.description,
+            }
             form = self.get_form(params)
             return TemplateResponse(
                 request=request,
                 template=self.get_template_names(view=view),
-                context={'form': form, 'paywall_url': target_url},
+                context={'form': form, 'paywall_url': '#dummy'},
             )
-        # GET payments are a bit tricky. You can either confirm payment as
-        # prepared here, or on successful return from paywall.
-        self.payment.confirm_prepared()
-        self.payment.save()
-        return HttpResponseRedirect(target_url)
+
+        # REST and GET both return a redirect
+        redirect_url = self.get_our_baseurl(request)
+        return HttpResponseRedirect(redirect_url)
 
     def handle_paywall_callback(self, request, **kwargs):
-        new_status = json.loads(request.body).get('new_status')
+        """
+        Handle a simulated callback. Expects JSON body with 'new_status'.
+
+        Returns HTTP 200 on success, HTTP 400 on bad input.
+        """
+        try:
+            data = json.loads(request.body)
+        except (json.JSONDecodeError, ValueError):
+            return HttpResponseBadRequest('Invalid JSON')
+
+        new_status = data.get('new_status')
         if new_status is None:
-            raise ValueError('Got no status')
+            return HttpResponseBadRequest('Missing new_status')
+
         if new_status == ps.FAILED:
             self.payment.fail()
         elif new_status == ps.PRE_AUTH:
             self.payment.confirm_lock()
         elif new_status == ps.PAID:
-            if can_proceed(self.payment.confirm_lock):  # GET flow needs this
+            if can_proceed(self.payment.confirm_lock):
                 self.payment.confirm_lock()
             if can_proceed(self.payment.confirm_payment):
                 self.payment.confirm_payment()
-                if can_proceed(self.payment.mark_as_paid):
-                    self.payment.mark_as_paid()
-                elif can_proceed(self.payment.mark_as_refunded):
-                    self.payment.mark_as_refunded()
+            if can_proceed(self.payment.mark_as_paid):
+                self.payment.mark_as_paid()
         else:
-            raise ValueError(f'Unhandled new status {new_status}')
+            return HttpResponseBadRequest(f'Unhandled status: {new_status}')
+
         self.payment.save()
         return HttpResponse('OK')
 
     def fetch_payment_status(self, **kwargs):
-        base = self.get_paywall_baseurl()
-        response = requests.get(
-            urljoin(
-                base,
-                reverse(
-                    'paywall:get_status',
-                    kwargs={'pk': str(self.payment.external_id)},
-                ),
-            )
-        )
-        if response.status_code not in self.ok_statuses:
-            raise Exception('Error occurred!')
-        status = response.json()['payment_status']
-        results = {}
-        if status == ps.PAID:
-            results['callback'] = 'confirm_payment'
-        elif status == ps.PRE_AUTH:
-            results['callback'] = 'confirm_lock'
-        elif status == ps.PREPARED:
-            results['callback'] = 'confirm_prepared'
-        elif status == ps.FAILED:
-            results['callback'] = 'fail'
-        return results
+        """
+        Simulate fetching payment status from an external provider.
+
+        In PULL mode, this is called to discover what happened with the
+        payment. The dummy backend simulates a successful payment flow
+        by returning the "next step" callback:
+
+        - PREPARED -> confirm_payment (provider says: "payment received")
+        - PRE_AUTH -> confirm_payment (provider says: "charge completed")
+        - PARTIAL -> confirm_payment (provider says: "more payment received")
+        - Already PAID/FAILED/REFUNDED -> no callback (terminal states)
+
+        The ``confirmation_status`` setting can override the simulated
+        outcome: 'paid' (default), 'pre_auth', or 'failed'.
+        """
+        status = self.payment.status
+        simulated = self.get_setting('confirmation_status', 'paid')
+
+        # Terminal states — nothing more to do
+        if status in (ps.PAID, ps.FAILED, ps.REFUNDED, ps.REFUND_STARTED):
+            return {}
+
+        # NEW — not yet prepared, no callback
+        if status == ps.NEW:
+            return {}
+
+        # Simulate the provider's response based on configuration
+        if simulated == 'failed':
+            return {'callback': 'fail'}
+        elif simulated == 'pre_auth':
+            return {'callback': 'confirm_lock'}
+        else:
+            # Default: simulate successful payment
+            return {
+                'callback': 'confirm_payment',
+                'amount': self.payment.amount_required,
+            }
 
     def charge(self, amount=None, **kwargs):
-        url = urljoin(
-            self.get_paywall_baseurl(), reverse('paywall:api_operate')
-        )
-        requests.post(
-            url,
-            json={'id': str(self.payment.external_id), 'new_status': ps.PAID},
-        )
+        """
+        Simulate charging a pre-authorized amount.
+
+        Returns a ChargeResponse dict with the charged amount.
+        """
+        if amount is None:
+            amount = self.payment.amount_locked
+        return {
+            'amount_charged': Decimal(str(amount)),
+            'success': True,
+        }
 
     def release_lock(self, **kwargs):
-        url = urljoin(
-            self.get_paywall_baseurl(), reverse('paywall:api_operate')
-        )
-        requests.post(
-            url,
-            json={
-                'id': str(self.payment.external_id),
-                'new_status': ps.REFUNDED,
-            },
-        )
+        """
+        Simulate releasing a locked amount.
+
+        Returns the released amount as a Decimal.
+        """
+        return Decimal(str(self.payment.amount_locked))
 
     def start_refund(self, amount=None, **kwargs):
-        url = urljoin(
-            self.get_paywall_baseurl(), reverse('paywall:api_operate')
-        )
-        requests.post(
-            url,
-            json={
-                'id': str(self.payment.external_id),
-                'new_status': ps.REFUND_STARTED,
-            },
-        )
+        """
+        Simulate starting a refund.
+
+        Returns the refund amount as a Decimal.
+        """
+        if amount is None:
+            amount = self.payment.amount_paid
+        return Decimal(str(amount))
 
     def cancel_refund(self, **kwargs):
-        url = urljoin(
-            self.get_paywall_baseurl(), reverse('paywall:api_operate')
-        )
-        requests.post(
-            url,
-            json={'id': str(self.payment.external_id), 'new_status': ps.PAID},
-        )
+        """
+        Simulate cancelling a refund.
+
+        Returns True (always succeeds in dummy mode).
+        """
+        return True

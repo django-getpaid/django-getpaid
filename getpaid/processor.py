@@ -98,11 +98,19 @@ class BaseProcessor(ABC):
         """
         Little helper function to get base url for our site.
         Note that this way 'https' is enforced on production environment.
+
+        When no request is available, falls back to django.contrib.sites
+        to determine the domain. Requires SITE_ID to be set in settings
+        and django.contrib.sites in INSTALLED_APPS.
         """
-        if request is None:
-            return 'http://127.0.0.1/'
         scheme = 'http' if settings.DEBUG else 'https'
-        return f'{scheme}://{get_current_site(request).domain}/'
+        if request is not None:
+            domain = get_current_site(request).domain
+        else:
+            from django.contrib.sites.models import Site
+
+            domain = Site.objects.get_current().domain
+        return f'{scheme}://{domain}/'
 
     def get_template_names(
         self, view: View | None = None, **kwargs
@@ -158,6 +166,17 @@ class BaseProcessor(ABC):
         :return: HttpResponse instance
         """
         raise NotImplementedError
+
+    def verify_callback(self, request: HttpRequest, **kwargs) -> None:
+        """
+        Verify the authenticity of a callback request from the paywall.
+
+        Backends should override this method to validate request signatures,
+        IP whitelists, or other security measures. Raise GetPaidException
+        (or a subclass) if the callback cannot be verified.
+
+        The default implementation is a no-op (accepts all callbacks).
+        """
 
     def handle_paywall_callback(
         self, request: HttpRequest, **kwargs
