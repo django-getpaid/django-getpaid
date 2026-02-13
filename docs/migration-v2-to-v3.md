@@ -11,7 +11,7 @@ breaking changes and how to update your code.
 | FSM | django-fsm + `FSMField` | `transitions` via getpaid-core, plain `CharField` |
 | State checks | `can_proceed(payment.method)` | `payment.may_trigger("method")` |
 | Transitions | `@transition` decorators on model | Runtime-attached via `create_payment_machine()` |
-| Dependencies | django-fsm, poetry | getpaid-core, uv |
+| Runtime deps | django-fsm | getpaid-core |
 | Python | 3.6+ | 3.12+ |
 | Django | 2.2+ | 5.2+ |
 
@@ -129,7 +129,7 @@ If you wrote a custom payment backend, update the processor:
 from django_fsm import can_proceed
 
 class PaymentProcessor(BaseProcessor):
-    def handle_callback(self, request, **kwargs):
+    def handle_paywall_callback(self, request, **kwargs):
         if can_proceed(self.payment.confirm_payment):
             self.payment.confirm_payment()
 
@@ -141,6 +141,29 @@ class PaymentProcessor(BaseProcessor):
         create_payment_machine(self.payment)
         if self.payment.may_trigger("confirm_payment"):
             self.payment.confirm_payment()
+```
+
+### 8. Update settings format
+
+Backend settings moved from a nested `GETPAID` dict to a top-level
+`GETPAID_BACKEND_SETTINGS`:
+
+```python
+# BEFORE (v2):
+GETPAID = {
+    "BACKENDS": {
+        "getpaid_payu": {
+            "pos_id": 12345,
+        }
+    }
+}
+
+# AFTER (v3):
+GETPAID_BACKEND_SETTINGS = {
+    "getpaid_payu": {
+        "pos_id": 12345,
+    },
+}
 ```
 
 ## Enum Values Are Unchanged

@@ -2,12 +2,13 @@
 
 import os
 import sys
+from pathlib import Path
 
 import django
 
 # Add project and example app to path for autodoc
-sys.path.insert(0, os.path.abspath('..'))
-sys.path.insert(0, os.path.abspath('../example'))
+sys.path.insert(0, str(Path('..').resolve()))
+sys.path.insert(0, str(Path('../example').resolve()))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'example.settings')
 django.setup()
 
@@ -15,7 +16,7 @@ import getpaid
 
 project = 'django-getpaid'
 author = 'Dominik Kozaczko'
-copyright = '2012-2013 Krzysztof Dorosz, 2013-2026 Dominik Kozaczko'
+project_copyright = '2012-2013 Krzysztof Dorosz, 2013-2026 Dominik Kozaczko'
 
 version = '.'.join(getpaid.__version__.split('.')[:2])
 release = getpaid.__version__

@@ -776,6 +776,7 @@ dev = [
     { name = "furo", specifier = ">=2025.12.19" },
     { name = "myst-parser", specifier = ">=4.0.1" },
     { name = "pre-commit", specifier = ">=4.0" },
+    { name = "pre-commit-hooks", specifier = ">=6.0.0" },
     { name = "pytest", specifier = ">=8.0" },
     { name = "pytest-asyncio", specifier = ">=0.24.0" },
     { name = "pytest-cov", specifier = ">=5.0" },

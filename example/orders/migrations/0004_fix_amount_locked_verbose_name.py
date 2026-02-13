@@ -4,28 +4,30 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ("orders", "0003_fix_amount_refunded_precision"),
+        ('orders', '0003_fix_amount_refunded_precision'),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name="custompayment",
-            name="amount_locked",
+            model_name='custompayment',
+            name='amount_locked',
             field=models.DecimalField(
                 decimal_places=2,
                 default=0,
-                help_text="Amount locked with this payment, ready to charge.",
+                help_text='Amount locked with this payment, ready to charge.',
                 max_digits=20,
-                verbose_name="amount locked",
+                verbose_name='amount locked',
             ),
         ),
         migrations.AlterField(
-            model_name="order",
-            name="id",
+            model_name='order',
+            name='id',
             field=models.AutoField(
-                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                auto_created=True,
+                primary_key=True,
+                serialize=False,
+                verbose_name='ID',
             ),
         ),
     ]

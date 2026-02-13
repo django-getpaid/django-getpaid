@@ -1,18 +1,29 @@
 # Getting Started
 
+```{warning}
+**v3.0.0a1 (Alpha)** — This is a pre-release. The API may change before the
+stable v3.0 release.
+```
+
 ## Installation
 
-Install django-getpaid and at least one payment backend:
+Install django-getpaid:
 
 ```bash
 pip install django-getpaid
-pip install django-getpaid-payu
 ```
 
 Or with uv:
 
 ```bash
-uv add django-getpaid django-getpaid-payu
+uv add django-getpaid
+```
+
+Then install a payment backend plugin. Make sure the plugin supports v3 —
+v2 plugins are **not** compatible:
+
+```bash
+pip install django-getpaid-payu  # if a v3-compatible version is available
 ```
 
 ## Create an Order model
@@ -54,10 +65,10 @@ If you already have an Order model, you don't need to subclass `AbstractOrder`
 
 ## Create the initial migration
 
-Run `makemigrations` **before** adding `getpaid` to `INSTALLED_APPS`:
+After defining your Order model, create its migration before proceeding:
 
 ```bash
-./manage.py makemigrations
+./manage.py makemigrations yourapp
 ```
 
 ## Configure settings

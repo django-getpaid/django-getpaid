@@ -22,7 +22,7 @@ over [getpaid-core](https://github.com/django-getpaid/python-getpaid-core).
 - FSM-removal migrations (convert FSMField to CharField)
 - Runtime payment state machine via `create_payment_machine()`
 - `DjangoPluginRegistry` wrapping getpaid-core's `PluginRegistry`
-- `DjangoBaseProcessor` wrapping getpaid-core's `BaseProcessor`
+- `BaseProcessor` (in `getpaid.processor`) wrapping getpaid-core's `BaseProcessor`
 
 ### Unchanged
 

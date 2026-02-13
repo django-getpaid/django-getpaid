@@ -9,6 +9,9 @@
 Multi-broker payment processing framework for Django, built on
 [getpaid-core](https://github.com/django-getpaid/python-getpaid-core).
 
+> **v3.0.0a1 (Alpha)** — This is a pre-release. The API may change before the
+> stable v3.0 release.
+
 ## Features
 
 - Multiple payment brokers at the same time
@@ -23,14 +26,17 @@ Multi-broker payment processing framework for Django, built on
 ## Installation
 
 ```bash
-pip install django-getpaid django-getpaid-payu
+pip install django-getpaid
 ```
 
 Or with uv:
 
 ```bash
-uv add django-getpaid django-getpaid-payu
+uv add django-getpaid
 ```
+
+Then install a payment backend plugin (check that the plugin supports v3
+before installing — v2 plugins are **not** compatible):
 
 ## Quick Start
 
@@ -91,7 +97,7 @@ from v2.
 ## Supported Versions
 
 - **Python:** 3.12+
-- **Django:** 5.2+, 6.0
+- **Django:** 5.2+
 
 ## Running Tests
 
@@ -120,4 +126,4 @@ Development of version 2.0 sponsored by [SUNSCRAPERS](https://sunscrapers.com/).
 ## Disclaimer
 
 This project has nothing in common with the
-[getpaid](http://code.google.com/p/getpaid/) plone project.
+[getpaid](https://code.google.com/archive/p/getpaid/) plone project.
