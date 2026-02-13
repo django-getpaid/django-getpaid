@@ -2,7 +2,6 @@
 
 import uuid
 
-import django_fsm
 from django.db import migrations, models
 
 
@@ -26,7 +25,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='paymententry',
             name='fraud_status',
-            field=django_fsm.FSMField(
+            field=models.CharField(
                 choices=[
                     ('unknown', 'unknown'),
                     ('accepted', 'accepted'),
@@ -35,13 +34,12 @@ class Migration(migrations.Migration):
                 ],
                 default='unknown',
                 max_length=50,
-                protected=True,
             ),
         ),
         migrations.AddField(
             model_name='paymententry',
             name='payment_status',
-            field=django_fsm.FSMField(
+            field=models.CharField(
                 choices=[
                     ('new', 'new'),
                     ('prepared', 'in progress'),
@@ -55,7 +53,6 @@ class Migration(migrations.Migration):
                 ],
                 default='prepared',
                 max_length=50,
-                protected=True,
             ),
         ),
     ]

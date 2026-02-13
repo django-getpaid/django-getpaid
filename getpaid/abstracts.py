@@ -1,3 +1,10 @@
+"""Abstract models for django-getpaid v3.
+
+Models are plain Django models. FSM transitions are NOT defined on the model.
+Instead, use getpaid_core.fsm.create_payment_machine(payment) to attach
+transition triggers at runtime.
+"""
+
 import logging
 import uuid
 from decimal import Decimal
@@ -10,20 +17,14 @@ from django.db.transaction import atomic
 from django.forms import BaseForm
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import resolve_url
-from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 from django.views import View
-from django_fsm import (
-    ConcurrentTransitionMixin,
-    FSMField,
-    TransitionNotAllowed,
-    can_proceed,
-    transition,
+from getpaid_core.fsm import (
+    ALLOWED_CALLBACKS,
+    create_payment_machine,
 )
 
-from getpaid.exceptions import ChargeFailure, GetPaidException
-from getpaid.processor import BaseProcessor
-from getpaid.registry import registry
+from getpaid.exceptions import ChargeFailure
 from getpaid.types import (
     BuyerInfo,
     ChargeResponse,
@@ -38,12 +39,9 @@ logger = logging.getLogger(__name__)
 
 
 class AbstractOrder(models.Model):
-    """
-    Please consider setting either primary or secondary key of your Orders to
-    UUIDField. This way you will hide your volume which is valuable business
-    information that should be kept hidden. If you set it as secondary key,
-    remember to use ``dbindex=True`` (primary keys are indexed by default).
-    Read more: https://docs.djangoproject.com/en/3.0/ref/models/fields/#uuidfield
+    """Base class for Order models.
+
+    Consider using UUIDField as primary or secondary key to hide volume.
     """
 
     class Meta:
@@ -55,29 +53,20 @@ class AbstractOrder(models.Model):
         success: bool | None = None,
         **kwargs,
     ) -> str:
-        """
-        Method used to determine the final url the client should see after
-        returning from gateway. Client will be redirected to this url after
-        backend handled the original callback (i.e. updated payment status)
-        and only if SUCCESS_URL or FAILURE_URL settings are NOT set.
-        By default it returns the result of `get_absolute_url`
+        """Return URL after payment completion.
+
+        Override to customize. Default: get_absolute_url().
         """
         return self.get_absolute_url()
 
     def get_absolute_url(self) -> str:
-        """
-        Standard method recommended in Django docs. It should return
-        the URL to see details of particular Payment (or usually - Order).
-        """
         raise NotImplementedError
 
     def is_ready_for_payment(self) -> bool:
-        """Most of the validation is made in PaymentMethodForm but if you need
-        any extra validation. For example you most probably want to disable
-        making another payment for order that is already paid.
+        """Validate order is ready for payment.
 
-        You can raise :class:`~django.forms.ValidationError` if you want more
-        verbose error message.
+        Override for custom validation. Raise ValidationError
+        for verbose error messages.
         """
         if self.payments.exclude(status=ps.FAILED).exists():
             raise forms.ValidationError(
@@ -86,14 +75,7 @@ class AbstractOrder(models.Model):
         return True
 
     def get_items(self) -> list[ItemInfo]:
-        """
-        There are backends that require some sort of item list to be attached
-        to the payment. But it's up to you if the list is real or contains only
-        one item called "Payment for stuff in {myshop}" ;)
-
-        :return: List of :class:`ItemInfo` dicts. Default: order summary.
-        :rtype: List[ItemInfo]
-        """
+        """Return list of items for the payment."""
         return [
             {
                 'name': self.get_description(),
@@ -103,29 +85,23 @@ class AbstractOrder(models.Model):
         ]
 
     def get_total_amount(self) -> Decimal:
-        """
-        This method must return the total value of the Order.
-
-        :return: Decimal object
-        """
         raise NotImplementedError
 
     def get_buyer_info(self) -> BuyerInfo:
-        """
-        This method should return dict with necessary user info.
-        For most backends email should be sufficient.
-        Refer to :class`BuyerInfo` for expected structure.
-        """
         raise NotImplementedError
 
     def get_description(self) -> str:
-        """
-        :return: Description of the Order. Should return the value of appropriate field.
-        """
         raise NotImplementedError
 
 
-class AbstractPayment(ConcurrentTransitionMixin, models.Model):
+class AbstractPayment(models.Model):
+    """Abstract payment model.
+
+    FSM transitions are NOT defined on the model. Instead, use
+    getpaid_core.fsm.create_payment_machine(payment) to attach
+    transition triggers at runtime.
+    """
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     order = models.ForeignKey(
         swapper.get_model_name('getpaid', 'Order'),
@@ -143,19 +119,23 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         ),
     )
     currency = models.CharField(_('currency'), max_length=3)
-    status = FSMField(
+    status = models.CharField(
         _('status'),
-        choices=ps.CHOICES,
+        max_length=50,
+        choices=ps.choices,
         default=ps.NEW,
         db_index=True,
-        protected=True,
     )
     backend = models.CharField(_('backend'), max_length=100, db_index=True)
     created_on = models.DateTimeField(
         _('created on'), auto_now_add=True, db_index=True
     )
     last_payment_on = models.DateTimeField(
-        _('paid on'), blank=True, null=True, default=None, db_index=True
+        _('paid on'),
+        blank=True,
+        null=True,
+        default=None,
+        db_index=True,
     )
     amount_locked = models.DecimalField(
         _('amount locked'),
@@ -172,50 +152,36 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         help_text=_('Amount actually paid.'),
     )
     refunded_on = models.DateTimeField(
-        _('refunded on'), blank=True, null=True, default=None, db_index=True
+        _('refunded on'),
+        blank=True,
+        null=True,
+        default=None,
+        db_index=True,
     )
     amount_refunded = models.DecimalField(
-        _('amount refunded'), decimal_places=2, max_digits=20, default=0
+        _('amount refunded'),
+        decimal_places=2,
+        max_digits=20,
+        default=0,
     )
     external_id = models.CharField(
-        _('external id'), max_length=64, blank=True, db_index=True, default=''
+        _('external id'),
+        max_length=64,
+        blank=True,
+        db_index=True,
+        default='',
     )
     description = models.CharField(
         _('description'), max_length=128, blank=True, default=''
     )
-    fraud_status = FSMField(
+    fraud_status = models.CharField(
         _('fraud status'),
         max_length=20,
-        choices=fs.CHOICES,
+        choices=fs.choices,
         default=fs.UNKNOWN,
         db_index=True,
-        protected=True,
     )
     fraud_message = models.TextField(_('fraud message'), blank=True)
-
-    _processor = None
-
-    #: Allowlist of FSM transition method names that may be invoked via
-    #: fetch_and_update_status(). Any callback name not in this set will be
-    #: rejected to prevent arbitrary method invocation from external sources.
-    ALLOWED_CALLBACKS = frozenset({
-        'confirm_prepared',
-        'confirm_lock',
-        'confirm_charge_sent',
-        'confirm_payment',
-        'mark_as_paid',
-        'release_lock',
-        'start_refund',
-        'cancel_refund',
-        'confirm_refund',
-        'mark_as_refunded',
-        'fail',
-        'flag_as_fraud',
-        'flag_as_legit',
-        'flag_for_check',
-        'mark_as_fraud',
-        'mark_as_legit',
-    })
 
     class Meta:
         abstract = True
@@ -226,112 +192,74 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
     def __str__(self):
         return f'Payment #{self.id}'
 
-    # First some helpful properties and internals
-
-    @property
-    def processor(self) -> BaseProcessor:
-        if self._processor is None:
-            self._processor = self.get_processor()
-        return self._processor
+    # ---- Properties ----
 
     @property
     def fully_paid(self) -> bool:
         return self.amount_paid >= self.amount_required
 
-    def get_processor(self) -> BaseProcessor:
-        """
-        Returns the processor instance for the backend that
-        was chosen for this Payment. By default it takes it from global
-        backend registry and tries to import it when it's not there.
-        You most probably don't want to mess with this.
-        """
-        if self.backend in registry:
-            processor = registry[self.backend]
-        else:
-            # last resort if backend has been removed from INSTALLED_APPS
-            module = import_module(self.backend)
-            processor = module.PaymentProcessor
-        return processor(self)
+    def is_fully_paid(self) -> bool:
+        """Check if payment is fully paid. Used by core FSM guard."""
+        return self.amount_paid >= self.amount_required
 
-    # Then some customization enablers
+    def is_fully_refunded(self) -> bool:
+        """Check if payment is fully refunded. Used by core FSM guard."""
+        return (
+            self.amount_refunded > 0
+            and self.amount_refunded >= self.amount_paid
+        )
+
+    # ---- Delegation helpers ----
 
     def get_unique_id(self) -> str:
-        """
-        Return unique identifier for this payment. Most paywalls call this
-        "external id". Default: str(self.id) which is uuid4.
-        """
+        """Return unique identifier for this payment."""
         return str(self.id)
 
     def get_items(self) -> list[ItemInfo]:
-        """
-        Some backends require the list of items to be added to Payment.
-
-        This method relays the call to Order. It is here simply because
-        you can change the Order's fieldname when customizing Payment model.
-        In that case you need to overwrite this method so that it properly
-        returns a list.
-        """
-        # TODO: type/interface annotation
+        """Relay to order's get_items()."""
         return self.order.get_items()
 
     def get_buyer_info(self) -> BuyerInfo:
         return self.order.get_buyer_info()
 
-    def get_form(self, *args, **kwargs) -> BaseForm:
-        """
-        Interfaces processor's ``get_form``.
+    def _get_processor(self):
+        """Get processor instance for this payment's backend."""
+        # Circular import workaround: registry imports processor
+        from getpaid.registry import registry
 
-        Returns a Form to be used on intermediate page if the method returned by
-        ``get_redirect_method`` is 'POST'.
-        """
-        return self.processor.get_form(*args, **kwargs)
+        if self.backend in registry:
+            processor_class = registry[self.backend]
+        else:
+            # last resort if backend removed from INSTALLED_APPS
+            module = import_module(self.backend)
+            processor_class = module.PaymentProcessor
+        return processor_class(self)
+
+    def get_form(self, *args, **kwargs) -> BaseForm:
+        """Interfaces processor's get_form."""
+        return self._get_processor().get_form(*args, **kwargs)
 
     def get_template_names(self, view: View | None = None) -> list[str]:
-        """
-        Interfaces processor's ``get_template_names``.
-
-        Used to get templates for intermediate page when ``get_redirect_method``
-        returns 'POST'.
-        """
-        return self.processor.get_template_names(view=view)
+        """Interfaces processor's get_template_names."""
+        return self._get_processor().get_template_names(view=view)
 
     def handle_paywall_callback(
         self, request: HttpRequest, **kwargs
     ) -> HttpResponse:
-        """
-        Interfaces processor's ``handle_paywall_callback``.
-
-        Called when 'PUSH' flow is used for a backend. In this scenario paywall
-        will send a request to our server with information about the state of
-        Payment. Broker can send several such requests during Payment's lifetime.
-        Backend should analyze this request and return appropriate response that
-        can be understood by paywall.
-
-        :param request: Request sent by paywall.
-
-        :return: HttpResponse instance
-        """
-        return self.processor.handle_paywall_callback(request, **kwargs)
+        """Interfaces processor's handle_paywall_callback."""
+        return self._get_processor().handle_paywall_callback(request, **kwargs)
 
     def fetch_status(self) -> PaymentStatusResponse:
-        """
-        Interfaces processor's ``fetch_payment_status``.
-
-        Used during 'PULL' flow. Fetches status from paywall and proposes a callback
-        depending on the response.
-        """
-        return self.processor.fetch_payment_status()
+        """Interfaces processor's fetch_payment_status."""
+        return self._get_processor().fetch_payment_status()
 
     @atomic
     def fetch_and_update_status(self) -> PaymentStatusResponse:
-        """
-        Used during 'PULL' flow to automatically fetch and update
-        Payment's status.
-        """
+        """Used during PULL flow to fetch and update payment status."""
         status_report = self.fetch_status()
         callback_name = status_report.get('callback')
         if callback_name:
-            if callback_name not in self.ALLOWED_CALLBACKS:
+            if callback_name not in ALLOWED_CALLBACKS:
                 logger.warning(
                     'Disallowed callback %r requested for payment %s.',
                     callback_name,
@@ -346,36 +274,41 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
                     f'Disallowed callback: {callback_name!r}'
                 )
                 return status_report
-            callback = getattr(self, callback_name)
+
+            # Attach FSM and try the callback
+            create_payment_machine(self)
+            callback = getattr(self, callback_name, None)
             amount = status_report.get('amount', None)
-            try:
-                if can_proceed(callback):
+            if callback is not None and self.may_trigger(callback_name):
+                try:
                     status_report['callback_result'] = callback(amount=amount)
                     self.save()
                     status_report['saved'] = True
-                else:
-                    logger.debug(
-                        f'Cannot run fetch+update callback {callback_name}.',
-                        extra={
-                            'payment_id': self.id,
-                            'payment_status': self.status,
-                            'callback': callback_name,
-                        },
-                    )
-            except (GetPaidException, TransitionNotAllowed) as e:
-                status_report['exception'] = e
+                except Exception as exc:
+                    status_report['exception'] = exc
+            else:
+                logger.debug(
+                    'Cannot run fetch+update callback %s.',
+                    callback_name,
+                    extra={
+                        'payment_id': self.id,
+                        'payment_status': self.status,
+                        'callback': callback_name,
+                    },
+                )
         return status_report
 
     def get_return_redirect_url(
         self, request: HttpRequest, success: bool
     ) -> str:
+        """Determine redirect URL after payment."""
+        processor = self._get_processor()
         if success:
-            url = self.processor.get_setting('SUCCESS_URL')
+            url = processor.get_setting('SUCCESS_URL')
         else:
-            url = self.processor.get_setting('FAILURE_URL')
+            url = processor.get_setting('FAILURE_URL')
 
         if url is not None:
-            # we may want to return to Order summary or smth
             kwargs = self.get_return_redirect_kwargs(request, success)
             return resolve_url(url, **kwargs)
         return resolve_url(self.order.get_return_url(self, success=success))
@@ -385,7 +318,7 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
     ) -> dict:
         return {'pk': self.id}
 
-    # Actions / FSM transitions
+    # ---- Action helpers (delegate to processor) ----
 
     def prepare_transaction(
         self,
@@ -393,11 +326,8 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         view: View | None = None,
         **kwargs,
     ) -> HttpResponse:
-        """
-        Interfaces processor's
-        :meth:`~getpaid.processor.BaseProcessor.prepare_transaction`.
-        """
-        return self.processor.prepare_transaction(
+        """Interfaces processor's prepare_transaction."""
+        return self._get_processor().prepare_transaction(
             request=request, view=view, **kwargs
         )
 
@@ -407,10 +337,7 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
         view: View | None = None,
         **kwargs,
     ) -> RestfulResult:
-        """
-        Helper function returning data as dict to better integrate with
-        Django REST Framework.
-        """
+        """Helper returning data as dict for REST integration."""
         result = self.prepare_transaction(request=request, view=view, **kwargs)
         data = {'status_code': result.status_code, 'result': result}
         if result.status_code == 200:
@@ -436,51 +363,37 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
             data['message'] = result.content
         return data
 
-    @transition(field=status, source=ps.NEW, target=ps.PREPARED)
-    def confirm_prepared(self, **kwargs) -> None:
-        """
-        Used to confirm that paywall registered POSTed form.
-        """
-
-    @transition(field=status, source=[ps.NEW, ps.PREPARED], target=ps.PRE_AUTH)
-    def confirm_lock(
-        self, amount: Decimal | float | int | None = None, **kwargs
-    ) -> None:
-        """
-        Used to confirm that certain amount has been locked (pre-authed).
-        """
-        if amount is None:
-            amount = self.amount_required
-        self.amount_locked = amount
-
     @atomic
     def charge(
-        self, amount: Decimal | float | int | None = None, **kwargs
+        self,
+        amount: Decimal | float | int | None = None,
+        **kwargs,
     ) -> ChargeResponse:
-        """
-        Interfaces processor's :meth:`~getpaid.processor.BaseProcessor.charge`.
-        """
+        """Interfaces processor's charge with FSM transitions."""
+        create_payment_machine(self)
         if amount is None:
             amount = self.amount_locked
         if amount > self.amount_locked:
             raise ValueError('Cannot charge more than locked value.')
-        result = self.processor.charge(amount=amount, **kwargs)
+        processor = self._get_processor()
+        result = processor.charge(amount=amount, **kwargs)
         if 'amount_charged' in result or result.get('success', False):
             amount_charged = result.get('amount_charged', amount)
             self.amount_locked -= amount_charged
             self.confirm_payment(amount=amount_charged)
-            if can_proceed(self.mark_as_paid):
-                self.mark_as_paid()
-            else:
-                logger.debug(
-                    'Cannot mark as fully paid, left as partially paid.',
-                    extra={
-                        'payment_id': self.id,
-                        'payment_status': self.status,
-                    },
-                )
+            if self.may_trigger('mark_as_paid'):
+                try:
+                    self.mark_as_paid()
+                except Exception:
+                    logger.debug(
+                        'Cannot mark as fully paid, left as partially paid.',
+                        extra={
+                            'payment_id': self.id,
+                            'payment_status': self.status,
+                        },
+                    )
         elif result.get('async_call', False):
-            if can_proceed(self.confirm_charge_sent):
+            if self.may_trigger('confirm_charge_sent'):
                 self.confirm_charge_sent()
             else:
                 logger.debug(
@@ -496,135 +409,3 @@ class AbstractPayment(ConcurrentTransitionMixin, models.Model):
             )
         self.save()
         return result
-
-    @transition(field=status, source=ps.PRE_AUTH, target=ps.IN_CHARGE)
-    def confirm_charge_sent(self, **kwargs) -> None:
-        """
-        Used during async charge cycle - after you send charge request,
-        the confirmation will be sent to callback endpoint.
-        """
-
-    @transition(
-        field=status,
-        source=[ps.PRE_AUTH, ps.PREPARED, ps.IN_CHARGE, ps.PARTIAL],
-        target=ps.PARTIAL,
-    )
-    def confirm_payment(
-        self, amount: Decimal | float | int | None = None, **kwargs
-    ) -> None:
-        """
-        Used when receiving callback confirmation.
-        """
-        if amount is None:
-            if not self.amount_locked:  # coming directly from PREPARED
-                self.amount_locked = self.amount_required
-            amount = self.amount_locked
-        self.amount_paid += amount
-
-    def _check_fully_paid(self) -> bool:
-        return self.fully_paid
-
-    @transition(
-        field=status,
-        source=ps.PARTIAL,
-        target=ps.PAID,
-        conditions=[_check_fully_paid],
-    )
-    def mark_as_paid(self, **kwargs) -> None:
-        """
-        Marks payment as fully paid if condition is met.
-        """
-
-    @transition(field=status, source=ps.PRE_AUTH, target=ps.REFUNDED)
-    def release_lock(self, **kwargs) -> Decimal:
-        """
-        Interfaces processor's :meth:`~getpaid.processor.BaseProcessor.charge`.
-        """
-        self.amount_refunded = self.amount_locked
-        self.amount_locked = 0
-        return self.processor.release_lock(**kwargs)
-
-    @transition(
-        field=status, source=[ps.PAID, ps.PARTIAL], target=ps.REFUND_STARTED
-    )
-    def start_refund(
-        self, amount: Decimal | float | int | None = None, **kwargs
-    ) -> Decimal:
-        """
-        Interfaces processor's :meth:`~getpaid.processor.BaseProcessor.charge`.
-        """
-        if amount is None:
-            amount = self.amount_paid
-        if amount > self.amount_paid:
-            raise ValueError('Cannot refund more than amount paid.')
-        return self.processor.start_refund(amount=amount, **kwargs)
-
-    @transition(field=status, source=ps.REFUND_STARTED, target=ps.PARTIAL)
-    def cancel_refund(self, **kwargs) -> bool:
-        """
-        Interfaces processor's :meth:`~getpaid.processor.BaseProcessor.charge`.
-        """
-        return self.processor.cancel_refund()
-
-    @transition(field=status, source=ps.REFUND_STARTED, target=ps.PARTIAL)
-    def confirm_refund(
-        self, amount: Decimal | float | int | None = None, **kwargs
-    ) -> None:
-        """
-        Used when receiving callback confirmation.
-        """
-        if amount is None:
-            amount = self.amount_paid
-        self.amount_refunded += amount
-        self.refunded_on = now()
-
-    def _is_full_refund(self) -> bool:
-        return self.amount_refunded == self.amount_paid
-
-    @transition(
-        field=status,
-        source=ps.PARTIAL,
-        target=ps.REFUNDED,
-        conditions=[_is_full_refund],
-    )
-    def mark_as_refunded(self, **kwargs) -> None:
-        """
-        Verify if refund was partial or full.
-        """
-
-    @transition(
-        field=status,
-        source=[ps.NEW, ps.PRE_AUTH, ps.PREPARED],
-        target=ps.FAILED,
-    )
-    def fail(self, **kwargs) -> None:
-        """
-        Sets Payment as failed.
-        """
-
-    # Finally: Fraud-related actions.
-    # The "flag_*" methods are for processors (automatic decisions).
-    # The "mark_*" methods are for manual review decisions.
-
-    @transition(field=fraud_status, source=fs.UNKNOWN, target=fs.REJECTED)
-    def flag_as_fraud(self, message: str = '', **kwargs) -> None:
-        """Flag payment as fraudulent (automatic processor decision)."""
-        self.fraud_message = message
-
-    @transition(field=fraud_status, source=fs.UNKNOWN, target=fs.ACCEPTED)
-    def flag_as_legit(self, message: str = '', **kwargs) -> None:
-        """Flag payment as legitimate (automatic processor decision)."""
-        self.fraud_message = message
-
-    @transition(field=fraud_status, source=fs.UNKNOWN, target=fs.CHECK)
-    def flag_for_check(self, message: str = '', **kwargs) -> None:
-        """Flag payment for manual review (automatic processor decision)."""
-        self.fraud_message = message
-
-    @transition(field=fraud_status, source=fs.CHECK, target=fs.REJECTED)
-    def mark_as_fraud(self, message: str = '', **kwargs) -> None:
-        self.fraud_message += f'\n==MANUAL REJECT==\n{message}'
-
-    @transition(field=fraud_status, source=fs.CHECK, target=fs.ACCEPTED)
-    def mark_as_legit(self, message: str = '', **kwargs) -> None:
-        self.fraud_message += f'\n==MANUAL ACCEPT==\n{message}'

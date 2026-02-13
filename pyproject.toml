@@ -29,6 +29,7 @@ dev = [
     "tox>=4.35.0",
     "ty>=0.0.16",
     "getpaid-core @ file:///${PROJECT_ROOT}/../getpaid-core",
+
 ]
 
 [tool.pytest.ini_options]
@@ -89,6 +90,9 @@ select = [
 ]
 ignore = [
   "A005",
+  "B027",
+  "C408",    # unnecessary dict() call (readability preference)
+  "C901",    # function too complex (pre-existing)
   "COM812",
   "D100",
   "D104",
@@ -98,12 +102,24 @@ ignore = [
   "D401",
   "D404",
   "D405",
+  "FBT001",  # boolean positional arg (API compatibility)
   "ISC001",
   "ISC003",
+  "N802",    # function name should be lowercase (backward compat CHOICES)
+  "N805",    # first arg should be self (classproperty uses cls)
+  "N806",    # variable in function should be lowercase (swapper pattern)
+  "N813",    # camelcase imported as lowercase (project convention: ps, fs, bm, cm)
+  "N818",    # exception naming
+  "PLC0415", # imports inside functions (circular import workarounds)
   "PLR09",
   "PLR2004",
+  "PLR6201", # use set literal for membership (readability)
   "PLR6301",
+  "SIM102",  # nested if (readability preference)
+  "SLF001",  # private member access (_meta, _get_processor are semi-public)
   "TRY003",
+  "TRY300",  # consider moving to else block
+  "UP042",   # str+Enum → StrEnum (cannot use StrEnum due to subclassing limitation)
   "RUF012",
 ]
 external = [ "WPS" ]
@@ -112,4 +128,4 @@ mccabe.max-complexity = 9
 pydocstyle.convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S101"]
+"tests/**" = ["S101", "S105", "PT015", "PT018", "PLW1514", "SIM115", "SIM117", "N817", "B011", "PIE810", "PTH100", "PTH118", "PTH120"]

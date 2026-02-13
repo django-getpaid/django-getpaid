@@ -3,8 +3,7 @@ import uuid
 import pytest
 import swapper
 from django.template.response import TemplateResponse
-from django.test import TestCase
-from django_fsm import can_proceed
+from getpaid_core.fsm import create_payment_machine
 
 from getpaid.registry import registry
 from getpaid.types import BackendMethod as bm
@@ -29,11 +28,11 @@ def _prep_conf(api_method: bm = bm.REST, confirm_method: cm = cm.PUSH) -> dict:
     }
 
 
-class TestModelProcessor(TestCase):
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        registry.register(Plugin)
+class TestModelProcessor:
+    @pytest.fixture(autouse=True)
+    def setup_plugin(self):
+        if Plugin.slug not in registry:
+            registry.register(Plugin)
 
     def test_model_and_dummy_backend(self):
         order = Order.objects.create()
@@ -44,7 +43,7 @@ class TestModelProcessor(TestCase):
             backend=dummy,
             description=order.get_description(),
         )
-        proc = payment.get_processor()
+        proc = payment._get_processor()
         assert isinstance(proc, registry[dummy])
 
     def test_model_and_test_backend(self):
@@ -56,7 +55,7 @@ class TestModelProcessor(TestCase):
             backend=Plugin.slug,
             description=order.get_description(),
         )
-        proc = payment.get_processor()
+        proc = payment._get_processor()
         assert isinstance(proc, registry[Plugin.slug])
 
 
@@ -87,8 +86,6 @@ def test_rest_flow_begin(payment_factory, settings, rf):
     assert payment.status == ps.PREPARED
 
 
-# PULL flow — the dummy backend simulates provider responses
-# via the confirmation_status setting (default: 'paid')
 def test_pull_flow_paid(payment_factory, settings):
     settings.GETPAID_BACKEND_SETTINGS = {
         'getpaid.backends.dummy': {
@@ -98,13 +95,13 @@ def test_pull_flow_paid(payment_factory, settings):
     }
 
     payment = payment_factory(external_id=uuid.uuid4())
+    create_payment_machine(payment)
     payment.confirm_prepared()
 
     payment.fetch_and_update_status()
-    # confirm_payment sets status to PARTIAL
     assert payment.status == ps.PARTIAL
-    # and can be checked and marked as fully paid
-    assert can_proceed(payment.mark_as_paid)
+    create_payment_machine(payment)
+    assert payment.may_trigger('mark_as_paid')
 
 
 def test_pull_flow_locked(payment_factory, settings):
@@ -116,6 +113,7 @@ def test_pull_flow_locked(payment_factory, settings):
     }
 
     payment = payment_factory(external_id=uuid.uuid4())
+    create_payment_machine(payment)
     payment.confirm_prepared()
 
     payment.fetch_and_update_status()
@@ -131,17 +129,18 @@ def test_pull_flow_failed(payment_factory, settings):
     }
 
     payment = payment_factory(external_id=uuid.uuid4())
+    create_payment_machine(payment)
     payment.confirm_prepared()
 
     payment.fetch_and_update_status()
     assert payment.status == ps.FAILED
 
 
-# PUSH flow — callbacks arrive as HTTP requests
 def test_push_flow_paid(payment_factory, settings, rf):
     settings.GETPAID_BACKEND_SETTINGS = _prep_conf(confirm_method=cm.PUSH)
 
     payment = payment_factory(external_id=uuid.uuid4())
+    create_payment_machine(payment)
     payment.confirm_prepared()
 
     request = rf.post(
@@ -155,6 +154,7 @@ def test_push_flow_locked(payment_factory, settings, rf):
     settings.GETPAID_BACKEND_SETTINGS = _prep_conf(confirm_method=cm.PUSH)
 
     payment = payment_factory(external_id=uuid.uuid4())
+    create_payment_machine(payment)
     payment.confirm_prepared()
 
     request = rf.post(
@@ -168,6 +168,7 @@ def test_push_flow_failed(payment_factory, settings, rf):
     settings.GETPAID_BACKEND_SETTINGS = _prep_conf(confirm_method=cm.PUSH)
 
     payment = payment_factory(external_id=uuid.uuid4())
+    create_payment_machine(payment)
     payment.confirm_prepared()
 
     request = rf.post(

@@ -1,8 +1,7 @@
 import uuid
 
-import requests
+import httpx
 from django.db import models
-from django_fsm import FSMField, transition
 
 from getpaid.status import FraudStatus as fs
 from getpaid.status import PaymentStatus as ps
@@ -17,46 +16,46 @@ class PaymentEntry(models.Model):
     callback = models.URLField(blank=True)
     success_url = models.URLField(blank=True)
     failure_url = models.URLField(blank=True)
-    payment_status = FSMField(
-        protected=True, choices=ps.CHOICES, default=ps.PREPARED
+    payment_status = models.CharField(
+        max_length=50,
+        choices=ps.choices,
+        default=ps.PREPARED,
     )
-    fraud_status = FSMField(
-        protected=True, choices=fs.CHOICES, default=fs.UNKNOWN
+    fraud_status = models.CharField(
+        max_length=50,
+        choices=fs.choices,
+        default=fs.UNKNOWN,
     )
 
     def _send_status_to_callback(self, status):
-        requests.post(
+        httpx.post(
             self.callback, json={'id': str(self.id), 'new_status': status}
         )
 
-    @transition(field=payment_status, source=ps.PREPARED, target=ps.PRE_AUTH)
     def send_confirm_lock(self):
+        self.payment_status = ps.PRE_AUTH
+        self.save()
         self._send_status_to_callback(ps.PRE_AUTH)
 
-    @transition(field=payment_status, source=ps.PRE_AUTH, target=ps.PAID)
     def send_confirm_charge(self):
+        self.payment_status = ps.PAID
+        self.save()
         self._send_status_to_callback(ps.PAID)
 
-    @transition(
-        field=payment_status,
-        source=[ps.PREPARED, ps.PRE_AUTH],
-        target=ps.FAILED,
-    )
     def send_fail(self):
+        self.payment_status = ps.FAILED
+        self.save()
         self._send_status_to_callback(ps.FAILED)
 
-    @transition(field=payment_status, source=ps.PAID, target=ps.REFUND_STARTED)
     def start_refund(self):
-        pass
+        self.payment_status = ps.REFUND_STARTED
+        self.save()
 
-    @transition(
-        field=payment_status,
-        source=[ps.PRE_AUTH, ps.REFUND_STARTED],
-        target=ps.REFUNDED,
-    )
     def send_confirm_refund(self):
+        self.payment_status = ps.REFUNDED
+        self.save()
         self._send_status_to_callback(ps.REFUNDED)
 
-    @transition(field=payment_status, source=ps.REFUND_STARTED, target=ps.PAID)
     def cancel_refund(self):
-        pass
+        self.payment_status = ps.PAID
+        self.save()

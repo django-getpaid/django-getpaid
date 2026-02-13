@@ -14,6 +14,7 @@ class DummyPluginAppConfig(AppConfig):
         if not settings.DEBUG:
             raise ImproperlyConfigured('Do not use dummy plugin on production!')
 
+        from getpaid.backends.dummy.processor import PaymentProcessor
         from getpaid.registry import registry
 
-        registry.register(self.module)
+        registry.register(PaymentProcessor)

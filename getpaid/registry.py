@@ -1,11 +1,13 @@
+"""Django-specific plugin registry wrapping getpaid-core."""
+
 import importlib
 
 from django.urls import include, path
+from getpaid_core.processor import BaseProcessor
+from getpaid_core.registry import PluginRegistry as CorePluginRegistry
 
-from getpaid.processor import BaseProcessor
 
-
-def importable(name):
+def _importable(name):
     try:
         importlib.import_module(name)
         return True
@@ -13,77 +15,102 @@ def importable(name):
         return False
 
 
-class PluginRegistry:
-    def __init__(self):
-        self._backends = {}
+class DjangoPluginRegistry:
+    """Django adapter for getpaid-core's PluginRegistry.
+
+    Adds Django-specific features: URL generation, module-based
+    registration (backward compat), and CHOICES-format helpers.
+    """
+
+    def __init__(self, core_registry: CorePluginRegistry) -> None:
+        self._core = core_registry
+        # Map from module path -> slug for backward compat
+        self._module_map: dict[str, str] = {}
 
     def __contains__(self, item):
-        return item in self._backends
+        return item in self._module_map or self._has_slug(item)
 
     def __getitem__(self, item):
-        return self._backends[item]
+        slug = self._module_map.get(item, item)
+        return self._core.get_by_slug(slug)
 
     def __iter__(self):
-        return iter(self._backends)
+        return iter(self._all_keys())
 
     def register(self, module_or_proc):
+        """Register a backend by class or module (backward compat).
+
+        Supports:
+        - register(ProcessorClass) -- direct class registration
+        - register(module) -- finds module.processor.PaymentProcessor
         """
-        Register module containing PaymentProcessor class
-        or a PaymentProcessor directly.
-        """
-        if hasattr(module_or_proc, '__base__') and issubclass(
+        if isinstance(module_or_proc, type) and issubclass(
             module_or_proc, BaseProcessor
         ):
-            self._backends[module_or_proc.slug] = module_or_proc
-        else:
-            processor = module_or_proc.processor.PaymentProcessor
-            self._backends[module_or_proc.__name__] = processor
+            self._core.register(module_or_proc)
+            # Derive backend module path for backward-compat lookups.
+            # E.g. 'getpaid.backends.dummy.processor' -> 'getpaid.backends.dummy'
+            class_module = module_or_proc.__module__
+            if class_module.endswith('.processor'):
+                backend_module = class_module.rsplit('.', 1)[0]
+                self._module_map[backend_module] = module_or_proc.slug
+            return
+
+        # Module-based registration (v2 backward compat)
+        processor = module_or_proc.processor.PaymentProcessor
+        self._core.register(processor)
+        self._module_map[module_or_proc.__name__] = processor.slug
+
+    def unregister(self, slug_or_module_path: str):
+        """Remove a backend by slug or module path."""
+        slug = self._module_map.pop(slug_or_module_path, slug_or_module_path)
+        self._core.unregister(slug)
 
     def get_choices(self, currency):
-        """
-        Get CHOICES for plugins that support given currency.
-        """
-        currency = currency.upper()
-        return [
-            (name, p.display_name)
-            for name, p in self._backends.items()
-            if currency in p.get_accepted_currencies()
-        ]
+        """Get CHOICES for plugins supporting given currency."""
+        return self._core.get_choices(currency.upper())
 
     def get_backends(self, currency):
-        """
-        Get plugins that support given currency.
-        """
-        currency = currency.upper()
-        return [
-            backend
-            for backend in self._backends.values()
-            if currency in backend.get_accepted_currencies()
-        ]
+        """Get backend classes supporting given currency."""
+        return self._core.get_for_currency(currency.upper())
 
     @property
     def urls(self):
-        """
-        Provide URL structure for all registered plugins that have urls defined.
-        """
-        return [
-            path(
-                f'{p.slug}/',
-                include((f'{name}.urls', p.slug), namespace=p.slug),
-            )
-            for name, p in self._backends.items()
-            if importable(f'{name}.urls')
-        ]
+        """Provide URL structure for registered plugins with urls modules."""
+        result = []
+        for module_path, slug in self._module_map.items():
+            urls_module = f'{module_path}.urls'
+            if _importable(urls_module):
+                proc_class = self._core.get_by_slug(slug)
+                result.append(
+                    path(
+                        f'{proc_class.slug}/',
+                        include(
+                            (urls_module, proc_class.slug),
+                            namespace=proc_class.slug,
+                        ),
+                    )
+                )
+        return result
 
     def get_all_supported_currency_choices(self):
-        """
-        Get all currencies that are supported by at least one plugin,
-        in CHOICES format.
-        """
-        currencies = set()
-        for backend in self._backends.values():
-            currencies.update(backend.accepted_currencies or [])
+        """Get all currencies supported by any plugin, as CHOICES."""
+        currencies = self._core.get_all_currencies()
         return [(c.upper(), c.upper()) for c in currencies]
 
+    def _has_slug(self, item):
+        try:
+            self._core.get_by_slug(item)
+            return True
+        except KeyError:
+            return False
 
-registry = PluginRegistry()
+    def _all_keys(self):
+        """Return all keys (both module paths and slugs)."""
+        keys = set(self._module_map.keys())
+        keys.update(self._core._backends.keys())
+        return keys
+
+
+# Module-level singleton wrapping core's singleton
+registry = DjangoPluginRegistry(CorePluginRegistry())

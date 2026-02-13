@@ -1,1 +1,1 @@
-from .types import FraudStatus, PaymentStatus  # noqa
+from .types import FraudStatus, PaymentStatus  # noqa: F401

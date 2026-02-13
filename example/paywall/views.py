@@ -1,13 +1,12 @@
 import json
 
-import requests
+import httpx
 from django.conf import settings
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import FormView
-from django_fsm import can_proceed
 
 from getpaid.status import PaymentStatus as ps
 
@@ -69,17 +68,16 @@ class AuthorizationView(FormView):
         self.form = form
         callback = form.cleaned_data['callback']
         url = self.request.build_absolute_uri(callback) if callback else None
-        # TODO: call post from delayed subprocess
         if url:
             if form.cleaned_data['authorize_payment'] == '1':
                 self.success = True
                 if settings.PAYWALL_MODE == 'LOCK':
-                    requests.post(url, json={'new_status': ps.PRE_AUTH})
+                    httpx.post(url, json={'new_status': ps.PRE_AUTH})
                 else:
-                    requests.post(url, json={'new_status': ps.PAID})
+                    httpx.post(url, json={'new_status': ps.PAID})
             else:
                 self.success = False
-                requests.post(url, json={'new_status': ps.FAILED})
+                httpx.post(url, json={'new_status': ps.FAILED})
         return super().form_valid(form)
 
 
@@ -87,7 +85,7 @@ authorization_view = csrf_exempt(AuthorizationView.as_view())
 
 
 def get_status(request, pk, **kwargs):
-    obj = get_object_or_404(PaymentEntry, {'pk': pk})
+    obj = get_object_or_404(PaymentEntry, pk=pk)
     return JsonResponse({
         'payment_status': obj.payment_status,
         'fraud_status': obj.fraud_status,
@@ -131,9 +129,9 @@ def rest_operation(request):
     if new_status == ps.PRE_AUTH:
         payment.send_confirm_lock()
     elif new_status == ps.PAID:
-        if can_proceed(payment.send_confirm_charge):
+        if payment.payment_status == ps.PRE_AUTH:
             payment.send_confirm_charge()
-        elif can_proceed(payment.cancel_refund):
+        elif payment.payment_status == ps.REFUND_STARTED:
             payment.cancel_refund()
         else:
             raise NotImplementedError(
@@ -146,4 +144,4 @@ def rest_operation(request):
     elif new_status == ps.REFUNDED:
         payment.send_confirm_refund()
 
-    return JsonResponse({'id': payment_id, 'new_status': new_status})
+    return JsonResponse({'id': str(payment_id), 'new_status': new_status})

@@ -9,6 +9,7 @@ Ensures that:
 
 import importlib
 import inspect
+import pathlib
 
 
 class TestNoDefaultAppConfig:
@@ -33,8 +34,7 @@ class TestNoTypingExtensions:
 
     def test_types_module_uses_stdlib_typeddict(self):
         source_file = importlib.import_module('getpaid.types').__file__
-        with open(source_file) as f:
-            source = f.read()
+        source = pathlib.Path(source_file).read_text()
         assert 'typing_extensions' not in source
         assert 'from typing import' in source or 'typing.TypedDict' in source
 
@@ -44,8 +44,7 @@ class TestNoClasspropertyFallback:
 
     def test_types_module_no_try_except_classproperty(self):
         source_file = importlib.import_module('getpaid.types').__file__
-        with open(source_file) as f:
-            source = f.read()
+        source = pathlib.Path(source_file).read_text()
         assert 'django.utils.decorators' not in source
         assert 'from django.utils.functional import classproperty' in source
 

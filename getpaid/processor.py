@@ -1,53 +1,59 @@
-from abc import ABC, abstractmethod
+"""Django-specific payment processor base class.
+
+Extends getpaid-core's BaseProcessor with Django settings integration,
+template handling, and URL helpers.
+"""
+
 from collections.abc import Mapping
-from decimal import Decimal
 from importlib import import_module
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from django.conf import settings
 from django.contrib.sites.shortcuts import get_current_site
 from django.core.exceptions import ImproperlyConfigured
 from django.forms import BaseForm
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest
 from django.views import View
-
-from getpaid.types import ChargeResponse, PaymentStatusResponse
-
-if TYPE_CHECKING:
-    from .abstracts import AbstractPayment
-else:
-    from django.db.models import Model as AbstractPayment
+from getpaid_core.processor import BaseProcessor as CoreBaseProcessor
 
 
-class BaseProcessor(ABC):
-    production_url = None  #: Base URL of production environment.
-    sandbox_url = None  #: Base URL of sandbox environment.
-    display_name = None  #: The name of the provider for the ``choices``.
-    accepted_currencies = None  #: List of accepted currency codes (ISO 4217).
-    logo_url = None  #: Logo URL - can be used in templates.
-    slug = None  #: For friendly urls
+class BaseProcessor(CoreBaseProcessor):
+    """Django adapter for core BaseProcessor.
+
+    Adds Django settings integration, template handling,
+    and URL helpers on top of core's abstract methods.
+    """
+
+    production_url = None
+    sandbox_url = None
     post_form_class = None
     post_template_name = None
     client_class = None
     client = None
-    #: List of potentially successful HTTP status codes returned by paywall
-    # when creating payment
-    ok_statuses = [
-        200,
-    ]
+    ok_statuses = [200]
 
-    def __init__(self, payment: AbstractPayment) -> None:
-        self.payment = payment
-        self.path = payment.backend
-        self.context = {}  # can be used by Payment's customized methods.
+    def __init__(self, payment, config=None) -> None:
+        # Read config from Django settings if not provided
+        if config is None:
+            path = getattr(payment, 'backend', '') or ''
+            config = getattr(settings, 'GETPAID_BACKEND_SETTINGS', {}).get(
+                path, {}
+            )
+        super().__init__(payment, config=config)
+        self.path = getattr(payment, 'backend', '') or ''
+        self.context = {}
         if self.slug is None:
             self.slug = self.path
-        self.config = getattr(settings, 'GETPAID_BACKEND_SETTINGS', {}).get(
-            self.path, {}
-        )
         self.optional_config = getattr(settings, 'GETPAID', {})
         if self.client_class is not None:
             self.client = self.get_client()
+
+    def get_setting(self, name: str, default: Any | None = None) -> Any:
+        """Read setting from backend config, falling back to GETPAID global."""
+        value = self.config.get(name, default)
+        if value is None:
+            value = self.optional_config.get(name, None)
+        return value
 
     def get_client_class(self) -> type:
         class_path = self.get_setting('CLIENT_CLASS')
@@ -69,12 +75,6 @@ class BaseProcessor(ABC):
     def class_id(cls, **kwargs) -> str:
         return cls.__module__
 
-    def get_setting(self, name: str, default: Any | None = None) -> Any:
-        value = self.config.get(name, default)
-        if value is None:
-            value = self.optional_config.get(name, None)
-        return value
-
     @classmethod
     def get_display_name(cls, **kwargs) -> str:
         return cls.display_name
@@ -95,18 +95,15 @@ class BaseProcessor(ABC):
 
     @staticmethod
     def get_our_baseurl(request: HttpRequest = None, **kwargs) -> str:
-        """
-        Little helper function to get base url for our site.
-        Note that this way 'https' is enforced on production environment.
+        """Get base URL for our site.
 
-        When no request is available, falls back to django.contrib.sites
-        to determine the domain. Requires SITE_ID to be set in settings
-        and django.contrib.sites in INSTALLED_APPS.
+        Uses Sites framework when no request is available.
         """
         scheme = 'http' if settings.DEBUG else 'https'
         if request is not None:
             domain = get_current_site(request).domain
         else:
+            # Circular import workaround: Site model loaded at runtime
             from django.contrib.sites.models import Site
 
             domain = Site.objects.get_current().domain
@@ -135,101 +132,25 @@ class BaseProcessor(ABC):
         return self.post_form_class
 
     def prepare_form_data(self, post_data: dict, **kwargs) -> Mapping[str, Any]:
-        """
-        If backend support several modes of operation, POST should probably
-        additionally calculate some sort of signature based on passed data.
-        """
         return post_data
 
     def get_form(self, post_data: dict, **kwargs) -> BaseForm:
-        """
-        (Optional)
-        Used to get POST form for backends that use such flow.
-        """
         form_class = self.get_form_class()
         if form_class is None:
             raise ImproperlyConfigured("Couldn't determine form class!")
-
         form_data = self.prepare_form_data(post_data)
-
         return form_class(fields=form_data)
 
-    # Communication with outer world
-
-    @abstractmethod
-    def prepare_transaction(
-        self, request: HttpRequest, view: View | None = None, **kwargs
-    ) -> HttpResponse:
-        """
-        Prepare Response for the view asking to prepare transaction.
-
-        :return: HttpResponse instance
-        """
-        raise NotImplementedError
-
     def verify_callback(self, request: HttpRequest, **kwargs) -> None:
-        """
-        Verify the authenticity of a callback request from the paywall.
+        """Verify callback from Django request. Override in backends.
 
-        Backends should override this method to validate request signatures,
-        IP whitelists, or other security measures. Raise GetPaidException
-        (or a subclass) if the callback cannot be verified.
-
-        The default implementation is a no-op (accepts all callbacks).
+        Default: no-op (accepts all callbacks).
         """
 
-    def handle_paywall_callback(
-        self, request: HttpRequest, **kwargs
-    ) -> HttpResponse:
-        """
-        This method handles the callback from paywall for the purpose
-        of asynchronously updating the payment status in our system.
-
-        :return: HttpResponse instance that will be presented as answer to the callback.
-        """
+    def handle_paywall_callback(self, request, **kwargs):
+        """Handle paywall callback. Override in backends."""
         raise NotImplementedError
 
-    def fetch_payment_status(self, **kwargs) -> PaymentStatusResponse:
-        # TODO use interface annotation to specify the dict layout
-        """
-        Logic for checking payment status with paywall.
-        """
-        raise NotImplementedError
-
-    def charge(
-        self, amount: Decimal | float | int | None = None, **kwargs
-    ) -> ChargeResponse:
-        """
-        (Optional)
-        Check if payment can be locked and call processor's method.
-        This method is used eg. in flows that pre-authorize payment during
-        order placement and charge money later.
-        """
-        raise NotImplementedError
-
-    def release_lock(self, **kwargs) -> Decimal:
-        """
-        (Optional)
-        Release locked payment. This can happen if pre-authorized payment cannot
-        be fullfilled (eg. the ordered product is no longer available for some reason).
-        Returns released amount.
-        """
-        raise NotImplementedError
-
-    def start_refund(
-        self, amount: Decimal | float | int | None = None, **kwargs
-    ) -> Decimal:
-        """
-        Refunds the given amount.
-
-        Returns the amount that is refunded.
-        """
-        raise NotImplementedError
-
-    def cancel_refund(self, **kwargs) -> bool:
-        """
-        Cancels started refund.
-
-        Returns True/False if the cancel succeeded.
-        """
+    def fetch_payment_status(self, **kwargs):
+        """Fetch payment status from gateway. Override in backends."""
         raise NotImplementedError

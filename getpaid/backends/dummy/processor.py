@@ -1,9 +1,7 @@
-"""
-Dummy payment backend for development and testing.
+"""Dummy payment backend for development and testing.
 
-This is a self-contained processor that simulates payment flows without
-making any external HTTP calls. It supports all three payment initiation
-methods (REST, POST, GET) and both confirmation methods (PUSH, PULL).
+Self-contained processor simulating payment flows without external
+HTTP calls. Supports REST/POST/GET initiation and PUSH/PULL confirmation.
 
 Settings (via GETPAID_BACKEND_SETTINGS['getpaid.backends.dummy']):
     paywall_method: 'REST' | 'POST' | 'GET' (default: 'REST')
@@ -20,13 +18,26 @@ from django.http import (
     HttpResponseRedirect,
 )
 from django.template.response import TemplateResponse
-from django_fsm import can_proceed
+from getpaid_core.fsm import create_payment_machine
+from transitions.core import MachineError
 
 from getpaid.post_forms import PaymentHiddenInputsPostForm
 from getpaid.processor import BaseProcessor
 from getpaid.types import PaymentStatus as ps
 
 logger = logging.getLogger(__name__)
+
+
+def _can_trigger(payment, trigger_name):
+    """Check if a trigger can proceed without actually firing it."""
+    trigger = getattr(payment, trigger_name, None)
+    if trigger is None:
+        return False
+    try:
+        return payment.may_trigger(trigger_name)
+    except (AttributeError, MachineError):
+        # If machine not attached or method unavailable
+        return False
 
 
 class PaymentProcessor(BaseProcessor):
@@ -47,14 +58,12 @@ class PaymentProcessor(BaseProcessor):
             'confirmation_method', self.confirmation_method
         ).upper()
 
-    def prepare_transaction(self, request, view=None, **kwargs):
-        """
-        Simulate payment preparation. No external HTTP calls are made.
-
-        - REST/GET: Confirms prepared, returns redirect to success URL.
-        - POST: Confirms prepared, returns a template response with a form.
-        """
+    def prepare_transaction(self, request=None, view=None, **kwargs):
+        """Simulate payment preparation. No external HTTP calls."""
         method = self.get_paywall_method()
+
+        # Ensure FSM is attached
+        create_payment_machine(self.payment)
         self.payment.confirm_prepared()
         self.payment.save()
 
@@ -71,16 +80,11 @@ class PaymentProcessor(BaseProcessor):
                 context={'form': form, 'paywall_url': '#dummy'},
             )
 
-        # REST and GET both return a redirect
         redirect_url = self.get_our_baseurl(request)
         return HttpResponseRedirect(redirect_url)
 
     def handle_paywall_callback(self, request, **kwargs):
-        """
-        Handle a simulated callback. Expects JSON body with 'new_status'.
-
-        Returns HTTP 200 on success, HTTP 400 on bad input.
-        """
+        """Handle a simulated callback with JSON body."""
         try:
             data = json.loads(request.body)
         except (json.JSONDecodeError, ValueError):
@@ -90,17 +94,27 @@ class PaymentProcessor(BaseProcessor):
         if new_status is None:
             return HttpResponseBadRequest('Missing new_status')
 
+        create_payment_machine(self.payment)
+
         if new_status == ps.FAILED:
             self.payment.fail()
         elif new_status == ps.PRE_AUTH:
             self.payment.confirm_lock()
         elif new_status == ps.PAID:
-            if can_proceed(self.payment.confirm_lock):
+            if _can_trigger(self.payment, 'confirm_lock'):
                 self.payment.confirm_lock()
-            if can_proceed(self.payment.confirm_payment):
+            if _can_trigger(self.payment, 'confirm_payment'):
                 self.payment.confirm_payment()
-            if can_proceed(self.payment.mark_as_paid):
-                self.payment.mark_as_paid()
+            if _can_trigger(self.payment, 'mark_as_paid'):
+                try:
+                    self.payment.mark_as_paid()
+                except MachineError:
+                    logger.debug(
+                        'Cannot mark as paid (guard failed).',
+                        extra={
+                            'payment_id': self.payment.id,
+                        },
+                    )
         else:
             return HttpResponseBadRequest(f'Unhandled status: {new_status}')
 
@@ -108,50 +122,32 @@ class PaymentProcessor(BaseProcessor):
         return HttpResponse('OK')
 
     def fetch_payment_status(self, **kwargs):
-        """
-        Simulate fetching payment status from an external provider.
-
-        In PULL mode, this is called to discover what happened with the
-        payment. The dummy backend simulates a successful payment flow
-        by returning the "next step" callback:
-
-        - PREPARED -> confirm_payment (provider says: "payment received")
-        - PRE_AUTH -> confirm_payment (provider says: "charge completed")
-        - PARTIAL -> confirm_payment (provider says: "more payment received")
-        - Already PAID/FAILED/REFUNDED -> no callback (terminal states)
-
-        The ``confirmation_status`` setting can override the simulated
-        outcome: 'paid' (default), 'pre_auth', or 'failed'.
-        """
+        """Simulate fetching status from external provider."""
         status = self.payment.status
         simulated = self.get_setting('confirmation_status', 'paid')
 
-        # Terminal states — nothing more to do
-        if status in (ps.PAID, ps.FAILED, ps.REFUNDED, ps.REFUND_STARTED):
+        if status in (
+            ps.PAID,
+            ps.FAILED,
+            ps.REFUNDED,
+            ps.REFUND_STARTED,
+        ):
             return {}
 
-        # NEW — not yet prepared, no callback
         if status == ps.NEW:
             return {}
 
-        # Simulate the provider's response based on configuration
         if simulated == 'failed':
             return {'callback': 'fail'}
-        elif simulated == 'pre_auth':
+        if simulated == 'pre_auth':
             return {'callback': 'confirm_lock'}
-        else:
-            # Default: simulate successful payment
-            return {
-                'callback': 'confirm_payment',
-                'amount': self.payment.amount_required,
-            }
+        return {
+            'callback': 'confirm_payment',
+            'amount': self.payment.amount_required,
+        }
 
     def charge(self, amount=None, **kwargs):
-        """
-        Simulate charging a pre-authorized amount.
-
-        Returns a ChargeResponse dict with the charged amount.
-        """
+        """Simulate charging a pre-authorized amount."""
         if amount is None:
             amount = self.payment.amount_locked
         return {
@@ -160,27 +156,15 @@ class PaymentProcessor(BaseProcessor):
         }
 
     def release_lock(self, **kwargs):
-        """
-        Simulate releasing a locked amount.
-
-        Returns the released amount as a Decimal.
-        """
+        """Simulate releasing a locked amount."""
         return Decimal(str(self.payment.amount_locked))
 
     def start_refund(self, amount=None, **kwargs):
-        """
-        Simulate starting a refund.
-
-        Returns the refund amount as a Decimal.
-        """
+        """Simulate starting a refund."""
         if amount is None:
             amount = self.payment.amount_paid
         return Decimal(str(amount))
 
     def cancel_refund(self, **kwargs):
-        """
-        Simulate cancelling a refund.
-
-        Returns True (always succeeds in dummy mode).
-        """
+        """Simulate cancelling a refund."""
         return True
