@@ -155,3 +155,24 @@ pydocstyle.convention = "google"
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101", "S105", "PT015", "PT018", "PLW1514", "SIM115", "SIM117", "N817", "B011", "PIE810", "PTH100", "PTH118", "PTH120"]
 "example/**" = ["PTH100", "PTH118", "PTH120", "S105"]
+
+# --- ty type checker ---
+[tool.ty.environment]
+python-version = "3.12"
+
+[tool.ty.src]
+# Exclude example app and docs from type checking
+exclude = ["example", "docs"]
+
+[tool.ty.terminal]
+error-on-warning = true
+
+# Relax rules for test files: dynamic Django models, swapper, factory_boy
+[[tool.ty.overrides]]
+include = ["tests/**"]
+[tool.ty.overrides.rules]
+unresolved-import = "ignore"
+unresolved-attribute = "ignore"
+unresolved-reference = "ignore"
+invalid-argument-type = "ignore"
+possibly-missing-attribute = "ignore"

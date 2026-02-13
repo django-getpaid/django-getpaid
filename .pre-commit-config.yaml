@@ -1,57 +1,39 @@
 repos:
   - repo: local
     hooks:
-      - id: check-added-large-files
-        name: Check for added large files
-        entry: check-added-large-files
+      - id: ruff
+        name: ruff
+        entry: uv run ruff check --fix
         language: system
+        types: [python]
+      - id: ruff-format
+        name: ruff-format
+        entry: uv run ruff format
+        language: system
+        types: [python]
       - id: check-toml
-        name: Check Toml
-        entry: check-toml
+        name: check-toml
+        entry: uv run check-toml
         language: system
-        types: [ toml ]
+        types: [toml]
       - id: check-yaml
-        name: Check Yaml
-        entry: check-yaml
+        name: check-yaml
+        entry: uv run check-yaml
         language: system
-        types: [ yaml ]
-      - id: darglint
-        name: darglint
-        entry: darglint
-        language: system
-        types: [ python ]
-        stages: [ manual ]
+        types: [yaml]
       - id: end-of-file-fixer
-        name: Fix End of Files
-        entry: end-of-file-fixer
+        name: end-of-file-fixer
+        entry: uv run end-of-file-fixer
         language: system
-        types: [ text ]
-        stages: [ commit, push, manual ]
+        types: [text]
       - id: trailing-whitespace
-        name: Trim Trailing Whitespace
-        entry: trailing-whitespace-fixer
+        name: trailing-whitespace
+        entry: uv run trailing-whitespace-fixer
         language: system
-        types: [ text ]
-        stages: [ commit, push, manual ]
-      - id: lint
-        name: ruff lint
-        description: Run ruff to lint Python files.
-        entry: ruff check
-        language: python
-        types_or: [ python, pyi ]
-        require_serial: true
-        args: [ --fix ]
-      - id: format
-        name: ruff format
-        description: Run ruff to format Python files.
-        entry: ruff format
-        language: python
-        types_or: [ python, pyi ]
-        require_serial: true
-      - id: poetry-check
-        name: poetry-check
-        description: run poetry check to validate config
-        entry: poetry check
-        language: python
+        types: [text]
+      - id: ty
+        name: ty
+        entry: uv run ty check
+        language: system
+        types: [python]
         pass_filenames: false
-        files: ^(.*/)?pyproject\.toml$

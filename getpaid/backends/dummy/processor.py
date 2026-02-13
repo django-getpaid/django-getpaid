@@ -64,8 +64,8 @@ class PaymentProcessor(BaseProcessor):
 
         # Ensure FSM is attached
         create_payment_machine(self.payment)
-        self.payment.confirm_prepared()
-        self.payment.save()
+        self.payment.confirm_prepared()  # ty: ignore[possibly-missing-attribute]
+        self.payment.save()  # ty: ignore[possibly-missing-attribute]
 
         if method == 'POST':
             params = {
@@ -97,17 +97,17 @@ class PaymentProcessor(BaseProcessor):
         create_payment_machine(self.payment)
 
         if new_status == ps.FAILED:
-            self.payment.fail()
+            self.payment.fail()  # ty: ignore[possibly-missing-attribute]
         elif new_status == ps.PRE_AUTH:
-            self.payment.confirm_lock()
+            self.payment.confirm_lock()  # ty: ignore[possibly-missing-attribute]
         elif new_status == ps.PAID:
             if _can_trigger(self.payment, 'confirm_lock'):
-                self.payment.confirm_lock()
+                self.payment.confirm_lock()  # ty: ignore[possibly-missing-attribute]
             if _can_trigger(self.payment, 'confirm_payment'):
-                self.payment.confirm_payment()
+                self.payment.confirm_payment()  # ty: ignore[possibly-missing-attribute]
             if _can_trigger(self.payment, 'mark_as_paid'):
                 try:
-                    self.payment.mark_as_paid()
+                    self.payment.mark_as_paid()  # ty: ignore[possibly-missing-attribute]
                 except MachineError:
                     logger.debug(
                         'Cannot mark as paid (guard failed).',
@@ -118,7 +118,7 @@ class PaymentProcessor(BaseProcessor):
         else:
             return HttpResponseBadRequest(f'Unhandled status: {new_status}')
 
-        self.payment.save()
+        self.payment.save()  # ty: ignore[possibly-missing-attribute]
         return HttpResponse('OK')
 
     def fetch_payment_status(self, **kwargs):

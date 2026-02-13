@@ -68,7 +68,7 @@ class AbstractOrder(models.Model):
         Override for custom validation. Raise ValidationError
         for verbose error messages.
         """
-        if self.payments.exclude(status=ps.FAILED).exists():
+        if self.payments.exclude(status=ps.FAILED).exists():  # ty: ignore[unresolved-attribute]
             raise forms.ValidationError(
                 _('Non-failed Payments exist for this Order.')
             )
@@ -217,10 +217,10 @@ class AbstractPayment(models.Model):
 
     def get_items(self) -> list[ItemInfo]:
         """Relay to order's get_items()."""
-        return self.order.get_items()
+        return self.order.get_items()  # ty: ignore[possibly-missing-attribute]
 
     def get_buyer_info(self) -> BuyerInfo:
-        return self.order.get_buyer_info()
+        return self.order.get_buyer_info()  # ty: ignore[possibly-missing-attribute]
 
     def _get_processor(self):
         """Get processor instance for this payment's backend."""
@@ -231,7 +231,7 @@ class AbstractPayment(models.Model):
             processor_class = registry[self.backend]
         else:
             # last resort if backend removed from INSTALLED_APPS
-            module = import_module(self.backend)
+            module = import_module(str(self.backend))
             processor_class = module.PaymentProcessor
         return processor_class(self)
 
@@ -279,7 +279,7 @@ class AbstractPayment(models.Model):
             create_payment_machine(self)
             callback = getattr(self, callback_name, None)
             amount = status_report.get('amount', None)
-            if callback is not None and self.may_trigger(callback_name):
+            if callback is not None and self.may_trigger(callback_name):  # ty: ignore[unresolved-attribute]
                 try:
                     status_report['callback_result'] = callback(amount=amount)
                     self.save()
@@ -311,7 +311,7 @@ class AbstractPayment(models.Model):
         if url is not None:
             kwargs = self.get_return_redirect_kwargs(request, success)
             return resolve_url(url, **kwargs)
-        return resolve_url(self.order.get_return_url(self, success=success))
+        return resolve_url(self.order.get_return_url(self, success=success))  # ty: ignore[possibly-missing-attribute]
 
     def get_return_redirect_kwargs(
         self, request: HttpRequest, success: bool
@@ -341,7 +341,7 @@ class AbstractPayment(models.Model):
         result = self.prepare_transaction(request=request, view=view, **kwargs)
         data = {'status_code': result.status_code, 'result': result}
         if result.status_code == 200:
-            data['target_url'] = result.context_data['paywall_url']
+            data['target_url'] = result.context_data['paywall_url']  # ty: ignore[unresolved-attribute]
             data['form'] = {
                 'fields': [
                     {
@@ -352,16 +352,16 @@ class AbstractPayment(models.Model):
                         'help_text': field.help_text,
                         'required': field.required,
                     }
-                    for name, field in result.context_data[
+                    for name, field in result.context_data[  # ty: ignore[unresolved-attribute]
                         'form'
                     ].fields.items()
                 ],
             }
         elif result.status_code == 302:
-            data['target_url'] = result.url
+            data['target_url'] = result.url  # ty: ignore[unresolved-attribute]
         else:
             data['message'] = result.content
-        return data
+        return data  # ty: ignore[invalid-return-type]
 
     @atomic
     def charge(
@@ -372,7 +372,7 @@ class AbstractPayment(models.Model):
         """Interfaces processor's charge with FSM transitions."""
         create_payment_machine(self)
         if amount is None:
-            amount = self.amount_locked
+            amount = self.amount_locked  # ty: ignore[invalid-assignment]
         if amount > self.amount_locked:
             raise ValueError('Cannot charge more than locked value.')
         processor = self._get_processor()
@@ -380,10 +380,10 @@ class AbstractPayment(models.Model):
         if 'amount_charged' in result or result.get('success', False):
             amount_charged = result.get('amount_charged', amount)
             self.amount_locked -= amount_charged
-            self.confirm_payment(amount=amount_charged)
-            if self.may_trigger('mark_as_paid'):
+            self.confirm_payment(amount=amount_charged)  # ty: ignore[unresolved-attribute]
+            if self.may_trigger('mark_as_paid'):  # ty: ignore[unresolved-attribute]
                 try:
-                    self.mark_as_paid()
+                    self.mark_as_paid()  # ty: ignore[unresolved-attribute]
                 except Exception:
                     logger.debug(
                         'Cannot mark as fully paid, left as partially paid.',
@@ -393,8 +393,8 @@ class AbstractPayment(models.Model):
                         },
                     )
         elif result.get('async_call', False):
-            if self.may_trigger('confirm_charge_sent'):
-                self.confirm_charge_sent()
+            if self.may_trigger('confirm_charge_sent'):  # ty: ignore[unresolved-attribute]
+                self.confirm_charge_sent()  # ty: ignore[unresolved-attribute]
             else:
                 logger.debug(
                     'Cannot confirm charge sent.',

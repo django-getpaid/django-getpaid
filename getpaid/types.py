@@ -54,34 +54,34 @@ class PaymentStatus(str, Enum):
     @classproperty
     def choices(cls):
         return (
-            (cls.NEW.value, pgettext_lazy('payment status', 'new')),
+            (cls.NEW.value, pgettext_lazy('payment status', 'new')),  # ty: ignore[possibly-missing-attribute]
             (
-                cls.PREPARED.value,
+                cls.PREPARED.value,  # ty: ignore[possibly-missing-attribute]
                 pgettext_lazy('payment status', 'in progress'),
             ),
             (
-                cls.PRE_AUTH.value,
+                cls.PRE_AUTH.value,  # ty: ignore[possibly-missing-attribute]
                 pgettext_lazy('payment status', 'pre-authed'),
             ),
             (
-                cls.IN_CHARGE.value,
+                cls.IN_CHARGE.value,  # ty: ignore[possibly-missing-attribute]
                 pgettext_lazy('payment status', 'charge process started'),
             ),
             (
-                cls.PARTIAL.value,
+                cls.PARTIAL.value,  # ty: ignore[possibly-missing-attribute]
                 pgettext_lazy('payment status', 'partially paid'),
             ),
-            (cls.PAID.value, pgettext_lazy('payment status', 'paid')),
+            (cls.PAID.value, pgettext_lazy('payment status', 'paid')),  # ty: ignore[possibly-missing-attribute]
             (
-                cls.FAILED.value,
+                cls.FAILED.value,  # ty: ignore[possibly-missing-attribute]
                 pgettext_lazy('payment status', 'failed'),
             ),
             (
-                cls.REFUND_STARTED.value,
+                cls.REFUND_STARTED.value,  # ty: ignore[possibly-missing-attribute]
                 pgettext_lazy('payment status', 'refund started'),
             ),
             (
-                cls.REFUNDED.value,
+                cls.REFUNDED.value,  # ty: ignore[possibly-missing-attribute]
                 pgettext_lazy('payment status', 'refunded'),
             ),
         )
@@ -108,19 +108,19 @@ class FraudStatus(str, Enum):
     def choices(cls):
         return (
             (
-                cls.UNKNOWN.value,
+                cls.UNKNOWN.value,  # ty: ignore[possibly-missing-attribute]
                 pgettext_lazy('fraud status', 'unknown'),
             ),
             (
-                cls.ACCEPTED.value,
+                cls.ACCEPTED.value,  # ty: ignore[possibly-missing-attribute]
                 pgettext_lazy('fraud status', 'accepted'),
             ),
             (
-                cls.REJECTED.value,
+                cls.REJECTED.value,  # ty: ignore[possibly-missing-attribute]
                 pgettext_lazy('fraud status', 'rejected'),
             ),
             (
-                cls.CHECK.value,
+                cls.CHECK.value,  # ty: ignore[possibly-missing-attribute]
                 pgettext_lazy('fraud status', 'needs manual verification'),
             ),
         )

@@ -24,13 +24,13 @@ class BaseProcessor(CoreBaseProcessor):
     and URL helpers on top of core's abstract methods.
     """
 
-    production_url = None
-    sandbox_url = None
-    post_form_class = None
-    post_template_name = None
-    client_class = None
-    client = None
-    ok_statuses = [200]
+    production_url: str | None = None
+    sandbox_url: str | None = None
+    post_form_class: type | None = None
+    post_template_name: str | None = None
+    client_class: type | str | None = None
+    client: object | None = None
+    ok_statuses: list[int] = [200]
 
     def __init__(self, payment, config=None) -> None:
         # Read config from Django settings if not provided
@@ -41,9 +41,9 @@ class BaseProcessor(CoreBaseProcessor):
             )
         super().__init__(payment, config=config)
         self.path = getattr(payment, 'backend', '') or ''
-        self.context = {}
+        self.context: dict = {}
         if self.slug is None:
-            self.slug = self.path
+            self.slug = self.path  # ty: ignore[invalid-attribute-access]
         self.optional_config = getattr(settings, 'GETPAID', {})
         if self.client_class is not None:
             self.client = self.get_client()
@@ -55,7 +55,7 @@ class BaseProcessor(CoreBaseProcessor):
             value = self.optional_config.get(name, None)
         return value
 
-    def get_client_class(self) -> type:
+    def get_client_class(self) -> type | None:
         class_path = self.get_setting('CLIENT_CLASS')
         if not class_path:
             class_path = self.client_class
@@ -63,10 +63,13 @@ class BaseProcessor(CoreBaseProcessor):
             module_name, _, class_name = class_path.rpartition('.')
             module = import_module(module_name)
             return getattr(module, class_name)
-        return class_path
+        return class_path  # ty: ignore[invalid-return-type]
 
     def get_client(self) -> object:
-        return self.get_client_class()(**self.get_client_params())
+        client_class = self.get_client_class()
+        if client_class is None:
+            raise ImproperlyConfigured('No client class configured!')
+        return client_class(**self.get_client_params())
 
     def get_client_params(self) -> dict:
         return {}
@@ -84,17 +87,17 @@ class BaseProcessor(CoreBaseProcessor):
         return cls.accepted_currencies
 
     @classmethod
-    def get_logo_url(cls, **kwargs) -> str:
+    def get_logo_url(cls, **kwargs) -> str | None:
         return cls.logo_url
 
     @classmethod
-    def get_paywall_baseurl(cls, **kwargs) -> str:
+    def get_paywall_baseurl(cls, **kwargs) -> str | None:  # ty: ignore[invalid-method-override]
         if settings.DEBUG:
             return cls.sandbox_url
         return cls.production_url
 
     @staticmethod
-    def get_our_baseurl(request: HttpRequest = None, **kwargs) -> str:
+    def get_our_baseurl(request: HttpRequest | None = None, **kwargs) -> str:
         """Get base URL for our site.
 
         Uses Sites framework when no request is available.
@@ -115,13 +118,17 @@ class BaseProcessor(CoreBaseProcessor):
         template_name = self.get_setting('POST_TEMPLATE')
         if template_name is None:
             template_name = self.post_template_name
-        if template_name is None and hasattr(view, 'get_template_names'):
-            return view.get_template_names()
+        if (
+            template_name is None
+            and view is not None
+            and hasattr(view, 'get_template_names')
+        ):
+            return view.get_template_names()  # ty: ignore[call-non-callable]
         if template_name is None:
             raise ImproperlyConfigured("Couldn't determine template name!")
         return [template_name]
 
-    def get_form_class(self, **kwargs) -> type:
+    def get_form_class(self, **kwargs) -> type | None:
         form_class_path = self.get_setting('POST_FORM_CLASS')
         if not form_class_path:
             return self.post_form_class
@@ -141,10 +148,14 @@ class BaseProcessor(CoreBaseProcessor):
         form_data = self.prepare_form_data(post_data)
         return form_class(fields=form_data)
 
-    def verify_callback(self, request: HttpRequest, **kwargs) -> None:
+    def verify_callback(  # ty: ignore[invalid-method-override]
+        self, request: HttpRequest, **kwargs
+    ) -> None:
         """Verify callback from Django request. Override in backends.
 
         Default: no-op (accepts all callbacks).
+        The signature intentionally differs from the core's async version —
+        Django adapter wraps the HTTP request differently.
         """
 
     def handle_paywall_callback(self, request, **kwargs):
