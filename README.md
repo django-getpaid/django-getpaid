@@ -7,7 +7,7 @@
 [![Documentation](https://readthedocs.org/projects/django-getpaid/badge/?version=latest)](https://django-getpaid.readthedocs.io/)
 
 Multi-broker payment processing framework for Django, built on
-[getpaid-core](https://github.com/django-getpaid/getpaid-core).
+[getpaid-core](https://github.com/django-getpaid/python-getpaid-core).
 
 ## Features
 

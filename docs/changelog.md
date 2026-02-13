@@ -3,7 +3,7 @@
 ## v3.0.0a1 (2026-02-13)
 
 First alpha release of the v3 line — complete rewrite as a thin adapter
-over [getpaid-core](https://github.com/django-getpaid/getpaid-core).
+over [getpaid-core](https://github.com/django-getpaid/python-getpaid-core).
 
 ### Breaking Changes
 

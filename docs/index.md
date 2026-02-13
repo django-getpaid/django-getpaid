@@ -5,7 +5,7 @@
 ## Features
 
 - Multiple payment brokers at the same time
-- Flexible plugin architecture via [getpaid-core](https://github.com/django-getpaid/getpaid-core)
+- Flexible plugin architecture via [getpaid-core](https://github.com/django-getpaid/python-getpaid-core)
 - Asynchronous status updates — both push and pull
 - REST-based broker API support
 - Multiple currencies (one per payment)
