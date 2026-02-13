@@ -26,4 +26,5 @@ currencies = registry.get_all_supported_currency_choices()
 ```{eval-rst}
 .. autoclass:: getpaid.registry.DjangoPluginRegistry
    :members:
+   :no-index:
 ```

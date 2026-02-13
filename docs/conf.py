@@ -22,7 +22,6 @@ release = getpaid.__version__
 
 extensions = [
     'sphinx.ext.autodoc',
-    'sphinx.ext.autosummary',
     'sphinx.ext.napoleon',
     'sphinx.ext.intersphinx',
     'sphinx.ext.autosectionlabel',
@@ -31,13 +30,11 @@ extensions = [
 
 autodoc_typehints = 'description'
 autodoc_member_order = 'bysource'
-autosummary_generate = True
 
 html_theme = 'furo'
 html_title = 'django-getpaid'
 
 source_suffix = {
-    '.rst': 'restructuredtext',
     '.md': 'markdown',
 }
 
@@ -48,12 +45,15 @@ myst_enable_extensions = [
 
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
-    'django': (
-        'https://docs.djangoproject.com/en/5.2/',
-        'https://docs.djangoproject.com/en/5.2/_objects.inv',
-    ),
-    'getpaid-core': ('https://getpaid-core.readthedocs.io/en/latest/', None),
+    # Django and getpaid-core intersphinx will work on ReadTheDocs.
+    # Uncomment when building with network access:
+    # 'django': (
+    #     'https://docs.djangoproject.com/en/5.1/',
+    #     'https://docs.djangoproject.com/en/5.1/_objects.inv',
+    # ),
+    # 'getpaid-core': ('https://getpaid-core.readthedocs.io/en/latest/', None),
 }
 
 # Suppress duplicate label warnings from autosectionlabel
-suppress_warnings = ['autosectionlabel.*']
+# and intersphinx connection failures (work fine on ReadTheDocs)
+suppress_warnings = ['autosectionlabel.*', 'intersphinx.external']

@@ -8,6 +8,7 @@ the Payment and Order APIs.
 ```{eval-rst}
 .. autoclass:: getpaid.abstracts.AbstractOrder
    :members:
+   :no-index:
 ```
 
 ## Payment API
@@ -19,6 +20,7 @@ model provides properties linking your field names to expected names.
 ```{eval-rst}
 .. autoclass:: getpaid.abstracts.AbstractPayment
    :members:
+   :no-index:
 ```
 
 ### Payment Fields

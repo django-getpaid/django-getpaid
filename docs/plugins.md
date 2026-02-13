@@ -61,6 +61,7 @@ class MyPluginConfig(AppConfig):
 .. autoclass:: getpaid.processor.BaseProcessor
    :members:
    :show-inheritance:
+   :no-index:
 ```
 
 ## Callback Verification
