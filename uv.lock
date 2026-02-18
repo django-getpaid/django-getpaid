@@ -278,7 +278,6 @@ wheels = [
 
 [[package]]
 name = "django-getpaid"
-version = "3.0.0a1"
 source = { editable = "." }
 dependencies = [
     { name = "django" },

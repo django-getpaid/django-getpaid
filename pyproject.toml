@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "django-getpaid"
-version = "3.0.0a1"
+dynamic = ["version"]
 description = "Multi-broker payment processor for Django."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -64,6 +64,9 @@ asyncio_mode = "auto"
 
 [tool.hatch.build.targets.wheel]
 packages = ["getpaid"]
+
+[tool.hatch.version]
+path = "getpaid/__init__.py"
 
 # --- Ruff config ---
 [tool.ruff]
