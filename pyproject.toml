@@ -27,7 +27,7 @@ classifiers = [
 dependencies = [
     "Django>=5.2",
     "swapper>=1.4",
-    "python-getpaid-core>=0.1.0",
+    "python-getpaid-core>=3.0.0a2",
 ]
 
 [project.urls]
@@ -51,7 +51,7 @@ dev = [
     "ruff>=0.15.1",
     "tox>=4.35.0",
     "ty>=0.0.16",
-    "python-getpaid-core>=0.1.0",
+    "python-getpaid-core>=3.0.0a2",
     "furo>=2025.12.19",
     "sphinx>=9.1.0",
     "myst-parser>=5.0.0",
