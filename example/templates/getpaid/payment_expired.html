@@ -1,0 +1,24 @@
+{% extends "getpaid/base.html" %}
+{% block title %}Payment Session Expired - django-getpaid{% endblock title %}
+
+{% block content %}
+<div class="row m-t-2">
+  <div class="col-md-8 offset-md-2">
+    <div class="alert alert-warning">
+      <h2>Payment Session Expired</h2>
+      <p>Your payment session has expired. Please try again.</p>
+      
+      {% if order %}
+      <p>
+        <a href="{{ order.get_absolute_url }}" class="btn btn-primary">Return to Order</a>
+        <a href="{% url 'home' %}" class="btn btn-secondary">Create New Order</a>
+      </p>
+      {% else %}
+      <p>
+        <a href="{% url 'home' %}" class="btn btn-primary">Return Home</a>
+      </p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock content %}

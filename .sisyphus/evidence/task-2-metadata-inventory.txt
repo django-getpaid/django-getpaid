@@ -1,0 +1,36 @@
+=== DJANGO-GETPAID METADATA INVENTORY ===
+
+VERSION VERIFICATION:
+- pyproject.toml version: 3.0.0a1
+- __init__.py version: 3.0.0a1
+- VERSION MATCH: ✓ YES
+
+LICENSE:
+- LICENSE file EXISTS: Yes (location: ./LICENSE)
+- License type: MIT
+
+README:
+- README.md EXISTS: Yes (location: ./README.md)
+
+WORKFLOWS:
+- .github/workflows/ EXISTS: Yes (directory exists)
+- Directory contents to be listed below
+
+BUILD ARTIFACTS:
+- dist/django_getpaid-3.0.0a1.tar.gz (source distribution)
+- dist/django_getpaid-3.0.0a1-py3-none-any.whl (wheel package)
+
+PYTEST CONFIGURATION (from pyproject.toml):
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "tests.settings"
+pythonpath = [".", "example"]
+asyncio_mode = "auto"
+
+PYTEST RESULTS:
+127 tests passed in 0.68s
+Exit code: 0
+
+BUILD RESULTS:
+Successfully built source distribution: dist/django_getpaid-3.0.0a1.tar.gz
+Successfully built wheel package: dist/django_getpaid-3.0.0a1-py3-none-any.whl
+Exit code: 0

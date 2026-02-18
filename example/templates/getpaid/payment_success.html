@@ -1,0 +1,32 @@
+{% extends "getpaid/base.html" %}
+{% block title %}Payment Successful - django-getpaid{% endblock title %}
+
+{% block content %}
+<div class="row m-t-2">
+  <div class="col-md-8 offset-md-2">
+    <div class="alert alert-success">
+      <h2>Payment Successful</h2>
+      <p>Your payment has been processed successfully!</p>
+      
+      {% if payment %}
+      <p>
+        <strong>Payment ID:</strong> {{ payment.pk }}<br>
+        <strong>Amount Paid:</strong> {{ payment.amount_paid }} {{ payment.currency }}<br>
+        <strong>Backend:</strong> {{ payment.backend }}
+      </p>
+      {% endif %}
+      
+      {% if order %}
+      <p>
+        <a href="{{ order.get_absolute_url }}" class="btn btn-primary">View Order Details</a>
+        <a href="{% url 'home' %}" class="btn btn-secondary">Create New Order</a>
+      </p>
+      {% else %}
+      <p>
+        <a href="{% url 'home' %}" class="btn btn-primary">Return Home</a>
+      </p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock content %}

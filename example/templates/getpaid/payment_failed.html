@@ -1,0 +1,32 @@
+{% extends "getpaid/base.html" %}
+{% block title %}Payment Failed - django-getpaid{% endblock title %}
+
+{% block content %}
+<div class="row m-t-2">
+  <div class="col-md-8 offset-md-2">
+    <div class="alert alert-danger">
+      <h2>Payment Failed</h2>
+      <p>Unfortunately, your payment could not be processed.</p>
+      
+      {% if payment %}
+      <p>
+        <strong>Payment ID:</strong> {{ payment.pk }}<br>
+        <strong>Status:</strong> {{ payment.status }}<br>
+        <strong>Backend:</strong> {{ payment.backend }}
+      </p>
+      {% endif %}
+      
+      {% if order %}
+      <p>
+        <a href="{{ order.get_absolute_url }}" class="btn btn-primary">Return to Order</a>
+        <a href="{% url 'home' %}" class="btn btn-secondary">Create New Order</a>
+      </p>
+      {% else %}
+      <p>
+        <a href="{% url 'home' %}" class="btn btn-primary">Return Home</a>
+      </p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock content %}
