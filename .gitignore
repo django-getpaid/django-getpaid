@@ -63,8 +63,9 @@ venv
 virtualenv
 .virtualenv
 
-# poetry
+# poetry / uv
 /poetry.lock
+/uv.lock
 
 # Codacy
 /.codacy-coverage
@@ -73,5 +74,3 @@ virtualenv
 # Sublime text (editor)
 *.sublime-project
 *.sublime-workspace
-
-/.smithers

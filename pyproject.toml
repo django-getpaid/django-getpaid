@@ -26,8 +26,8 @@ classifiers = [
 ]
 dependencies = [
     "Django>=5.2",
-    "swapper>=1.4",
     "python-getpaid-core>=3.0.0a3",
+    "swapper>=1.4",
 ]
 
 [project.urls]
@@ -179,3 +179,6 @@ unresolved-attribute = "ignore"
 unresolved-reference = "ignore"
 invalid-argument-type = "ignore"
 possibly-missing-attribute = "ignore"
+
+[tool.uv.sources]
+python-getpaid-core = { git = "https://github.com/django-getpaid/python-getpaid-core", rev = "main" }
