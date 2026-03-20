@@ -1,5 +1,14 @@
 # Changelog
 
+## v3.0.0a3 (2026-03-20)
+
+- Align the Django adapter with the semantic `getpaid-core` v3 contract.
+- Fix callback adaptation for processors that verify `data`, `headers`, and
+  `raw_body` separately.
+- Persist `provider_data` on payments and refresh alpha-release docs.
+
+---
+
 ## v3.0.0a1 (2026-02-13)
 
 First alpha release of the v3 line — complete rewrite as a thin adapter
