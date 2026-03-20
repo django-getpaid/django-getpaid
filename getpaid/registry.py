@@ -31,8 +31,25 @@ class DjangoPluginRegistry:
         return item in self._module_map or self._has_slug(item)
 
     def __getitem__(self, item):
-        slug = self._module_map.get(item, item)
+        return self.get_by_slug(item)
+
+    def get_by_slug(self, item):
+        self._sync_aliases_from_core()
+        slug = self._module_map.get(item) or item
         return self._core.get_by_slug(slug)
+
+    def resolve_backend(self, item: str) -> str:
+        return self.get_by_slug(item).slug
+
+    def get_aliases(self, item: str) -> set[str]:
+        processor = self.get_by_slug(item)
+        aliases = {processor.slug}
+        aliases.update(
+            alias
+            for alias, slug in self._module_map.items()
+            if slug == processor.slug
+        )
+        return aliases
 
     def __iter__(self):
         return iter(self._all_keys())
@@ -48,17 +65,13 @@ class DjangoPluginRegistry:
             module_or_proc, BaseProcessor
         ):
             self._core.register(module_or_proc)
-            # Derive backend module path for backward-compat lookups.
-            # E.g. 'getpaid.backends.dummy.processor' -> 'getpaid.backends.dummy'
-            class_module = module_or_proc.__module__
-            if class_module.endswith('.processor'):
-                backend_module = class_module.rsplit('.', 1)[0]
-                self._module_map[backend_module] = module_or_proc.slug
+            self._remember_aliases(module_or_proc)
             return
 
         # Module-based registration (v2 backward compat)
         processor = module_or_proc.processor.PaymentProcessor
         self._core.register(processor)
+        self._remember_aliases(processor)
         self._module_map[module_or_proc.__name__] = processor.slug
 
     def unregister(self, slug_or_module_path: str):
@@ -100,16 +113,32 @@ class DjangoPluginRegistry:
 
     def _has_slug(self, item):
         try:
-            self._core.get_by_slug(item)
+            self.get_by_slug(item)
             return True
         except KeyError:
             return False
 
     def _all_keys(self):
         """Return all keys (both module paths and slugs)."""
+        self._sync_aliases_from_core()
         keys = set(self._module_map.keys())
         keys.update(self._core._backends.keys())
         return keys
+
+    def _remember_aliases(self, processor_class):
+        class_module = processor_class.__module__
+        self._module_map[class_module] = processor_class.slug
+        self._module_map[f'{class_module}.{processor_class.__name__}'] = (
+            processor_class.slug
+        )
+        if class_module.endswith('.processor'):
+            backend_module = class_module.rsplit('.', 1)[0]
+            self._module_map[backend_module] = processor_class.slug
+
+    def _sync_aliases_from_core(self):
+        self._core._ensure_discovered()
+        for processor_class in self._core._backends.values():
+            self._remember_aliases(processor_class)
 
 
 # Module-level singleton wrapping core's singleton

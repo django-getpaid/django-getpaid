@@ -1,10 +1,3 @@
-"""Abstract models for django-getpaid v3.
-
-Models are plain Django models. FSM transitions are NOT defined on the model.
-Instead, use getpaid_core.fsm.create_payment_machine(payment) to attach
-transition triggers at runtime.
-"""
-
 import logging
 import uuid
 from decimal import Decimal
@@ -19,17 +12,24 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import resolve_url
 from django.utils.translation import gettext_lazy as _
 from django.views import View
-from getpaid_core.fsm import (
-    ALLOWED_CALLBACKS,
-    create_payment_machine,
-)
+from getpaid_core.enums import FraudEvent
+from getpaid_core.fsm import apply_payment_update
+from getpaid_core.types import PaymentUpdate
 
 from getpaid.exceptions import ChargeFailure
+from getpaid.runtime import (
+    cancel_payment_refund,
+    charge_payment,
+    fetch_and_update_payment_status,
+    fetch_payment_status,
+    prepare_payment,
+    release_payment_lock,
+    start_payment_refund,
+)
 from getpaid.types import (
     BuyerInfo,
     ChargeResponse,
     ItemInfo,
-    PaymentStatusResponse,
     RestfulResult,
 )
 from getpaid.types import FraudStatus as fs
@@ -95,13 +95,6 @@ class AbstractOrder(models.Model):
 
 
 class AbstractPayment(models.Model):
-    """Abstract payment model.
-
-    FSM transitions are NOT defined on the model. Instead, use
-    getpaid_core.fsm.create_payment_machine(payment) to attach
-    transition triggers at runtime.
-    """
-
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     order = models.ForeignKey(
         swapper.get_model_name('getpaid', 'Order'),
@@ -182,6 +175,9 @@ class AbstractPayment(models.Model):
         db_index=True,
     )
     fraud_message = models.TextField(_('fraud message'), blank=True)
+    provider_data = models.JSONField(
+        _('provider data'), default=dict, blank=True
+    )
 
     class Meta:
         abstract = True
@@ -199,14 +195,39 @@ class AbstractPayment(models.Model):
         return self.amount_paid >= self.amount_required
 
     def is_fully_paid(self) -> bool:
-        """Check if payment is fully paid. Used by core FSM guard."""
         return self.amount_paid >= self.amount_required
 
     def is_fully_refunded(self) -> bool:
-        """Check if payment is fully refunded. Used by core FSM guard."""
         return (
             self.amount_refunded > 0
             and self.amount_refunded >= self.amount_paid
+        )
+
+    def flag_as_fraud(self, message=''):
+        apply_payment_update(
+            self,
+            PaymentUpdate(
+                fraud_event=FraudEvent.REJECT,
+                fraud_message=message,
+            ),
+        )
+
+    def flag_as_legit(self, message=''):
+        apply_payment_update(
+            self,
+            PaymentUpdate(
+                fraud_event=FraudEvent.ACCEPT,
+                fraud_message=message,
+            ),
+        )
+
+    def flag_for_check(self, message=''):
+        apply_payment_update(
+            self,
+            PaymentUpdate(
+                fraud_event=FraudEvent.REVIEW,
+                fraud_message=message,
+            ),
         )
 
     # ---- Delegation helpers ----
@@ -246,57 +267,17 @@ class AbstractPayment(models.Model):
     def handle_paywall_callback(
         self, request: HttpRequest, **kwargs
     ) -> HttpResponse:
-        """Interfaces processor's handle_paywall_callback."""
-        return self._get_processor().handle_paywall_callback(request, **kwargs)
+        from getpaid.runtime import handle_callback_request
 
-    def fetch_status(self) -> PaymentStatusResponse:
-        """Interfaces processor's fetch_payment_status."""
-        return self._get_processor().fetch_payment_status()
+        return handle_callback_request(self, request, **kwargs)
+
+    def fetch_status(self):
+        return fetch_payment_status(self)
 
     @atomic
-    def fetch_and_update_status(self) -> PaymentStatusResponse:
-        """Used during PULL flow to fetch and update payment status."""
-        status_report = self.fetch_status()
-        callback_name = status_report.get('callback')
-        if callback_name:
-            if callback_name not in ALLOWED_CALLBACKS:
-                logger.warning(
-                    'Disallowed callback %r requested for payment %s.',
-                    callback_name,
-                    self.id,
-                    extra={
-                        'payment_id': self.id,
-                        'payment_status': self.status,
-                        'callback': callback_name,
-                    },
-                )
-                status_report['exception'] = ValueError(
-                    f'Disallowed callback: {callback_name!r}'
-                )
-                return status_report
-
-            # Attach FSM and try the callback
-            create_payment_machine(self)
-            callback = getattr(self, callback_name, None)
-            amount = status_report.get('amount', None)
-            if callback is not None and self.may_trigger(callback_name):  # ty: ignore[unresolved-attribute]
-                try:
-                    status_report['callback_result'] = callback(amount=amount)
-                    self.save()
-                    status_report['saved'] = True
-                except Exception as exc:
-                    status_report['exception'] = exc
-            else:
-                logger.debug(
-                    'Cannot run fetch+update callback %s.',
-                    callback_name,
-                    extra={
-                        'payment_id': self.id,
-                        'payment_status': self.status,
-                        'callback': callback_name,
-                    },
-                )
-        return status_report
+    def fetch_and_update_status(self):
+        fetch_and_update_payment_status(self)
+        return self
 
     def get_return_redirect_url(
         self, request: HttpRequest, success: bool
@@ -326,10 +307,7 @@ class AbstractPayment(models.Model):
         view: View | None = None,
         **kwargs,
     ) -> HttpResponse:
-        """Interfaces processor's prepare_transaction."""
-        return self._get_processor().prepare_transaction(
-            request=request, view=view, **kwargs
-        )
+        return prepare_payment(self, request=request, view=view, **kwargs)
 
     def prepare_transaction_for_rest(
         self,
@@ -337,7 +315,6 @@ class AbstractPayment(models.Model):
         view: View | None = None,
         **kwargs,
     ) -> RestfulResult:
-        """Helper returning data as dict for REST integration."""
         result = self.prepare_transaction(request=request, view=view, **kwargs)
         data = {'status_code': result.status_code, 'result': result}
         if result.status_code == 200:
@@ -369,43 +346,31 @@ class AbstractPayment(models.Model):
         amount: Decimal | float | int | None = None,
         **kwargs,
     ) -> ChargeResponse:
-        """Interfaces processor's charge with FSM transitions."""
-        create_payment_machine(self)
-        if amount is None:
-            amount = self.amount_locked  # ty: ignore[invalid-assignment]
-        if amount > self.amount_locked:
+        amount_to_charge = amount
+        if amount_to_charge is None:
+            amount_to_charge = self.amount_locked
+        if amount_to_charge > self.amount_locked:
             raise ValueError('Cannot charge more than locked value.')
-        processor = self._get_processor()
-        result = processor.charge(amount=amount, **kwargs)
-        if 'amount_charged' in result or result.get('success', False):
-            amount_charged = result.get('amount_charged', amount)
-            self.amount_locked -= amount_charged
-            self.confirm_payment(amount=amount_charged)  # ty: ignore[unresolved-attribute]
-            if self.may_trigger('mark_as_paid'):  # ty: ignore[unresolved-attribute]
-                try:
-                    self.mark_as_paid()  # ty: ignore[unresolved-attribute]
-                except Exception:
-                    logger.debug(
-                        'Cannot mark as fully paid, left as partially paid.',
-                        extra={
-                            'payment_id': self.id,
-                            'payment_status': self.status,
-                        },
-                    )
-        elif result.get('async_call', False):
-            if self.may_trigger('confirm_charge_sent'):  # ty: ignore[unresolved-attribute]
-                self.confirm_charge_sent()  # ty: ignore[unresolved-attribute]
-            else:
-                logger.debug(
-                    'Cannot confirm charge sent.',
-                    extra={
-                        'payment_id': self.id,
-                        'payment_status': self.status,
-                    },
-                )
-        else:
+        result = charge_payment(self, amount=amount_to_charge, **kwargs)
+        if not result.success:
             raise ChargeFailure(
                 'Error occurred while trying to charge locked amount.'
             )
-        self.save()
         return result
+
+    @atomic
+    def release_lock(self, **kwargs):
+        return release_payment_lock(self, **kwargs)
+
+    @atomic
+    def start_refund(
+        self,
+        amount: Decimal | float | int | None = None,
+        **kwargs,
+    ):
+        refund_amount = Decimal(str(amount)) if amount is not None else None
+        return start_payment_refund(self, amount=refund_amount, **kwargs)
+
+    @atomic
+    def cancel_refund(self, **kwargs):
+        return cancel_payment_refund(self, **kwargs)

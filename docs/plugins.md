@@ -8,8 +8,8 @@ Place it in `processor.py` in your app.
 
 ```python
 # getpaid_myplugin/processor.py
-from getpaid.processor import BaseProcessor
-from getpaid_core.types import TransactionResult
+from getpaid_core.processor import BaseProcessor
+from getpaid_core.types import PaymentUpdate, TransactionResult
 
 
 class PaymentProcessor(BaseProcessor):
@@ -19,17 +19,18 @@ class PaymentProcessor(BaseProcessor):
     sandbox_url = "https://sandbox.myplugin.com"
     production_url = "https://api.myplugin.com"
 
-    def prepare_transaction(self, request=None, view=None, **kwargs):
-        # Implement gateway-specific payment initialization
-        # Return an HttpResponse (redirect, template response, etc.)
+    async def prepare_transaction(self, **kwargs) -> TransactionResult:
         ...
 
-    def handle_paywall_callback(self, request, **kwargs):
-        # Handle PUSH callbacks from the gateway
+    async def verify_callback(self, data: dict, headers: dict, **kwargs) -> None:
         ...
 
-    def fetch_payment_status(self, **kwargs):
-        # Handle PULL status checks
+    async def handle_callback(
+        self, data: dict, headers: dict, **kwargs
+    ) -> PaymentUpdate | None:
+        ...
+
+    async def fetch_payment_status(self, **kwargs) -> PaymentUpdate | None:
         ...
 ```
 
@@ -70,11 +71,12 @@ Override `verify_callback` to validate that callbacks from the gateway are
 authentic:
 
 ```python
-def verify_callback(self, request, **kwargs):
-    signature = request.headers.get("X-Signature")
-    if not self._verify_signature(request.body, signature):
+async def verify_callback(self, data, headers, **kwargs):
+    signature = headers.get("X-Signature")
+    raw_body = kwargs["raw_body"]
+    if not self._verify_signature(raw_body, signature):
         raise InvalidCallbackError("Invalid signature")
 ```
 
-The framework calls `verify_callback` before `handle_paywall_callback`.
+The framework calls `verify_callback` before `handle_callback`.
 If it raises, the callback is rejected with HTTP 403.

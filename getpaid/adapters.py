@@ -23,7 +23,10 @@ def adapt_callback_request(
     if request.content_type and 'json' in request.content_type:
         data = json.loads(raw_body)
     else:
-        data = dict(request.POST)
+        data = {}
+        for key in request.POST:
+            values = list(request.POST.getlist(key))
+            data[key] = values[0] if len(values) == 1 else values
 
     # Extract headers (HTTP_X_FOO → X-Foo)
     headers = {

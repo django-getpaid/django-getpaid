@@ -1,11 +1,9 @@
-"""Tests for the dummy payment backend (rewritten from scratch)."""
-
-import pathlib
+import json
 from decimal import Decimal
 
 import pytest
 import swapper
-from getpaid_core.fsm import create_payment_machine
+from django.template.response import TemplateResponse
 
 from getpaid.types import PaymentStatus as ps
 
@@ -16,7 +14,6 @@ Payment = swapper.load_model('getpaid', 'Payment')
 
 
 def _make_payment(**kwargs):
-    """Helper to create an Order + Payment pair."""
     order = Order.objects.create()
     defaults = {
         'order': order,
@@ -29,39 +26,14 @@ def _make_payment(**kwargs):
     return Payment.objects.create(**defaults)
 
 
-class TestDummyProcessorAttributes:
-    def test_slug(self):
-        from getpaid.backends.dummy.processor import PaymentProcessor
-
-        assert PaymentProcessor.slug == 'dummy'
-
-    def test_display_name(self):
-        from getpaid.backends.dummy.processor import PaymentProcessor
-
-        assert PaymentProcessor.display_name == 'Dummy'
-
-    def test_accepted_currencies(self):
-        from getpaid.backends.dummy.processor import PaymentProcessor
-
-        assert 'PLN' in PaymentProcessor.accepted_currencies
-        assert 'EUR' in PaymentProcessor.accepted_currencies
-
-    def test_no_requests_import(self):
-        import importlib
-
-        mod = importlib.import_module('getpaid.backends.dummy.processor')
-        source = pathlib.Path(mod.__file__).open().read()
-        assert 'import requests' not in source
-
-
 class TestDummyPrepareTransaction:
     def test_rest_method_returns_redirect(self, rf, settings):
         settings.GETPAID_BACKEND_SETTINGS = {
             'getpaid.backends.dummy': {'paywall_method': 'REST'}
         }
         payment = _make_payment()
-        request = rf.get('/')
-        result = payment.prepare_transaction(request=request)
+        result = payment.prepare_transaction(request=rf.get('/'))
+
         assert result.status_code == 302
         assert payment.status == ps.PREPARED
 
@@ -70,8 +42,8 @@ class TestDummyPrepareTransaction:
             'getpaid.backends.dummy': {'paywall_method': 'GET'}
         }
         payment = _make_payment()
-        request = rf.get('/')
-        result = payment.prepare_transaction(request=request)
+        result = payment.prepare_transaction(request=rf.get('/'))
+
         assert result.status_code == 302
         assert payment.status == ps.PREPARED
 
@@ -80,236 +52,142 @@ class TestDummyPrepareTransaction:
             'getpaid.backends.dummy': {'paywall_method': 'POST'}
         }
         payment = _make_payment()
-        request = rf.get('/')
-        result = payment.prepare_transaction(request=request)
+        result = payment.prepare_transaction(request=rf.get('/'))
+
+        assert isinstance(result, TemplateResponse)
         assert result.status_code == 200
         assert payment.status == ps.PREPARED
 
-    def test_prepare_works_without_request(self, settings):
-        settings.GETPAID_BACKEND_SETTINGS = {
-            'getpaid.backends.dummy': {'paywall_method': 'REST'}
-        }
-        payment = _make_payment()
-        result = payment.prepare_transaction(request=None)
-        assert result.status_code == 302
-        assert payment.status == ps.PREPARED
 
-
-class TestDummyHandleCallback:
-    def test_callback_paid(self, rf):
-        payment = _make_payment()
-        create_payment_machine(payment)
-        payment.confirm_prepared()
-        payment.save()
-
+class TestDummyCallbacks:
+    def test_paid_callback_marks_payment_paid(self, rf):
+        payment = _make_payment(status=ps.PREPARED)
         request = rf.post(
-            '', content_type='application/json', data={'new_status': ps.PAID}
+            '',
+            data=json.dumps({'new_status': ps.PAID}),
+            content_type='application/json',
         )
+
         response = payment.handle_paywall_callback(request)
+
+        payment.refresh_from_db()
         assert response.status_code == 200
         assert payment.status == ps.PAID
+        assert payment.amount_paid == payment.amount_required
 
-    def test_callback_pre_auth(self, rf):
-        payment = _make_payment()
-        create_payment_machine(payment)
-        payment.confirm_prepared()
-        payment.save()
-
+    def test_preauth_callback_marks_payment_locked(self, rf):
+        payment = _make_payment(status=ps.PREPARED)
         request = rf.post(
             '',
+            data=json.dumps({'new_status': ps.PRE_AUTH}),
             content_type='application/json',
-            data={'new_status': ps.PRE_AUTH},
         )
+
         response = payment.handle_paywall_callback(request)
+
+        payment.refresh_from_db()
         assert response.status_code == 200
         assert payment.status == ps.PRE_AUTH
+        assert payment.amount_locked == payment.amount_required
 
-    def test_callback_failed(self, rf):
-        payment = _make_payment()
-        create_payment_machine(payment)
-        payment.confirm_prepared()
-        payment.save()
-
+    def test_failed_callback_marks_payment_failed(self, rf):
+        payment = _make_payment(status=ps.PREPARED)
         request = rf.post(
             '',
+            data=json.dumps({'new_status': ps.FAILED}),
             content_type='application/json',
-            data={'new_status': ps.FAILED},
         )
+
         response = payment.handle_paywall_callback(request)
+
+        payment.refresh_from_db()
         assert response.status_code == 200
         assert payment.status == ps.FAILED
 
-    def test_callback_no_status_returns_400(self, rf):
-        payment = _make_payment()
-        create_payment_machine(payment)
-        payment.confirm_prepared()
-        payment.save()
-
-        request = rf.post('', content_type='application/json', data={})
-        response = payment.handle_paywall_callback(request)
-        assert response.status_code == 400
-
-    def test_callback_unknown_status_returns_400(self, rf):
-        payment = _make_payment()
-        create_payment_machine(payment)
-        payment.confirm_prepared()
-        payment.save()
-
+    def test_missing_status_returns_400(self, rf):
+        payment = _make_payment(status=ps.PREPARED)
         request = rf.post(
-            '',
-            content_type='application/json',
-            data={'new_status': 'nonsense'},
+            '', data=json.dumps({}), content_type='application/json'
         )
+
         response = payment.handle_paywall_callback(request)
+
         assert response.status_code == 400
 
 
-class TestDummyFetchPaymentStatus:
-    def test_new_payment_no_callback(self):
-        payment = _make_payment()
-        proc = payment._get_processor()
-        result = proc.fetch_payment_status()
-        assert result.get('callback') is None
-
-    def test_prepared_payment_returns_confirm_payment(self):
-        payment = _make_payment()
-        create_payment_machine(payment)
-        payment.confirm_prepared()
-        payment.save()
-        proc = payment._get_processor()
-        result = proc.fetch_payment_status()
-        assert result.get('callback') == 'confirm_payment'
-        assert result.get('amount') == payment.amount_required
-
-    def test_terminal_paid_returns_no_callback(self):
-        payment = _make_payment()
-        create_payment_machine(payment)
-        payment.confirm_prepared()
-        full = payment.amount_required
-        payment.confirm_payment(amount=full)
-        payment.amount_paid = full
-        payment.mark_as_paid()
-        payment.save()
-        proc = payment._get_processor()
-        result = proc.fetch_payment_status()
-        assert result == {}
-
-    def test_terminal_failed_returns_no_callback(self):
-        payment = _make_payment()
-        create_payment_machine(payment)
-        payment.confirm_prepared()
-        payment.fail()
-        payment.save()
-        proc = payment._get_processor()
-        result = proc.fetch_payment_status()
-        assert result == {}
-
-    def test_confirmation_status_failed(self, settings):
+class TestDummyPullAndActions:
+    def test_fetch_and_update_status_marks_paid(self, settings):
         settings.GETPAID_BACKEND_SETTINGS = {
-            'getpaid.backends.dummy': {'confirmation_status': 'failed'}
+            'getpaid.backends.dummy': {'confirmation_status': 'paid'}
         }
-        payment = _make_payment()
-        create_payment_machine(payment)
-        payment.confirm_prepared()
-        payment.save()
-        proc = payment._get_processor()
-        result = proc.fetch_payment_status()
-        assert result.get('callback') == 'fail'
+        payment = _make_payment(status=ps.PREPARED)
 
-    def test_confirmation_status_pre_auth(self, settings):
+        result = payment.fetch_and_update_status()
+
+        assert result.status == ps.PAID
+        assert result.amount_paid == result.amount_required
+
+    def test_fetch_and_update_status_marks_preauth(self, settings):
         settings.GETPAID_BACKEND_SETTINGS = {
             'getpaid.backends.dummy': {'confirmation_status': 'pre_auth'}
         }
-        payment = _make_payment()
-        create_payment_machine(payment)
-        payment.confirm_prepared()
-        payment.save()
-        proc = payment._get_processor()
-        result = proc.fetch_payment_status()
-        assert result.get('callback') == 'confirm_lock'
+        payment = _make_payment(status=ps.PREPARED)
 
+        result = payment.fetch_and_update_status()
 
-class TestDummyCharge:
-    def test_charge_returns_dict_with_amount(self):
-        payment = _make_payment()
-        create_payment_machine(payment)
-        payment.confirm_lock(amount=Decimal('100.00'))
-        payment.save()
+        assert result.status == ps.PRE_AUTH
+        assert result.amount_locked == result.amount_required
 
-        proc = payment._get_processor()
-        result = proc.charge(amount=Decimal('50.00'))
-        assert isinstance(result, dict)
-        assert result['amount_charged'] == Decimal('50.00')
-        assert result['success'] is True
+    def test_charge_updates_paid_amount(self):
+        payment = _make_payment(
+            status=ps.PRE_AUTH,
+            amount_locked=Decimal('100.00'),
+        )
 
-    def test_charge_uses_locked_amount_when_none(self):
-        payment = _make_payment()
-        create_payment_machine(payment)
-        payment.confirm_lock(amount=Decimal('100.00'))
-        payment.save()
+        result = payment.charge(amount=Decimal('50.00'))
 
-        proc = payment._get_processor()
-        result = proc.charge(amount=None)
-        assert result['amount_charged'] == Decimal('100.00')
+        payment.refresh_from_db()
+        assert result.success is True
+        assert payment.amount_paid == Decimal('50.00')
+        assert payment.amount_locked == Decimal('50.00')
+        assert payment.status == ps.PARTIAL
 
-    def test_charge_returns_dict_not_none(self):
-        payment = _make_payment()
-        create_payment_machine(payment)
-        payment.confirm_lock(amount=Decimal('100.00'))
-        payment.save()
+    def test_release_lock_updates_status(self):
+        payment = _make_payment(
+            status=ps.PRE_AUTH,
+            amount_locked=Decimal('100.00'),
+        )
 
-        proc = payment._get_processor()
-        result = proc.charge(amount=Decimal('100.00'))
-        assert result is not None
+        result = payment.release_lock()
 
-
-class TestDummyReleaseLock:
-    def test_release_lock_returns_decimal(self):
-        payment = _make_payment()
-        create_payment_machine(payment)
-        payment.confirm_lock(amount=Decimal('100.00'))
-        payment.save()
-
-        proc = payment._get_processor()
-        result = proc.release_lock()
-        assert isinstance(result, Decimal)
+        payment.refresh_from_db()
         assert result == Decimal('100.00')
+        assert payment.amount_locked == Decimal('0.00')
+        assert payment.status == ps.REFUNDED
 
+    def test_start_refund_stores_provider_data(self):
+        payment = _make_payment(
+            status=ps.PAID,
+            amount_paid=Decimal('100.00'),
+        )
 
-class TestDummyStartRefund:
-    def test_start_refund_returns_amount(self):
-        payment = _make_payment()
-        create_payment_machine(payment)
-        full = payment.amount_required
-        payment.confirm_lock(amount=full)
-        payment.confirm_payment(amount=full)
-        payment.amount_paid = full
-        payment.mark_as_paid()
-        payment.save()
+        result = payment.start_refund(amount=Decimal('50.00'))
 
-        proc = payment._get_processor()
-        result = proc.start_refund(amount=Decimal('50.00'))
-        assert isinstance(result, Decimal)
-        assert result == Decimal('50.00')
+        payment.refresh_from_db()
+        assert result.amount == Decimal('50.00')
+        assert payment.status == ps.REFUND_STARTED
+        assert payment.provider_data['refund_id'].startswith('dummy-refund-')
 
-    def test_start_refund_defaults_to_paid_amount(self):
-        payment = _make_payment()
-        create_payment_machine(payment)
-        full = payment.amount_required
-        payment.confirm_lock(amount=full)
-        payment.confirm_payment(amount=full)
-        payment.amount_paid = full
-        payment.mark_as_paid()
-        payment.save()
+    def test_cancel_refund_restores_paid_state(self):
+        payment = _make_payment(
+            status=ps.REFUND_STARTED,
+            amount_paid=Decimal('100.00'),
+            amount_required=Decimal('100.00'),
+            provider_data={'refund_id': 'dummy-refund-1'},
+        )
 
-        proc = payment._get_processor()
-        result = proc.start_refund()
-        assert result == full
+        result = payment.cancel_refund()
 
-
-class TestDummyCancelRefund:
-    def test_cancel_refund_returns_true(self):
-        payment = _make_payment()
-        proc = payment._get_processor()
-        result = proc.cancel_refund()
+        payment.refresh_from_db()
         assert result is True
+        assert payment.status == ps.PAID

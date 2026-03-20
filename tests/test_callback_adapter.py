@@ -44,10 +44,21 @@ def test_adapt_callback_request_form_data(factory):
         HTTP_X_CUSTOM='value',
     )
 
-    data, headers, raw_body = adapt_callback_request(request)
+    data, headers, _raw_body = adapt_callback_request(request)
 
     assert 'status' in data
     assert headers['X-CUSTOM'] == 'value'
+
+
+def test_adapt_callback_request_flattens_single_form_values(factory):
+    request = factory.post(
+        '/callback/',
+        data={'status': 'paid', 'amount': '100'},
+    )
+
+    data, _headers, _raw_body = adapt_callback_request(request)
+
+    assert data == {'status': 'paid', 'amount': '100'}
 
 
 def test_call_processor_verify_callback_async():

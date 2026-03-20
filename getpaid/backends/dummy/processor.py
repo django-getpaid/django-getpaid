@@ -1,170 +1,125 @@
-"""Dummy payment backend for development and testing.
-
-Self-contained processor simulating payment flows without external
-HTTP calls. Supports REST/POST/GET initiation and PUSH/PULL confirmation.
-
-Settings (via GETPAID_BACKEND_SETTINGS['getpaid.backends.dummy']):
-    paywall_method: 'REST' | 'POST' | 'GET' (default: 'REST')
-    confirmation_method: 'PUSH' | 'PULL' (default: 'PUSH')
-"""
-
-import json
-import logging
 from decimal import Decimal
 
-from django.http import (
-    HttpResponse,
-    HttpResponseBadRequest,
-    HttpResponseRedirect,
+from django.http import HttpResponseBadRequest
+from getpaid_core.backends.dummy import DummyProcessor
+from getpaid_core.enums import BackendMethod, PaymentEvent
+from getpaid_core.types import (
+    ChargeResult,
+    PaymentUpdate,
+    RefundResult,
+    TransactionResult,
 )
-from django.template.response import TemplateResponse
-from getpaid_core.fsm import create_payment_machine
-from transitions.core import MachineError
 
 from getpaid.post_forms import PaymentHiddenInputsPostForm
 from getpaid.processor import BaseProcessor
-from getpaid.types import PaymentStatus as ps
-
-logger = logging.getLogger(__name__)
 
 
-def _can_trigger(payment, trigger_name):
-    """Check if a trigger can proceed without actually firing it."""
-    trigger = getattr(payment, trigger_name, None)
-    if trigger is None:
-        return False
-    try:
-        return payment.may_trigger(trigger_name)
-    except (AttributeError, MachineError):
-        # If machine not attached or method unavailable
-        return False
-
-
-class PaymentProcessor(BaseProcessor):
+class PaymentProcessor(BaseProcessor, DummyProcessor):
     slug = 'dummy'
     display_name = 'Dummy'
-    accepted_currencies = ['PLN', 'EUR']
-    ok_statuses = [200]
-    method = 'REST'
-    confirmation_method = 'PUSH'
+    accepted_currencies = ['PLN', 'EUR', 'USD', 'GBP', 'CHF', 'CZK']
     post_form_class = PaymentHiddenInputsPostForm
     post_template_name = 'getpaid_dummy/payment_post_form.html'
+    sandbox_url = 'https://dummy.example.com'
+    production_url = 'https://dummy.example.com'
 
     def get_paywall_method(self):
-        return self.get_setting('paywall_method', self.method)
+        return self.get_setting('paywall_method', 'REST')
 
-    def get_confirmation_method(self):
-        return self.get_setting(
-            'confirmation_method', self.confirmation_method
-        ).upper()
+    async def prepare_transaction(self, **kwargs) -> TransactionResult:
+        method = BackendMethod(self.get_paywall_method())
+        if method is BackendMethod.POST:
+            return TransactionResult(
+                method=method,
+                redirect_url='https://dummy.example.com/form',
+                form_data={
+                    'payment_id': str(self.payment.id),
+                    'amount': f'{self.payment.amount_required:.2f}',
+                    'currency': self.payment.currency,
+                },
+            )
+        return TransactionResult(
+            method=method,
+            redirect_url=f'https://dummy.example.com/pay/{self.payment.id}',
+        )
 
-    def prepare_transaction(self, request=None, view=None, **kwargs):
-        """Simulate payment preparation. No external HTTP calls."""
-        method = self.get_paywall_method()
-
-        # Ensure FSM is attached
-        create_payment_machine(self.payment)
-        self.payment.confirm_prepared()  # ty: ignore[possibly-missing-attribute]
-        self.payment.save()  # ty: ignore[possibly-missing-attribute]
-
-        if method == 'POST':
-            params = {
-                'amount': str(self.payment.amount_required),
-                'currency': self.payment.currency,
-                'description': self.payment.description,
-            }
-            form = self.get_form(params)
-            return TemplateResponse(
-                request=request,
-                template=self.get_template_names(view=view),
-                context={'form': form, 'paywall_url': '#dummy'},
+    async def handle_callback(self, data, headers, **kwargs):
+        if 'event' in data:
+            return await DummyProcessor.handle_callback(
+                self, data, headers, **kwargs
             )
 
-        redirect_url = self.get_our_baseurl(request)
-        return HttpResponseRedirect(redirect_url)
+        new_status = data.get('new_status')
+        if not new_status:
+            return HttpResponseBadRequest(b'Missing new_status')
+
+        if new_status == 'paid':
+            return await DummyProcessor.handle_callback(
+                self,
+                {
+                    'event': 'payment_confirmed',
+                    'paid_amount': str(self.payment.amount_required),
+                },
+                headers,
+                **kwargs,
+            )
+        if new_status == 'pre-auth':
+            return await DummyProcessor.handle_callback(
+                self,
+                {
+                    'event': 'payment_locked',
+                    'locked_amount': str(self.payment.amount_required),
+                },
+                headers,
+                **kwargs,
+            )
+        if new_status == 'failed':
+            return await DummyProcessor.handle_callback(
+                self,
+                {'event': 'payment_failed'},
+                headers,
+                **kwargs,
+            )
+        if new_status == 'refund_started':
+            return PaymentUpdate(payment_event=PaymentEvent.REFUND_REQUESTED)
+        if new_status == 'refunded':
+            return PaymentUpdate(
+                payment_event=PaymentEvent.REFUND_CONFIRMED,
+                refunded_amount=self.payment.amount_paid,
+            )
+        return HttpResponseBadRequest(
+            f'Unhandled status: {new_status}'.encode()
+        )
 
     def handle_paywall_callback(self, request, **kwargs):
-        """Handle a simulated callback with JSON body."""
-        try:
-            data = json.loads(request.body)
-        except (json.JSONDecodeError, ValueError):
-            return HttpResponseBadRequest('Invalid JSON')
+        from getpaid.runtime import handle_callback_request
 
-        new_status = data.get('new_status')
-        if new_status is None:
-            return HttpResponseBadRequest('Missing new_status')
+        return handle_callback_request(self.payment, request, **kwargs)
 
-        create_payment_machine(self.payment)
+    async def fetch_payment_status(self, **kwargs):
+        confirmation_status = self.get_setting('confirmation_status', 'paid')
+        confirmation_event = {
+            'paid': 'payment_confirmed',
+            'pre_auth': 'payment_locked',
+            'failed': 'payment_failed',
+        }.get(confirmation_status, 'payment_confirmed')
+        self.config['confirmation_event'] = confirmation_event
+        return await DummyProcessor.fetch_payment_status(self, **kwargs)
 
-        if new_status == ps.FAILED:
-            self.payment.fail()  # ty: ignore[possibly-missing-attribute]
-        elif new_status == ps.PRE_AUTH:
-            self.payment.confirm_lock()  # ty: ignore[possibly-missing-attribute]
-        elif new_status == ps.PAID:
-            if _can_trigger(self.payment, 'confirm_lock'):
-                self.payment.confirm_lock()  # ty: ignore[possibly-missing-attribute]
-            if _can_trigger(self.payment, 'confirm_payment'):
-                self.payment.confirm_payment()  # ty: ignore[possibly-missing-attribute]
-            if _can_trigger(self.payment, 'mark_as_paid'):
-                try:
-                    self.payment.mark_as_paid()  # ty: ignore[possibly-missing-attribute]
-                except MachineError:
-                    logger.debug(
-                        'Cannot mark as paid (guard failed).',
-                        extra={
-                            'payment_id': self.payment.id,
-                        },
-                    )
-        else:
-            return HttpResponseBadRequest(f'Unhandled status: {new_status}')
+    async def charge(self, amount=None, **kwargs) -> ChargeResult:
+        return await DummyProcessor.charge(self, amount=amount, **kwargs)
 
-        self.payment.save()  # ty: ignore[possibly-missing-attribute]
-        return HttpResponse('OK')
+    async def release_lock(self, **kwargs):
+        return await DummyProcessor.release_lock(self, **kwargs)
 
-    def fetch_payment_status(self, **kwargs):
-        """Simulate fetching status from external provider."""
-        status = self.payment.status
-        simulated = self.get_setting('confirmation_status', 'paid')
+    async def start_refund(self, amount=None, **kwargs) -> RefundResult:
+        refund_amount = (
+            amount if amount is not None else self.payment.amount_paid
+        )
+        return RefundResult(
+            amount=Decimal(str(refund_amount)),
+            provider_data={'refund_id': f'dummy-refund-{self.payment.id}'},
+        )
 
-        if status in (
-            ps.PAID,
-            ps.FAILED,
-            ps.REFUNDED,
-            ps.REFUND_STARTED,
-        ):
-            return {}
-
-        if status == ps.NEW:
-            return {}
-
-        if simulated == 'failed':
-            return {'callback': 'fail'}
-        if simulated == 'pre_auth':
-            return {'callback': 'confirm_lock'}
-        return {
-            'callback': 'confirm_payment',
-            'amount': self.payment.amount_required,
-        }
-
-    def charge(self, amount=None, **kwargs):
-        """Simulate charging a pre-authorized amount."""
-        if amount is None:
-            amount = self.payment.amount_locked
-        return {
-            'amount_charged': Decimal(str(amount)),
-            'success': True,
-        }
-
-    def release_lock(self, **kwargs):
-        """Simulate releasing a locked amount."""
-        return Decimal(str(self.payment.amount_locked))
-
-    def start_refund(self, amount=None, **kwargs):
-        """Simulate starting a refund."""
-        if amount is None:
-            amount = self.payment.amount_paid
-        return Decimal(str(amount))
-
-    def cancel_refund(self, **kwargs):
-        """Simulate cancelling a refund."""
+    async def cancel_refund(self, **kwargs):
         return True

@@ -8,9 +8,9 @@ breaking changes and how to update your code.
 
 | Aspect | v2 | v3 |
 |--------|----|----|
-| FSM | django-fsm + `FSMField` | `transitions` via getpaid-core, plain `CharField` |
-| State checks | `can_proceed(payment.method)` | `payment.may_trigger("method")` |
-| Transitions | `@transition` decorators on model | Runtime-attached via `create_payment_machine()` |
+| State engine | django-fsm + `FSMField` | semantic `PaymentUpdate` application |
+| Callback API | request-oriented + model transitions | `data`, `headers`, `raw_body` + semantic updates |
+| Processor results | direct mutation / callback names | `TransactionResult`, `PaymentUpdate`, `RefundResult` |
 | Runtime deps | django-fsm | getpaid-core |
 | Python | 3.6+ | 3.12+ |
 | Django | 2.2+ | 5.2+ |
@@ -77,11 +77,11 @@ from getpaid.abstracts import AbstractPayment
 
 class MyPayment(AbstractPayment):
     # No @transition decorators needed.
-    # FSM is attached at runtime via create_payment_machine().
+    # The framework applies semantic payment updates for you.
     pass
 ```
 
-### 5. Replace `can_proceed()` with `may_trigger()`
+### 5. Stop calling transition methods directly
 
 ```python
 # BEFORE (v2):
@@ -91,11 +91,10 @@ if can_proceed(payment.confirm_payment):
     payment.confirm_payment()
 
 # AFTER (v3):
-from getpaid_core.fsm import create_payment_machine
+from getpaid_core.types import PaymentUpdate
 
-create_payment_machine(payment)
-if payment.may_trigger("confirm_payment"):
-    payment.confirm_payment()
+update = PaymentUpdate(payment_event="payment_captured")
+# In normal framework usage the adapter applies this for you.
 ```
 
 ### 6. Update signal handlers
@@ -126,21 +125,17 @@ If you wrote a custom payment backend, update the processor:
 
 ```python
 # BEFORE (v2):
-from django_fsm import can_proceed
-
 class PaymentProcessor(BaseProcessor):
     def handle_paywall_callback(self, request, **kwargs):
-        if can_proceed(self.payment.confirm_payment):
-            self.payment.confirm_payment()
+        ...
 
 # AFTER (v3):
-from getpaid_core.fsm import create_payment_machine
+from getpaid_core.types import PaymentUpdate
+
 
 class PaymentProcessor(BaseProcessor):
-    def handle_paywall_callback(self, request, **kwargs):
-        create_payment_machine(self.payment)
-        if self.payment.may_trigger("confirm_payment"):
-            self.payment.confirm_payment()
+    async def handle_callback(self, data, headers, **kwargs):
+        return PaymentUpdate(payment_event="payment_captured")
 ```
 
 ### 8. Update settings format

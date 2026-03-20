@@ -10,9 +10,9 @@ from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import CreateView, RedirectView
 
-from .adapters import call_processor_verify_callback
 from .exceptions import GetPaidException
 from .forms import PaymentMethodForm
+from .runtime import handle_callback_request
 
 logger = logging.getLogger(__name__)
 
@@ -71,13 +71,11 @@ class CallbackDetailView(View):
     def post(self, request: HttpRequest, pk, *args, **kwargs):
         Payment = swapper.load_model('getpaid', 'Payment')
         payment = get_object_or_404(Payment, pk=pk)
-        processor = payment._get_processor()
         try:
-            call_processor_verify_callback(processor, request)
+            return handle_callback_request(payment, request, **kwargs)
         except GetPaidException:
             logger.warning('Callback verification failed for payment %s', pk)
-            return http.HttpResponseForbidden('Callback verification failed')
-        return processor.handle_paywall_callback(request, *args, **kwargs)
+            return http.HttpResponseForbidden(b'Callback verification failed')
 
 
 callback = csrf_exempt(CallbackDetailView.as_view())

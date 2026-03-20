@@ -1,11 +1,10 @@
-"""Tests for BaseProcessor and security features."""
-
+import json
 from decimal import Decimal
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 import swapper
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseForbidden
 from django.test import RequestFactory
 
 from getpaid.exceptions import GetPaidException
@@ -139,8 +138,9 @@ class TestCallbackViewSecurity:
         mock_processor = MagicMock()
         mock_processor.verify_callback = MagicMock()
         mock_processor.handle_paywall_callback = MagicMock(
-            return_value=HttpResponse('OK')
+            return_value=HttpResponse(b'OK')
         )
+        del mock_processor.handle_callback
 
         with patch.object(
             type(self.payment),
@@ -162,8 +162,9 @@ class TestCallbackViewSecurity:
             side_effect=GetPaidException('Bad signature')
         )
         mock_processor.handle_paywall_callback = MagicMock(
-            return_value=HttpResponse('OK')
+            return_value=HttpResponse(b'OK')
         )
+        del mock_processor.handle_callback
 
         with patch.object(
             type(self.payment),
@@ -183,8 +184,9 @@ class TestCallbackViewSecurity:
         mock_processor = MagicMock()
         mock_processor.verify_callback = MagicMock()
         mock_processor.handle_paywall_callback = MagicMock(
-            return_value=HttpResponse('OK', status=200)
+            return_value=HttpResponse(b'OK', status=200)
         )
+        del mock_processor.handle_callback
 
         with patch.object(
             type(self.payment),
@@ -198,3 +200,59 @@ class TestCallbackViewSecurity:
         mock_processor.verify_callback.assert_called_once_with(request)
         mock_processor.handle_paywall_callback.assert_called_once()
         assert response.status_code == 200
+
+    def test_callback_view_adapts_async_processor_contract(self):
+        payload = {'status': 'COMPLETED', 'orderId': 'PAYU-1'}
+        request = self.factory.post(
+            f'/payments/callback/{self.payment.pk}/',
+            data=json.dumps(payload),
+            content_type='application/json',
+            HTTP_X_SIGNATURE='valid-signature',
+        )
+
+        mock_processor = MagicMock()
+        mock_processor.verify_callback = AsyncMock()
+        mock_processor.handle_callback = AsyncMock(return_value=None)
+
+        with patch.object(
+            type(self.payment),
+            '_get_processor',
+            return_value=mock_processor,
+        ):
+            view = CallbackDetailView()
+            view.request = request
+            response = view.post(request, pk=self.payment.pk)
+
+        verify_args = mock_processor.verify_callback.await_args
+        handle_args = mock_processor.handle_callback.await_args
+        assert verify_args.args[0] == payload
+        assert verify_args.args[1]['X-SIGNATURE'] == 'valid-signature'
+        assert verify_args.kwargs['raw_body'] == request.body
+        assert handle_args.args[0] == payload
+        assert response.status_code == 200
+
+    def test_callback_view_returns_403_for_async_verify_failure(self):
+        request = self.factory.post(
+            f'/payments/callback/{self.payment.pk}/',
+            data=json.dumps({'status': 'COMPLETED'}),
+            content_type='application/json',
+            HTTP_X_SIGNATURE='bad-signature',
+        )
+
+        mock_processor = MagicMock()
+        mock_processor.verify_callback = AsyncMock(
+            side_effect=GetPaidException('Bad signature')
+        )
+        mock_processor.handle_callback = AsyncMock(return_value=None)
+
+        with patch.object(
+            type(self.payment),
+            '_get_processor',
+            return_value=mock_processor,
+        ):
+            view = CallbackDetailView()
+            view.request = request
+            response = view.post(request, pk=self.payment.pk)
+
+        assert isinstance(response, HttpResponseForbidden)
+        mock_processor.handle_callback.assert_not_called()

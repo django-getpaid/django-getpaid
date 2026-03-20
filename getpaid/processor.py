@@ -16,6 +16,8 @@ from django.http import HttpRequest
 from django.views import View
 from getpaid_core.processor import BaseProcessor as CoreBaseProcessor
 
+from .runtime import prepare_payment
+
 
 class BaseProcessor(CoreBaseProcessor):
     """Django adapter for core BaseProcessor.
@@ -165,3 +167,11 @@ class BaseProcessor(CoreBaseProcessor):
     def fetch_payment_status(self, **kwargs):
         """Fetch payment status from gateway. Override in backends."""
         raise NotImplementedError
+
+    def prepare_transaction(self, request=None, view=None, **kwargs):
+        return prepare_payment(
+            self.payment,
+            request=request,
+            view=view,
+            **kwargs,
+        )
