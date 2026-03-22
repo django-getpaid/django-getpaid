@@ -4,7 +4,7 @@ Extends getpaid-core's BaseProcessor with Django settings integration,
 template handling, and URL helpers.
 """
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from importlib import import_module
 from typing import Any
 
@@ -85,7 +85,7 @@ class BaseProcessor(CoreBaseProcessor):
         return cls.display_name
 
     @classmethod
-    def get_accepted_currencies(cls, **kwargs) -> list[str]:
+    def get_accepted_currencies(cls, **kwargs) -> Sequence[str]:
         return cls.accepted_currencies
 
     @classmethod

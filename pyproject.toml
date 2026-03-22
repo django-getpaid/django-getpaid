@@ -180,5 +180,10 @@ unresolved-reference = "ignore"
 invalid-argument-type = "ignore"
 possibly-missing-attribute = "ignore"
 
+[[tool.ty.overrides]]
+include = ["getpaid/backends/dummy/processor.py"]
+[tool.ty.overrides.rules]
+invalid-method-override = "ignore"
+
 [tool.uv.sources]
 python-getpaid-core = { git = "https://github.com/django-getpaid/python-getpaid-core", rev = "main" }

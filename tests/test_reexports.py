@@ -122,12 +122,12 @@ class TestTypeReExports:
         assert item['name'] == 'x'
 
     def test_charge_response(self):
-        resp: ChargeResponse = {
-            'amount_charged': Decimal(10),
-            'success': True,
-            'async_call': False,
-        }
-        assert resp['success'] is True
+        resp = ChargeResponse(
+            amount_charged=Decimal(10),
+            success=True,
+            async_call=False,
+        )
+        assert resp.success is True
 
     def test_backend_method_enum(self):
         assert BackendMethod.GET == 'GET'

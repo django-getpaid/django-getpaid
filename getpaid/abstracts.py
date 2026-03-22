@@ -2,6 +2,7 @@ import logging
 import uuid
 from decimal import Decimal
 from importlib import import_module
+from typing import cast
 
 import swapper
 from django import forms
@@ -14,6 +15,7 @@ from django.utils.translation import gettext_lazy as _
 from django.views import View
 from getpaid_core.enums import FraudEvent
 from getpaid_core.fsm import apply_payment_update
+from getpaid_core.protocols import Payment as CorePaymentProtocol
 from getpaid_core.types import PaymentUpdate
 
 from getpaid.exceptions import ChargeFailure
@@ -204,8 +206,9 @@ class AbstractPayment(models.Model):
         )
 
     def flag_as_fraud(self, message=''):
+        payment = cast(CorePaymentProtocol, self)
         apply_payment_update(
-            self,
+            payment,
             PaymentUpdate(
                 fraud_event=FraudEvent.REJECT,
                 fraud_message=message,
@@ -213,8 +216,9 @@ class AbstractPayment(models.Model):
         )
 
     def flag_as_legit(self, message=''):
+        payment = cast(CorePaymentProtocol, self)
         apply_payment_update(
-            self,
+            payment,
             PaymentUpdate(
                 fraud_event=FraudEvent.ACCEPT,
                 fraud_message=message,
@@ -222,8 +226,9 @@ class AbstractPayment(models.Model):
         )
 
     def flag_for_check(self, message=''):
+        payment = cast(CorePaymentProtocol, self)
         apply_payment_update(
-            self,
+            payment,
             PaymentUpdate(
                 fraud_event=FraudEvent.REVIEW,
                 fraud_message=message,

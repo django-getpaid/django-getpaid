@@ -29,6 +29,12 @@ jobs:
       - name: Lint with ruff
         run: uv run ruff check .
 
+      - name: Check unswapped getpaid migrations
+        env:
+          DJANGO_SETTINGS_MODULE: tests.settings_default_payment
+          PYTHONPATH: .
+        run: uv run python manage.py makemigrations --check --dry-run getpaid
+
       - name: Run tests
         env:
           DJANGO_SETTINGS_MODULE: tests.settings
