@@ -6,7 +6,7 @@ on:
   pull_request:
 
 jobs:
-  test:
+  unit:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -23,8 +23,8 @@ jobs:
       - name: Install uv
         run: pip install uv
 
-      - name: Install dependencies
-        run: uv sync
+      - name: Install unit dependencies
+        run: uv sync --frozen
 
       - name: Lint with ruff
         run: uv run ruff check .
@@ -35,7 +35,16 @@ jobs:
           PYTHONPATH: .
         run: uv run python manage.py makemigrations --check --dry-run getpaid
 
-      - name: Run tests
-        env:
-          DJANGO_SETTINGS_MODULE: tests.settings
-        run: uv run pytest --tb=short
+      - name: Run unit tests
+        run: make test-unit
+
+  integration:
+    runs-on: ubuntu-latest
+    needs: unit
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Docker-backed integration tests
+        run: make test-integration
