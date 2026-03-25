@@ -1,7 +1,7 @@
 # Getting Started
 
 ```{warning}
-**v3.0.0a3 (Alpha)** — This is a pre-release. The API may change before the
+**v3.0.0a4 (Alpha)** — This is a pre-release. The API may change before the
 stable v3.0 release.
 ```
 

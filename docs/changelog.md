@@ -1,5 +1,12 @@
 # Changelog
 
+## v3.0.0a4 (2026-03-25)
+
+- Harden payment creation flow validation and registry wrapping.
+- Add Docker-backed integration coverage and CI execution for the web adapter.
+
+---
+
 ## v3.0.0a3 (2026-03-20)
 
 - Align the Django adapter with the semantic `getpaid-core` v3 contract.
