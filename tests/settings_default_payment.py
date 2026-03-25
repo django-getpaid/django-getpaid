@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from tests.database import get_test_databases
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'tests-default-payment-secret-key'
 DEBUG = True
@@ -22,6 +24,4 @@ MIDDLEWARE = []
 ROOT_URLCONF = 'tests.urls_default_payment'
 TEMPLATES = []
 
-DATABASES = {
-    'default': {'ENGINE': 'django.db.backends.sqlite3', 'NAME': ':memory:'}
-}
+DATABASES = get_test_databases()

@@ -1,6 +1,8 @@
 # Minimalistic settings
 import os
 
+from tests.database import get_test_databases
+
 os.environ['PYTHONBREAKPOINT'] = 'ipdb.set_trace'
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -69,9 +71,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'example.wsgi.application'
 
-DATABASES = {
-    'default': {'ENGINE': 'django.db.backends.sqlite3', 'NAME': ':memory:'}
-}
+DATABASES = get_test_databases()
 
 TIME_ZONE = 'UTC'
 USE_I18N = False
