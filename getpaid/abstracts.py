@@ -89,6 +89,10 @@ class AbstractOrder(models.Model):
     def get_total_amount(self) -> Decimal:
         raise NotImplementedError
 
+    def get_currency(self) -> str:
+        field_name = 'currency'
+        return cast('str', getattr(self, field_name))
+
     def get_buyer_info(self) -> BuyerInfo:
         raise NotImplementedError
 

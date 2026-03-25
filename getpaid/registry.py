@@ -5,6 +5,7 @@ import importlib
 from django.urls import include, path
 from getpaid_core.processor import BaseProcessor
 from getpaid_core.registry import PluginRegistry as CorePluginRegistry
+from getpaid_core.registry import registry as core_registry
 
 
 def _importable(name):
@@ -142,4 +143,4 @@ class DjangoPluginRegistry:
 
 
 # Module-level singleton wrapping core's singleton
-registry = DjangoPluginRegistry(CorePluginRegistry())
+registry = DjangoPluginRegistry(core_registry)

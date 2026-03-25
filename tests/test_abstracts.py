@@ -239,12 +239,12 @@ class TestValidatorOrdering:
         try:
             settings.GETPAID = {
                 'VALIDATORS': ['fake_validators.v1', 'fake_validators.v2'],
-                'BACKENDS': {
-                    'test_backend': {'VALIDATORS': ['fake_validators.v3']}
-                },
+            }
+            settings.GETPAID_BACKEND_SETTINGS = {
+                'getpaid.backends.dummy': {'VALIDATORS': ['fake_validators.v3']}
             }
 
-            data = {'backend': 'test_backend'}
+            data = {'backend': 'dummy'}
             for index in range(5):
                 call_order.clear()
                 run_getpaid_validators(data)
@@ -274,11 +274,20 @@ class TestValidatorOrdering:
         try:
             settings.GETPAID = {
                 'VALIDATORS': ['fake_validators2.v1'],
-                'BACKENDS': {
-                    'test_backend': {'VALIDATORS': ['fake_validators2.v1']}
-                },
             }
-            run_getpaid_validators({'backend': 'test_backend'})
+            settings.GETPAID_BACKEND_SETTINGS = {
+                'getpaid.backends.dummy': {
+                    'VALIDATORS': ['fake_validators2.v1']
+                }
+            }
+            run_getpaid_validators({'backend': 'dummy'})
             assert call_count['v1'] == 1
         finally:
             del sys.modules['fake_validators2']
+
+
+class TestOrderProtocolCompatibility:
+    def test_abstract_order_exposes_get_currency(self, order_factory):
+        order = order_factory(currency='GBP')
+
+        assert order.get_currency() == 'GBP'

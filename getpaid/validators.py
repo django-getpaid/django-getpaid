@@ -7,12 +7,19 @@ def run_getpaid_validators(data: dict) -> dict:
     backend = data['backend']
     getpaid_settings = getattr(settings, 'GETPAID', {})
     global_validators = getpaid_settings.get('VALIDATORS', [])
-    backend_validators = (
-        getpaid_settings
-        .get('BACKENDS', {})
-        .get(backend, {})
-        .get('VALIDATORS', [])
-    )
+    backend_settings = getattr(settings, 'GETPAID_BACKEND_SETTINGS', {})
+    backend_validators = []
+
+    backend_candidates = [backend]
+    if '.' not in backend:
+        backend_candidates.append(f'getpaid.backends.{backend}')
+
+    for candidate in backend_candidates:
+        validators = backend_settings.get(candidate, {}).get('VALIDATORS', [])
+        if validators:
+            backend_validators = validators
+            break
+
     unique_validators = list(
         dict.fromkeys(global_validators + backend_validators)
     )

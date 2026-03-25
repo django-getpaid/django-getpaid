@@ -4,6 +4,7 @@ import logging
 
 import swapper
 from django import http
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpRequest
 from django.shortcuts import get_object_or_404
 from django.views import View
@@ -17,7 +18,7 @@ from .runtime import handle_callback_request
 logger = logging.getLogger(__name__)
 
 
-class CreatePaymentView(CreateView):
+class CreatePaymentView(LoginRequiredMixin, CreateView):
     model = swapper.load_model('getpaid', 'Payment')
     form_class = PaymentMethodForm
 
@@ -26,9 +27,7 @@ class CreatePaymentView(CreateView):
 
     def form_valid(self, form):
         payment = form.save()
-        return payment._get_processor().prepare_transaction(
-            request=self.request, view=self
-        )
+        return payment.prepare_transaction(request=self.request, view=self)
 
     def form_invalid(self, form):
         return super().form_invalid(form)

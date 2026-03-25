@@ -66,6 +66,17 @@ class PaymentMethodForm(forms.ModelForm):
                 )
         return self.cleaned_data['order']
 
+    def _apply_order_defaults(self, cleaned_data):
+        order = cleaned_data.get('order')
+        if order is None:
+            return cleaned_data
+
+        cleaned_data['amount_required'] = order.get_total_amount()
+        cleaned_data['description'] = order.get_description()
+        cleaned_data['currency'] = order.get_currency()
+        return cleaned_data
+
     def clean(self):
         cleaned_data = super().clean()
+        cleaned_data = self._apply_order_defaults(cleaned_data)
         return run_getpaid_validators(cleaned_data)
