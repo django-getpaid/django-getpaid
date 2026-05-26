@@ -327,7 +327,11 @@ class AbstractPayment(models.Model):
         result = self.prepare_transaction(request=request, view=view, **kwargs)
         data = {'status_code': result.status_code, 'result': result}
         if result.status_code == 200:
-            data['target_url'] = result.context_data['paywall_url']  # ty: ignore[unresolved-attribute]
+            ctx = getattr(result, 'context_data', None)
+            if ctx is None:
+                data['message'] = 'Response has no context_data'
+                return data
+            data['target_url'] = ctx['paywall_url']
             data['form'] = {
                 'fields': [
                     {
@@ -338,9 +342,7 @@ class AbstractPayment(models.Model):
                         'help_text': field.help_text,
                         'required': field.required,
                     }
-                    for name, field in result.context_data[  # ty: ignore[unresolved-attribute]
-                        'form'
-                    ].fields.items()
+                    for name, field in ctx['form'].fields.items()
                 ],
             }
         elif result.status_code == 302:
