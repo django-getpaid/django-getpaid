@@ -65,7 +65,18 @@ failure = FailureView.as_view()
 
 
 class CallbackDetailView(View):
-    """Handle paywall callback via PUSH flow."""
+    """Handle paywall callback via PUSH flow.
+
+    This view is csrf_exempt because payment gateways cannot include
+    CSRF tokens in their callback requests. Security is provided by:
+
+    1. HMAC signature verification in each backend processor's
+       ``verify_callback()`` method.
+    2. IP allowlisting at the reverse-proxy or WAF level (recommended).
+
+    Backend processors that do not implement ``verify_callback()`` leave
+    the endpoint fully open — always implement signature verification.
+    """
 
     def post(self, request: HttpRequest, pk, *args, **kwargs):
         Payment = swapper.load_model('getpaid', 'Payment')

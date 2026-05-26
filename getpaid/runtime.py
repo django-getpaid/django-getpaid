@@ -91,7 +91,9 @@ def fetch_and_update_payment_status(payment):
 def charge_payment(payment, amount=None, **kwargs):
     payment = _normalize_payment(payment)
     processor = payment._get_processor()
-    result = _call_processor_method(processor.charge, amount=amount, **kwargs)
+    result = _call_processor_method(
+        processor.charge, amount=amount, **kwargs
+    )
     if result.success:
         if result.async_call:
             update = PaymentUpdate(
@@ -182,6 +184,11 @@ def build_payment_response(payment, result, request=None, view=None):
 
 
 def _call_processor_method(method, *args, **kwargs):
+    """Call a processor method, bridging async/sync.
+
+    In asgiref 4.x, async_to_sync runs the coroutine in the calling
+    thread's event loop — preserving the Django DB connection.
+    """
     if inspect.iscoroutinefunction(method):
         return async_to_sync(method)(*args, **kwargs)
     return method(*args, **kwargs)
