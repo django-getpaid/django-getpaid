@@ -8,7 +8,7 @@ from collections.abc import Mapping, Sequence
 from importlib import import_module
 from typing import Any
 
-from django.conf import settings
+from django.conf import settings as django_settings
 from django.contrib.sites.shortcuts import get_current_site
 from django.core.exceptions import ImproperlyConfigured
 from django.forms import BaseForm
@@ -38,15 +38,14 @@ class BaseProcessor(CoreBaseProcessor):
         # Read config from Django settings if not provided
         if config is None:
             path = getattr(payment, 'backend', '') or ''
-            config = getattr(settings, 'GETPAID_BACKEND_SETTINGS', {}).get(
-                path, {}
-            )
+            # Support both slug and module path as settings keys
+            config = self._resolve_backend_settings(path)
         super().__init__(payment, config=config)
         self.path = getattr(payment, 'backend', '') or ''
         self.context: dict = {}
         if self.slug is None:
             self.slug = self.path  # ty: ignore[invalid-attribute-access]
-        self.optional_config = getattr(settings, 'GETPAID', {})
+        self.optional_config = getattr(django_settings, 'GETPAID', {})
         if self.client_class is not None:
             self.client = self.get_client()
 
@@ -56,6 +55,31 @@ class BaseProcessor(CoreBaseProcessor):
         if value is None:
             value = self.optional_config.get(name, None)
         return value
+
+    def _resolve_backend_settings(self, backend_path: str) -> dict:
+        """Resolve GETPAID_BACKEND_SETTINGS for a backend path.
+
+        Supports both slug ('dummy') and module path
+        ('getpaid.backends.dummy') as keys. Tries slug first, then
+        module path, then the full path as-is.
+        """
+        backend_settings = getattr(
+            django_settings, 'GETPAID_BACKEND_SETTINGS', {}
+        )
+
+        # Try slug first (new convention)
+        if self.slug and self.slug in backend_settings:
+            return backend_settings[self.slug]
+
+        # Try module path (backward compat)
+        if backend_path in backend_settings:
+            return backend_settings[backend_path]
+
+        # Try getpaid.backends.<slug>
+        if '.' not in backend_path and f'getpaid.backends.{backend_path}' in backend_settings:
+            return backend_settings[f'getpaid.backends.{backend_path}']
+
+        return {}
 
     def get_client_class(self) -> type | None:
         class_path = self.get_setting('CLIENT_CLASS')
@@ -94,7 +118,7 @@ class BaseProcessor(CoreBaseProcessor):
 
     @classmethod
     def get_paywall_baseurl(cls, **kwargs) -> str | None:  # ty: ignore[invalid-method-override]
-        if settings.DEBUG:
+        if django_settings.DEBUG:
             return cls.sandbox_url
         return cls.production_url
 
@@ -104,7 +128,7 @@ class BaseProcessor(CoreBaseProcessor):
 
         Uses Sites framework when no request is available.
         """
-        scheme = 'http' if settings.DEBUG else 'https'
+        scheme = 'http' if django_settings.DEBUG else 'https'
         if request is not None:
             domain = get_current_site(request).domain
         else:
