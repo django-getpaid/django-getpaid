@@ -169,6 +169,7 @@ class AbstractPayment(models.Model):
         blank=True,
         db_index=True,
         default='',
+        unique=True,
     )
     description = models.CharField(
         _('description'), max_length=128, blank=True, default=''
