@@ -1,6 +1,5 @@
 import inspect
 
-from asgiref.sync import async_to_sync
 from django.core.exceptions import ImproperlyConfigured
 from django.http import (
     HttpResponse,
@@ -16,6 +15,7 @@ from getpaid.adapters import (
     adapt_callback_request,
     call_processor_verify_callback,
 )
+from getpaid.async_runner import run_awaitable
 from getpaid.repository import DjangoPaymentRepository
 
 
@@ -186,11 +186,12 @@ def build_payment_response(payment, result, request=None, view=None):
 def _call_processor_method(method, *args, **kwargs):
     """Call a processor method, bridging async/sync.
 
-    In asgiref 4.x, async_to_sync runs the coroutine in the calling
-    thread's event loop — preserving the Django DB connection.
+    django-getpaid exposes a synchronous Django API, but core processors are
+    async. Run async processor methods on a shared event-loop thread instead of
+    creating a fresh loop thread for every request.
     """
     if inspect.iscoroutinefunction(method):
-        return async_to_sync(method)(*args, **kwargs)
+        return run_awaitable(method(*args, **kwargs))
     return method(*args, **kwargs)
 
 

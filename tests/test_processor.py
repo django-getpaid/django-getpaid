@@ -256,3 +256,231 @@ class TestCallbackViewSecurity:
 
         assert isinstance(response, HttpResponseForbidden)
         mock_processor.handle_callback.assert_not_called()
+
+    def test_production_callback_rejects_unsigned_backend(self, settings):
+        settings.DEBUG = False
+        request = self.factory.post(
+            f'/payments/callback/{self.payment.pk}/',
+            data={'new_status': 'paid'},
+            REMOTE_ADDR='203.0.113.10',
+        )
+
+        view = CallbackDetailView()
+        view.request = request
+        response = view.post(request, pk=self.payment.pk)
+
+        assert response.status_code == 403
+
+    def test_production_callback_allows_signed_async_backend(self, settings):
+        settings.DEBUG = False
+        request = self.factory.post(
+            f'/payments/callback/{self.payment.pk}/',
+            data=json.dumps({'status': 'COMPLETED'}),
+            content_type='application/json',
+            HTTP_X_SIGNATURE='valid-signature',
+            REMOTE_ADDR='203.0.113.10',
+        )
+
+        mock_processor = MagicMock()
+        mock_processor.get_setting = MagicMock(return_value=None)
+        mock_processor.verify_callback = AsyncMock()
+        mock_processor.handle_callback = AsyncMock(return_value=None)
+
+        with patch.object(
+            type(self.payment),
+            '_get_processor',
+            return_value=mock_processor,
+        ):
+            view = CallbackDetailView()
+            view.request = request
+            response = view.post(request, pk=self.payment.pk)
+
+        assert response.status_code == 200
+        mock_processor.verify_callback.assert_awaited_once()
+
+    def test_callback_view_rejects_ip_outside_backend_allowlist(self):
+        request = self.factory.post(
+            f'/payments/callback/{self.payment.pk}/',
+            data={'new_status': 'paid'},
+            REMOTE_ADDR='198.51.100.10',
+        )
+
+        mock_processor = MagicMock()
+        mock_processor.get_setting = MagicMock(
+            side_effect=lambda name, default=None: (
+                ['203.0.113.0/24']
+                if name == 'callback_ip_allowlist'
+                else default
+            )
+        )
+        mock_processor.verify_callback = MagicMock()
+        mock_processor.handle_paywall_callback = MagicMock(
+            return_value=HttpResponse(b'OK')
+        )
+        del mock_processor.handle_callback
+
+        with patch.object(
+            type(self.payment),
+            '_get_processor',
+            return_value=mock_processor,
+        ):
+            view = CallbackDetailView()
+            view.request = request
+            response = view.post(request, pk=self.payment.pk)
+
+        assert response.status_code == 403
+        mock_processor.verify_callback.assert_not_called()
+        mock_processor.handle_paywall_callback.assert_not_called()
+
+    def test_callback_view_allows_ip_in_backend_allowlist(self):
+        request = self.factory.post(
+            f'/payments/callback/{self.payment.pk}/',
+            data={'new_status': 'paid'},
+            REMOTE_ADDR='203.0.113.42',
+        )
+
+        mock_processor = MagicMock()
+        mock_processor.get_setting = MagicMock(
+            side_effect=lambda name, default=None: (
+                ['203.0.113.0/24']
+                if name == 'callback_ip_allowlist'
+                else default
+            )
+        )
+        mock_processor.verify_callback = MagicMock()
+        mock_processor.handle_paywall_callback = MagicMock(
+            return_value=HttpResponse(b'OK')
+        )
+        del mock_processor.handle_callback
+
+        with patch.object(
+            type(self.payment),
+            '_get_processor',
+            return_value=mock_processor,
+        ):
+            view = CallbackDetailView()
+            view.request = request
+            response = view.post(request, pk=self.payment.pk)
+
+        assert response.status_code == 200
+        mock_processor.verify_callback.assert_called_once_with(request)
+        mock_processor.handle_paywall_callback.assert_called_once_with(request)
+
+    def test_callback_view_uses_forwarded_client_ip_from_trusted_proxy(
+        self, settings
+    ):
+        settings.GETPAID = {
+            'CALLBACK_SOURCE_IP_HEADER': 'X-Forwarded-For',
+            'CALLBACK_TRUSTED_PROXIES': ['10.0.0.0/8'],
+        }
+        request = self.factory.post(
+            f'/payments/callback/{self.payment.pk}/',
+            data={'new_status': 'paid'},
+            REMOTE_ADDR='10.10.0.5',
+            HTTP_X_FORWARDED_FOR='203.0.113.42, 10.1.0.2',
+        )
+
+        mock_processor = MagicMock()
+        mock_processor.get_setting = MagicMock(
+            side_effect=lambda name, default=None: (
+                ['203.0.113.0/24']
+                if name == 'callback_ip_allowlist'
+                else default
+            )
+        )
+        mock_processor.verify_callback = MagicMock()
+        mock_processor.handle_paywall_callback = MagicMock(
+            return_value=HttpResponse(b'OK')
+        )
+        del mock_processor.handle_callback
+
+        with patch.object(
+            type(self.payment),
+            '_get_processor',
+            return_value=mock_processor,
+        ):
+            view = CallbackDetailView()
+            view.request = request
+            response = view.post(request, pk=self.payment.pk)
+
+        assert response.status_code == 200
+        mock_processor.verify_callback.assert_called_once_with(request)
+
+    def test_callback_view_ignores_forwarded_header_from_untrusted_proxy(
+        self, settings
+    ):
+        settings.GETPAID = {
+            'CALLBACK_SOURCE_IP_HEADER': 'X-Forwarded-For',
+            'CALLBACK_TRUSTED_PROXIES': ['10.0.0.0/8'],
+        }
+        request = self.factory.post(
+            f'/payments/callback/{self.payment.pk}/',
+            data={'new_status': 'paid'},
+            REMOTE_ADDR='198.51.100.10',
+            HTTP_X_FORWARDED_FOR='203.0.113.42',
+        )
+
+        mock_processor = MagicMock()
+        mock_processor.get_setting = MagicMock(
+            side_effect=lambda name, default=None: (
+                ['203.0.113.0/24']
+                if name == 'callback_ip_allowlist'
+                else default
+            )
+        )
+        mock_processor.verify_callback = MagicMock()
+        mock_processor.handle_paywall_callback = MagicMock(
+            return_value=HttpResponse(b'OK')
+        )
+        del mock_processor.handle_callback
+
+        with patch.object(
+            type(self.payment),
+            '_get_processor',
+            return_value=mock_processor,
+        ):
+            view = CallbackDetailView()
+            view.request = request
+            response = view.post(request, pk=self.payment.pk)
+
+        assert response.status_code == 403
+        mock_processor.verify_callback.assert_not_called()
+
+    def test_callback_view_rejects_missing_forwarded_header_from_trusted_proxy(
+        self, settings
+    ):
+        settings.GETPAID = {
+            'CALLBACK_SOURCE_IP_HEADER': 'X-Forwarded-For',
+            'CALLBACK_TRUSTED_PROXIES': ['10.0.0.0/8'],
+        }
+        request = self.factory.post(
+            f'/payments/callback/{self.payment.pk}/',
+            data={'new_status': 'paid'},
+            REMOTE_ADDR='10.10.0.5',
+        )
+
+        mock_processor = MagicMock()
+        mock_processor.get_setting = MagicMock(
+            side_effect=lambda name, default=None: (
+                ['203.0.113.0/24']
+                if name == 'callback_ip_allowlist'
+                else default
+            )
+        )
+        mock_processor.verify_callback = MagicMock()
+        mock_processor.handle_paywall_callback = MagicMock(
+            return_value=HttpResponse(b'OK')
+        )
+        del mock_processor.handle_callback
+
+        with patch.object(
+            type(self.payment),
+            '_get_processor',
+            return_value=mock_processor,
+        ):
+            view = CallbackDetailView()
+            view.request = request
+            response = view.post(request, pk=self.payment.pk)
+
+        assert response.status_code == 403
+        mock_processor.verify_callback.assert_not_called()

@@ -22,5 +22,6 @@ urlpatterns = [
         views.callback,
         name='callback',
     ),
+    path('health/', views.health, name='health-check'),
     path('', include(registry.urls)),
 ]

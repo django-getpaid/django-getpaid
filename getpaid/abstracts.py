@@ -6,6 +6,7 @@ from typing import cast
 
 import swapper
 from django import forms
+from django.conf import settings as django_settings
 from django.db import models
 from django.db.transaction import atomic
 from django.forms import BaseForm
@@ -258,13 +259,24 @@ class AbstractPayment(models.Model):
         # Circular import workaround: registry imports processor
         from getpaid.registry import registry
 
+        backend_key = str(self.backend)
         if self.backend in registry:
             processor_class = registry[self.backend]
+            processor_config = _resolve_processor_config(
+                processor_class,
+                backend_key,
+                aliases=registry.get_aliases(backend_key),
+            )
         else:
             # last resort if backend removed from INSTALLED_APPS
-            module = import_module(str(self.backend))
+            module = import_module(backend_key)
             processor_class = module.PaymentProcessor
-        return processor_class(self)
+            processor_config = _resolve_processor_config(
+                processor_class,
+                backend_key,
+                aliases={backend_key},
+            )
+        return processor_class(self, config=processor_config)
 
     def get_form(self, *args, **kwargs) -> BaseForm:
         """Interfaces processor's get_form."""
@@ -386,3 +398,44 @@ class AbstractPayment(models.Model):
     @atomic
     def cancel_refund(self, **kwargs):
         return cancel_payment_refund(self, **kwargs)
+
+
+def _resolve_processor_config(
+    processor_class,
+    backend_key: str,
+    *,
+    aliases: set[str],
+) -> dict:
+    """Resolve backend settings for both Django and core processors."""
+    backend_settings = getattr(
+        django_settings,
+        'GETPAID_BACKEND_SETTINGS',
+        {},
+    )
+    slug = getattr(processor_class, 'slug', '')
+    class_module = processor_class.__module__
+
+    candidate_keys: list[str] = []
+    if slug:
+        candidate_keys.extend([slug, f'getpaid.backends.{slug}'])
+
+    candidate_keys.extend(
+        key
+        for key in (
+            backend_key,
+            *sorted(aliases),
+            class_module,
+            f'{class_module}.{processor_class.__name__}',
+        )
+        if key not in candidate_keys
+    )
+
+    if class_module.endswith('.processor'):
+        backend_module = class_module.rsplit('.', 1)[0]
+        if backend_module not in candidate_keys:
+            candidate_keys.append(backend_module)
+
+    for key in candidate_keys:
+        if key in backend_settings:
+            return backend_settings[key]
+    return {}

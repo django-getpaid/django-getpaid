@@ -80,3 +80,47 @@ async def verify_callback(self, data, headers, **kwargs):
 
 The framework calls `verify_callback` before `handle_callback`.
 If it raises, the callback is rejected with HTTP 403.
+
+Production behavior:
+
+- When `DEBUG` is `False`, django-getpaid rejects callback requests for
+  backends that leave `verify_callback()` unimplemented.
+- `csrf_exempt` on the callback view exists for gateway compatibility only. It
+  is never a substitute for signature verification.
+
+## Callback IP allowlisting
+
+Backends may also define `callback_ip_allowlist` in
+`GETPAID_BACKEND_SETTINGS`:
+
+```python
+GETPAID_BACKEND_SETTINGS = {
+    "paynow": {
+        "api_key": "your-api-key",
+        "signature_key": "your-signature-key",
+        "callback_ip_allowlist": [
+            "203.0.113.10",
+            "203.0.113.0/24",
+        ],
+    },
+}
+```
+
+If django-getpaid is behind a reverse proxy, configure the callback client IP
+source explicitly:
+
+```python
+GETPAID = {
+    "CALLBACK_SOURCE_IP_HEADER": "X-Forwarded-For",
+    "CALLBACK_TRUSTED_PROXIES": ["10.0.0.0/8"],
+}
+```
+
+Rules:
+
+- `CALLBACK_SOURCE_IP_HEADER` is trusted only when `REMOTE_ADDR` belongs to
+  `CALLBACK_TRUSTED_PROXIES`.
+- If a trusted proxy request omits the configured source IP header, the
+  callback is rejected with HTTP 403.
+- Provider IP allowlisting is a defense-in-depth control. Plugins should still
+  implement `verify_callback()` and validate provider signatures.

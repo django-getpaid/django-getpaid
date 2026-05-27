@@ -52,6 +52,7 @@ dev = [
     "tox>=4.35.0",
     "ty>=0.0.16",
     "python-getpaid-core>=3.0.0a4",
+    "python-getpaid-paynow>=3.0.0a4",
     "furo>=2025.12.19",
     "sphinx>=9.1.0",
     "myst-parser>=5.0.0",
@@ -188,3 +189,4 @@ invalid-method-override = "ignore"
 
 [tool.uv.sources]
 python-getpaid-core = { git = "https://github.com/django-getpaid/python-getpaid-core", rev = "main" }
+python-getpaid-paynow = { git = "https://github.com/django-getpaid/python-getpaid-paynow", rev = "main" }

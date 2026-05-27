@@ -1,3 +1,5 @@
+import json
+
 import pytest
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -51,3 +53,29 @@ def test_create_payment_view_allows_authenticated_post(client, order_factory):
     )
 
     assert response.status_code == 302
+
+
+class TestHealthCheck:
+    """Tests for the /payments/health/ health check endpoint."""
+
+    def test_health_check_returns_200(self, client):
+        """Health check returns 200 OK with JSON payload."""
+        response = client.get('/payments/health/')
+        assert response.status_code == 200
+        data = json.loads(response.content)
+        assert data['status'] == 'ok'
+        assert data['service'] == 'getpaid'
+        assert 'version' in data
+
+    def test_health_check_does_not_require_auth(self, client):
+        """Health check is public — no authentication required."""
+        response = client.get('/payments/health/')
+        assert response.status_code == 200
+
+    def test_health_check_version_matches_package(self, client):
+        """Health check version string matches __version__."""
+        import getpaid
+
+        response = client.get('/payments/health/')
+        data = json.loads(response.content)
+        assert data['version'] == getpaid.__version__

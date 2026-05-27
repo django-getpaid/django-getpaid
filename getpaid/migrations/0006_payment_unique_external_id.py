@@ -6,20 +6,20 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("getpaid", "0005_alter_payment_amount_locked_and_more"),
+        ('getpaid', '0005_alter_payment_amount_locked_and_more'),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name="payment",
-            name="external_id",
+            model_name='payment',
+            name='external_id',
             field=models.CharField(
                 blank=True,
                 db_index=True,
-                default="",
+                default='',
                 max_length=64,
                 unique=True,
-                verbose_name="external id",
+                verbose_name='external id',
             ),
         ),
     ]

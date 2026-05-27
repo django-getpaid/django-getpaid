@@ -5,12 +5,13 @@ import logging
 import swapper
 from django import http
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import HttpRequest
+from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import CreateView, RedirectView
 
+from .callback_security import enforce_callback_security
 from .exceptions import GetPaidException
 from .forms import PaymentMethodForm
 from .runtime import handle_callback_request
@@ -70,18 +71,22 @@ class CallbackDetailView(View):
     This view is csrf_exempt because payment gateways cannot include
     CSRF tokens in their callback requests. Security is provided by:
 
-    1. HMAC signature verification in each backend processor's
-       ``verify_callback()`` method.
-    2. IP allowlisting at the reverse-proxy or WAF level (recommended).
+    1. Backend-specific callback verification in ``verify_callback()``.
+    2. Optional per-backend ``callback_ip_allowlist`` checks.
+    3. Hard refusal of unsigned backends when ``DEBUG`` is False.
 
-    Backend processors that do not implement ``verify_callback()`` leave
-    the endpoint fully open — always implement signature verification.
+    By default the application-level IP allowlist uses ``REMOTE_ADDR``. If the
+    app sits behind a reverse proxy, configure ``GETPAID['CALLBACK_SOURCE_IP_HEADER']``
+    and ``GETPAID['CALLBACK_TRUSTED_PROXIES']`` so django-getpaid only trusts
+    forwarded client IP data from proxies you control.
     """
 
     def post(self, request: HttpRequest, pk, *args, **kwargs):
         Payment = swapper.load_model('getpaid', 'Payment')
         payment = get_object_or_404(Payment, pk=pk)
+        processor = payment._get_processor()
         try:
+            enforce_callback_security(processor, request)
             return handle_callback_request(payment, request, **kwargs)
         except GetPaidException:
             logger.warning('Callback verification failed for payment %s', pk)
@@ -89,3 +94,35 @@ class CallbackDetailView(View):
 
 
 callback = csrf_exempt(CallbackDetailView.as_view())
+
+
+class HealthCheckView(View):
+    """Simple health check endpoint for the payment subsystem.
+
+    Returns 200 OK with a JSON payload indicating the payment system
+    is operational. Useful for Kubernetes liveness/readiness probes
+    and monitoring dashboards.
+
+    Does not check downstream dependencies (databases, payment gateways)
+    — it only verifies that the payment views are reachable.
+    """
+
+    def get(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+        return http.JsonResponse(
+            {
+                'status': 'ok',
+                'service': 'getpaid',
+                'version': _get_version(),
+            },
+            status=200,
+        )
+
+
+health = HealthCheckView.as_view()
+
+
+def _get_version() -> str:
+    """Return the django-getpaid version string."""
+    from . import __version__
+
+    return __version__

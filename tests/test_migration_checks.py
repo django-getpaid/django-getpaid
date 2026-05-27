@@ -13,7 +13,7 @@ def test_default_payment_model_has_no_pending_migrations():
         *filter(None, [env.get('PYTHONPATH')]),
     ])
 
-    result = subprocess.run(  # noqa: S603
+    result = subprocess.run(
         [
             sys.executable,
             'manage.py',
