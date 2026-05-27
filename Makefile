@@ -1,4 +1,5 @@
-.PHONY: test test-unit test-integration test-build test-down
+.PHONY: test test-unit test-integration test-build test-down \
+	test-local-workspace-paynow
 
 UNIT_TESTS = \
 	tests/test_reexports.py \
@@ -27,6 +28,16 @@ test-integration: test-build
 test:
 	$(MAKE) test-unit
 	$(MAKE) test-integration
+
+test-local-workspace-paynow:
+	uv run \
+		--with-editable ../python-getpaid-core \
+		--with-editable ../python-getpaid-paynow \
+		python -c "from pathlib import Path; import getpaid_core, getpaid_paynow; workspace = Path.cwd().resolve().parent; core_root = (workspace / 'python-getpaid-core').resolve(); paynow_root = (workspace / 'python-getpaid-paynow').resolve(); assert str(Path(getpaid_core.__file__).resolve()).startswith(str(core_root)); assert str(Path(getpaid_paynow.__file__).resolve()).startswith(str(paynow_root))"
+	uv run \
+		--with-editable ../python-getpaid-core \
+		--with-editable ../python-getpaid-paynow \
+		pytest tests/test_paynow_integration.py -q
 
 test-build:
 	docker compose -f compose.test.yml build

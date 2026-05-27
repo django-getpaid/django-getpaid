@@ -1,5 +1,3 @@
-import inspect
-
 from django.core.exceptions import ImproperlyConfigured
 from django.http import (
     HttpResponse,
@@ -15,6 +13,7 @@ from getpaid.adapters import (
     adapt_callback_request,
     call_processor_verify_callback,
 )
+from getpaid.async_detection import is_async_callable
 from getpaid.async_runner import run_awaitable
 from getpaid.repository import DjangoPaymentRepository
 
@@ -190,7 +189,7 @@ def _call_processor_method(method, *args, **kwargs):
     async. Run async processor methods on a shared event-loop thread instead of
     creating a fresh loop thread for every request.
     """
-    if inspect.iscoroutinefunction(method):
+    if is_async_callable(method):
         return run_awaitable(method(*args, **kwargs))
     return method(*args, **kwargs)
 
@@ -211,7 +210,7 @@ def _uses_semantic_callback_contract(processor):
         return False
     type_handle_method = getattr(type(processor), 'handle_callback', None)
     if type_handle_method is None:
-        return inspect.iscoroutinefunction(handle_method)
+        return is_async_callable(handle_method)
     return type_handle_method is not CoreBaseProcessor.handle_callback
 
 
@@ -219,4 +218,4 @@ def _uses_semantic_verify_contract(processor):
     verify_method = getattr(processor, 'verify_callback', None)
     if verify_method is None:
         return False
-    return inspect.iscoroutinefunction(verify_method)
+    return is_async_callable(verify_method)

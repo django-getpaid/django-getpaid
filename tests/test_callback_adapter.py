@@ -1,5 +1,6 @@
 """Tests for callback adapter."""
 
+import functools
 import json
 from unittest.mock import AsyncMock, Mock
 
@@ -95,3 +96,35 @@ def test_call_processor_verify_callback_sync():
 
     # Should have been called with HttpRequest directly
     processor.verify_callback.assert_called_once_with(request)
+
+
+def test_call_processor_verify_callback_decorated_async(factory):
+    captured: list[tuple[dict, dict, bytes]] = []
+
+    def async_wrapper(method):
+        @functools.wraps(method)
+        def wrapper(*args, **kwargs):
+            return method(*args, **kwargs)
+
+        return wrapper
+
+    class Processor:
+        @async_wrapper
+        async def verify_callback(self, data, headers, **kwargs):
+            captured.append((data, headers, kwargs['raw_body']))
+
+    payload = {'status': 'completed'}
+    request = factory.post(
+        '/callback/',
+        data=json.dumps(payload),
+        content_type='application/json',
+        HTTP_X_SIGNATURE='decorated',
+    )
+
+    call_processor_verify_callback(Processor(), request)
+
+    assert len(captured) == 1
+    data, headers, raw_body = captured[0]
+    assert data == payload
+    assert headers['X-SIGNATURE'] == 'decorated'
+    assert raw_body == request.body

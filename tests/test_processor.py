@@ -1,3 +1,4 @@
+import functools
 import json
 from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -484,3 +485,52 @@ class TestCallbackViewSecurity:
 
         assert response.status_code == 403
         mock_processor.verify_callback.assert_not_called()
+
+    def test_callback_view_supports_decorated_async_callbacks(self):
+        payload = {'status': 'COMPLETED'}
+        request = self.factory.post(
+            f'/payments/callback/{self.payment.pk}/',
+            data=json.dumps(payload),
+            content_type='application/json',
+            HTTP_X_SIGNATURE='decorated-signature',
+        )
+
+        observed: dict[str, object] = {}
+
+        def async_wrapper(method):
+            @functools.wraps(method)
+            def wrapper(*args, **kwargs):
+                return method(*args, **kwargs)
+
+            return wrapper
+
+        class DecoratedAsyncProcessor:
+            def get_setting(self, name, default=None):
+                return default
+
+            @async_wrapper
+            async def verify_callback(self, data, headers, **kwargs):
+                observed['verify'] = (data, headers, kwargs['raw_body'])
+
+            @async_wrapper
+            async def handle_callback(self, data, headers, **kwargs):
+                observed['handle'] = (data, headers, kwargs['raw_body'])
+
+        with patch.object(
+            type(self.payment),
+            '_get_processor',
+            return_value=DecoratedAsyncProcessor(),
+        ):
+            view = CallbackDetailView()
+            view.request = request
+            response = view.post(request, pk=self.payment.pk)
+
+        assert response.status_code == 200
+        verify_data, verify_headers, verify_raw_body = observed['verify']
+        handle_data, handle_headers, handle_raw_body = observed['handle']
+        assert verify_data == payload
+        assert verify_headers['X-SIGNATURE'] == 'decorated-signature'
+        assert verify_raw_body == request.body
+        assert handle_data == payload
+        assert handle_headers['X-SIGNATURE'] == 'decorated-signature'
+        assert handle_raw_body == request.body

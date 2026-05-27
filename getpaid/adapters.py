@@ -1,11 +1,11 @@
 """Adapters to bridge Django sync views to core async processors."""
 
-import inspect
 import json
 from typing import Any
 
 from django.http import HttpRequest
 
+from getpaid.async_detection import is_async_callable
 from getpaid.async_runner import run_awaitable
 
 
@@ -54,7 +54,7 @@ def call_processor_verify_callback(
         return  # No verification needed
 
     # Check if it's an async method
-    if inspect.iscoroutinefunction(verify_method):
+    if is_async_callable(verify_method):
         # Core-style: async def verify_callback(data, headers, **kwargs)
         data, headers, raw_body = adapt_callback_request(request)
         run_awaitable(verify_method(data, headers, raw_body=raw_body))

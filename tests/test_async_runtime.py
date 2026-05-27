@@ -1,4 +1,5 @@
 import asyncio
+import functools
 import json
 import threading
 
@@ -40,3 +41,23 @@ def test_call_processor_verify_callback_reuses_one_async_thread() -> None:
     assert len(thread_ids) == 2
     assert thread_ids[0] != threading.get_ident()
     assert thread_ids[1] == thread_ids[0]
+
+
+def test_call_processor_method_handles_decorated_async_callable() -> None:
+    def async_wrapper(method):
+        @functools.wraps(method)
+        def wrapper(*args, **kwargs):
+            return method(*args, **kwargs)
+
+        return wrapper
+
+    class Processor:
+        @async_wrapper
+        async def verify_callback(self) -> int:
+            await asyncio.sleep(0)
+            return threading.get_ident()
+
+    result = runtime._call_processor_method(Processor().verify_callback)
+
+    assert isinstance(result, int)
+    assert result != threading.get_ident()
