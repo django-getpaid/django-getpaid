@@ -29,6 +29,9 @@ jobs:
       - name: Lint with ruff
         run: uv run ruff check .
 
+      - name: Audit dependencies
+        run: uv run pip-audit --strict
+
       - name: Check unswapped getpaid migrations
         env:
           DJANGO_SETTINGS_MODULE: tests.settings_default_payment

@@ -57,6 +57,7 @@ dev = [
     "sphinx>=9.1.0",
     "myst-parser>=5.0.0",
     "psycopg[binary]>=3.3.3",
+    "pip-audit>=2.7.0",
 ]
 
 [tool.pytest.ini_options]

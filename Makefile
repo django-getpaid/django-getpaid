@@ -1,5 +1,5 @@
 .PHONY: test test-unit test-integration test-build test-down \
-	test-local-workspace-paynow
+	test-local-workspace-paynow pip-audit
 
 UNIT_TESTS = \
 	tests/test_reexports.py \
@@ -44,3 +44,6 @@ test-build:
 
 test-down:
 	docker compose -f compose.test.yml down -v
+
+pip-audit:
+	uv run pip-audit --strict
