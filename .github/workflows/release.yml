@@ -1,0 +1,58 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history needed for version detection
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Detect version from pyproject.toml
+        id: get-version
+        run: |
+          version=$(grep -E '^version\s*=' pyproject.toml | head -1 | sed -E "s/.*=\s*['\"]([^'\"]+)['\"].*/\1/")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Check if tag already exists
+        id: check-tag
+        run: |
+          tag="v${{ steps.get-version.outputs.version }}"
+          if git rev-parse "$tag" >/dev/null 2>&1; then
+            echo "already_tagged=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "already_tagged=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Tag new version
+        if: steps.check-tag.outputs.already_tagged == 'false'
+        run: |
+          tag="v${{ steps.get-version.outputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "$tag" -m "Release $tag"
+          git push origin "$tag"
+
+      - name: Build package
+        run: uv build
+
+      - name: Publish package on PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_TOKEN }}
