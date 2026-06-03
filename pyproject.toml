@@ -26,7 +26,7 @@ classifiers = [
 ]
 dependencies = [
     "Django>=5.2",
-    "python-getpaid-core>=3.0.0a4",
+    "python-getpaid-core>=3.0.0",
     "swapper>=1.4",
 ]
 
@@ -51,8 +51,8 @@ dev = [
     "ruff>=0.15.1",
     "tox>=4.35.0",
     "ty>=0.0.16",
-    "python-getpaid-core>=3.0.0a4",
-    "python-getpaid-paynow>=3.0.0a4",
+    "python-getpaid-core>=3.0.0",
+    "python-getpaid-paynow>=3.0.0",
     "furo>=2025.12.19",
     "sphinx>=9.1.0",
     "myst-parser>=5.0.0",
