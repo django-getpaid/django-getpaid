@@ -11,7 +11,7 @@ requires-python = ">=3.12"
 license = "MIT"
 keywords = ["django", "payments", "getpaid", "payment-gateway", "payment-processing"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 5 - Production/Stable",
     "Framework :: Django",
     "Framework :: Django :: 5.2",
     "Framework :: Django :: 6.0",
