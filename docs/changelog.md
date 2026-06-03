@@ -1,5 +1,37 @@
 # Changelog
 
+## v3.0.0 (2026-06-04)
+
+Major stable release — multi-broker payment processing framework for Django.
+
+### Breaking Changes
+
+- **Complete rewrite** as thin adapter over `python-getpaid-core` v3
+- **Removed django-fsm dependency** — `FSMField` replaced with plain `CharField`,
+  runtime FSM via `transitions` library
+- **Requires Python 3.12+** (was 3.6+)
+- **Requires Django 5.2+** (was 2.2+)
+- `can_proceed()` replaced by `may_trigger()`
+- django-fsm signals (`pre_transition`, `post_transition`) replaced by
+  Django's standard `post_save` signal
+
+### Features
+
+- `python-getpaid-core` as core dependency (framework-agnostic payment processing)
+- FSM-removal migrations (convert FSMField to CharField)
+- Runtime payment state machine via `create_payment_machine()`
+- `DjangoPluginRegistry` wrapping getpaid-core's `PluginRegistry`
+- `BaseProcessor` (in `getpaid.processor`) wrapping getpaid-core's `BaseProcessor`
+
+### Unchanged
+
+- All `PaymentStatus` and `FraudStatus` enum values — existing database
+  data is fully compatible
+
+See the {doc}`migration-v2-to-v3` for a step-by-step upgrade guide.
+
+---
+
 ## v3.0.0a4 (2026-03-25)
 
 - Harden payment creation flow validation and registry wrapping.
