@@ -10,8 +10,6 @@
 
 `django-getpaid` is a flexible, modular payment processing wrapper for Django, built on the framework-agnostic [getpaid-core](https://github.com/django-getpaid/python-getpaid-core). It allows you to integrate multiple payment gateways into your application using a unified API.
 
-> **v3.0.0a4 (Alpha)** — This is a major rewrite that introduces a framework-agnostic core and semantic payment updates.
-
 ## Key Features
 
 - **Unified API**: Process payments across different brokers (PayU, Paynow, BitPay, etc.) using the same logic.
