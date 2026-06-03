@@ -66,6 +66,30 @@ class PaymentMethodForm(forms.ModelForm):
                 )
         return self.cleaned_data['order']
 
+    def clean_amount_required(self):
+        """Always compute amount_required from the order — never trust
+        initial or submitted data."""
+        order = self.initial.get('order') or self.cleaned_data.get('order')
+        if order is not None:
+            return order.get_total_amount()
+        return self.cleaned_data.get('amount_required')
+
+    def clean_description(self):
+        """Always compute description from the order — never trust
+        initial or submitted data."""
+        order = self.initial.get('order') or self.cleaned_data.get('order')
+        if order is not None:
+            return order.get_description()
+        return self.cleaned_data.get('description', '')
+
+    def clean_currency(self):
+        """Always compute currency from the order — never trust
+        initial or submitted data."""
+        order = self.initial.get('order') or self.cleaned_data.get('order')
+        if order is not None:
+            return order.get_currency()
+        return self.cleaned_data.get('currency')
+
     def _apply_order_defaults(self, cleaned_data):
         order = cleaned_data.get('order')
         if order is None:
@@ -80,3 +104,16 @@ class PaymentMethodForm(forms.ModelForm):
         cleaned_data = super().clean()
         cleaned_data = self._apply_order_defaults(cleaned_data)
         return run_getpaid_validators(cleaned_data)
+
+    def save(self, commit=True):
+        """Always persist server-computed values from the order,
+        regardless of what the form received."""
+        instance = super().save(commit=False)
+        order = self.cleaned_data.get('order') or self.initial.get('order')
+        if order is not None:
+            instance.amount_required = order.get_total_amount()
+            instance.description = order.get_description()
+            instance.currency = order.get_currency()
+        if commit:
+            instance.save()
+        return instance

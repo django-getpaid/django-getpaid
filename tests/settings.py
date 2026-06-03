@@ -9,6 +9,9 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = '=================================================='
 
 DEBUG = True
+ALLOWED_HOSTS = ['*']
+CSRF_TRUSTED_ORIGINS = ['http://e2e-server:8000', 'http://localhost:8000']
+LOGIN_URL = '/admin/login/'
 
 GETPAID_ORDER_MODEL = 'orders.Order'
 GETPAID_PAYMENT_MODEL = 'orders.CustomPayment'
@@ -33,6 +36,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.contenttypes',
     'django.contrib.sites',
+    'django.contrib.staticfiles',
     'getpaid',
     'getpaid.backends.dummy',
     'orders',
@@ -56,7 +60,7 @@ ROOT_URLCONF = 'example.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'templates')],
+        'DIRS': [os.path.join(BASE_DIR, 'example', 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -76,3 +80,7 @@ DATABASES = get_test_databases()
 TIME_ZONE = 'UTC'
 USE_I18N = False
 USE_TZ = True
+
+# Static files for Django admin in E2E tests
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')

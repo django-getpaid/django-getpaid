@@ -9,7 +9,7 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
-from django.views.generic import CreateView, RedirectView
+from django.views.generic import CreateView, TemplateView
 
 from .callback_security import enforce_callback_security
 from .exceptions import GetPaidException
@@ -37,18 +37,27 @@ class CreatePaymentView(LoginRequiredMixin, CreateView):
 new_payment = CreatePaymentView.as_view()
 
 
-class FallbackView(RedirectView):
-    """Return view from paywall after payment completion/rejection."""
+class FallbackView(TemplateView):
+    """Return view from paywall after payment completion/rejection.
+
+    Renders a success or failure template with payment context.
+    The payment and order are injected into the template context.
+    """
 
     success = None
-    permanent = False
 
-    def get_redirect_url(self, *args, **kwargs):
+    def get_template_names(self):
+        if self.success:
+            return 'getpaid/payment_success.html'
+        return 'getpaid/payment_failed.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
         Payment = swapper.load_model('getpaid', 'Payment')
         payment = get_object_or_404(Payment, pk=self.kwargs['pk'])
-        return payment.get_return_redirect_url(
-            request=self.request, success=self.success
-        )
+        context['payment'] = payment
+        context['order'] = payment.order
+        return context
 
 
 class SuccessView(FallbackView):

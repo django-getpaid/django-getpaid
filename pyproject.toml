@@ -58,12 +58,17 @@ dev = [
     "myst-parser>=5.0.0",
     "psycopg[binary]>=3.3.3",
     "pip-audit>=2.7.0",
+    "pytest-playwright>=0.5.0",
 ]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "tests.settings"
 pythonpath = [".", "example"]
 asyncio_mode = "auto"
+testpaths = ["tests"]
+markers = [
+    "e2e: E2E tests that require a running Django server",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["getpaid"]

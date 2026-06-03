@@ -23,6 +23,35 @@ services:
     environment:
       TEST_DATABASE_URL: postgres://test_user:test_password@testdb:5432/test_db
       DJANGO_SETTINGS_MODULE: tests.settings
+      DJANGO_ALLOW_ASYNC_UNSAFE: "1"
+      PYTHONPATH: /app:/app/example
+      E2E_SERVER_URL: http://e2e-server:8000
+    volumes:
+      - .:/app
+    networks:
+      - test-net
+
+  e2e-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    depends_on:
+      testdb:
+        condition: service_healthy
+    command: >
+      sh -c "
+        cd /app/example &&
+        PYTHONPATH=/app/example uv run python -m django migrate --run-syncdb &&
+        PYTHONPATH=/app/example uv run python -m django collectstatic --noinput &&
+        PYTHONPATH=/app/example uv run python manage.py create_e2e_user &&
+        PYTHONPATH=/app/example uv run python -m django runserver 0.0.0.0:8000 --noreload
+      "
+    environment:
+      TEST_DATABASE_URL: postgres://test_user:test_password@testdb:5432/test_db
+      DJANGO_SETTINGS_MODULE: tests.settings
+      PYTHONPATH: /app/example
+    volumes:
+      - .:/app
     networks:
       - test-net
 

@@ -1,4 +1,4 @@
-.PHONY: test test-unit test-integration test-build test-down \
+.PHONY: test test-unit test-integration test-e2e test-build test-down \
 	test-local-workspace-paynow pip-audit
 
 UNIT_TESTS = \
@@ -25,9 +25,20 @@ test-unit:
 test-integration: test-build
 	docker compose -f compose.test.yml run --rm tests uv run pytest $(INTEGRATION_TESTS) -x
 
+test-e2e: test-build
+	docker compose -f compose.test.yml up -d testdb e2e-server
+	@sleep 5
+	DJANGO_ALLOW_ASYNC_UNSAFE=1 docker compose -f compose.test.yml run --rm tests uv run pytest tests/e2e/ -x
+	docker compose -f compose.test.yml down
+
+.PHONY: test-e2e-down
+test-e2e-down:
+	docker compose -f compose.test.yml down
+
 test:
 	$(MAKE) test-unit
 	$(MAKE) test-integration
+	$(MAKE) test-e2e
 
 test-local-workspace-paynow:
 	uv run \
