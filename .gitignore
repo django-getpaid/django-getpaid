@@ -47,6 +47,10 @@ output/*/index.html
 # Sphinx
 docs/_build
 
+# Django static files
+django_static/
+staticfiles/
+
 # Default Django Database
 db.sqlite3
 
