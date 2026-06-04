@@ -38,7 +38,7 @@ uv add django-getpaid
 You should also install at least one payment backend, for example:
 
 ```bash
-pip install getpaid-payu getpaid-paynow
+pip install python-getpaid-payu python-getpaid-paynow
 ```
 
 ## Quick Start
@@ -144,15 +144,15 @@ Check it out at [https://github.com/django-getpaid/django-getpaid/tree/master/ex
 
 `django-getpaid` is part of a larger ecosystem:
 
-- **Core**: [getpaid-core](https://github.com/django-getpaid/python-getpaid-core) — Framework-agnostic logic.
+- **Core**: [python-getpaid-core](https://github.com/django-getpaid/python-getpaid-core) — Framework-agnostic logic.
 - **Other Wrappers**:
   - [litestar-getpaid](https://github.com/django-getpaid/litestar-getpaid)
   - [fastapi-getpaid](https://github.com/django-getpaid/fastapi-getpaid)
 - **Official Processors**:
-  - [getpaid-payu](https://github.com/django-getpaid/getpaid-payu)
-  - [getpaid-paynow](https://github.com/django-getpaid/getpaid-paynow)
-  - [getpaid-bitpay](https://github.com/django-getpaid/getpaid-bitpay)
-  - [getpaid-przelewy24](https://github.com/django-getpaid/getpaid-przelewy24)
+  - [python-getpaid-payu](https://github.com/django-getpaid/python-getpaid-payu)
+  - [python-getpaid-paynow](https://github.com/django-getpaid/python-getpaid-paynow)
+  - [python-getpaid-bitpay](https://github.com/django-getpaid/python-getpaid-bitpay)
+  - [python-getpaid-przelewy24](https://github.com/django-getpaid/python-getpaid-przelewy24)
 
 ## Migrating from v2
 

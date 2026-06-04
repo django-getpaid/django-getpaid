@@ -23,10 +23,10 @@ Remove django-fsm, add getpaid-core:
 
 ```bash
 # If using pip:
-pip install 'django-getpaid>=3.0.0a4'
+pip install 'django-getpaid>=3.0.0'
 
 # If using uv:
-uv add 'django-getpaid>=3.0.0a4'
+uv add 'django-getpaid>=3.0.0'
 ```
 
 django-fsm is no longer needed — uninstall it if nothing else uses it:
