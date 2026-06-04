@@ -8,8 +8,30 @@ name and price.</p>
 <h2>Please fill the form to create an order</h2>
 <form action="" method="post">
     {% csrf_token %}
+    {% if form.non_field_errors %}
+    <div class="errorlist">
+        {% for error in form.non_field_errors %}
+        <p style="color:red">{{ error }}</p>
+        {% endfor %}
+    </div>
+    {% endif %}
     <table>
-    {{ form.as_table }}
+    {% for field in form %}
+        <tr>
+            <th>{{ field.label_tag }}</th>
+            <td>{{ field }}</td>
+        </tr>
+        {% if field.errors %}
+        <tr><td colspan="2">
+            {% for error in field.errors %}
+            <p style="color:red">{{ error }}</p>
+            {% endfor %}
+        </td></tr>
+        {% endif %}
+        {% if field.help_text %}
+        <tr><td colspan="2"><small style="color:gray">{{ field.help_text }}</small></td></tr>
+        {% endif %}
+    {% endfor %}
     </table>
     <input type="submit" value="Place your order">
 </form>

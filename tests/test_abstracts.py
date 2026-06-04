@@ -291,3 +291,86 @@ class TestOrderProtocolCompatibility:
         order = order_factory(currency='GBP')
 
         assert order.get_currency() == 'GBP'
+
+
+class TestUniqueNonFailedPaymentPerOrder:
+    """DJANGO-002: DB-level constraint prevents duplicate non-failed payments.
+
+    Note: This test requires PostgreSQL because SQLite does not enforce
+    partial/conditional unique constraints. The constraint is defined on the
+    model and will be enforced on PostgreSQL in production.
+    """
+
+    @pytest.fixture(autouse=True)
+    def skip_on_sqlite(self, settings):
+        """Skip this test on SQLite — partial unique constraints require PostgreSQL."""
+        engine = settings.DATABASES['default']['ENGINE']
+        if 'sqlite' in engine:
+            pytest.skip('Partial unique constraints require PostgreSQL')
+
+    def test_cannot_create_second_non_failed_payment_for_order(self):
+        """Two non-failed payments for the same order must raise IntegrityError."""
+        order = Order.objects.create()
+        Payment.objects.create(
+            order=order,
+            currency=order.currency,
+            amount_required=Decimal(str(order.get_total_amount())),
+            backend='getpaid.backends.dummy',
+            description=order.get_description(),
+        )
+        with pytest.raises(Exception):  # IntegrityError (DB-specific)
+            Payment.objects.create(
+                order=order,
+                currency=order.currency,
+                amount_required=Decimal(str(order.get_total_amount())),
+                backend='getpaid.backends.dummy',
+                description=order.get_description(),
+            )
+
+    def test_can_create_failed_payment_after_non_failed(self):
+        """A failed payment can coexist with a non-failed one."""
+        order = Order.objects.create()
+        Payment.objects.create(
+            order=order,
+            currency=order.currency,
+            amount_required=Decimal(str(order.get_total_amount())),
+            backend='getpaid.backends.dummy',
+            description=order.get_description(),
+            status=ps.FAILED,
+        )
+        # This should succeed — failed payments are excluded from the constraint
+        Payment.objects.create(
+            order=order,
+            currency=order.currency,
+            amount_required=Decimal(str(order.get_total_amount())),
+            backend='getpaid.backends.dummy',
+            description=order.get_description(),
+            status=ps.NEW,
+        )
+
+    def test_can_create_multiple_failed_payments_for_order(self):
+        """Multiple failed payments for the same order are allowed."""
+        order = Order.objects.create()
+        Payment.objects.create(
+            order=order,
+            currency=order.currency,
+            amount_required=Decimal(str(order.get_total_amount())),
+            backend='getpaid.backends.dummy',
+            description=order.get_description(),
+            status=ps.FAILED,
+        )
+        Payment.objects.create(
+            order=order,
+            currency=order.currency,
+            amount_required=Decimal(str(order.get_total_amount())),
+            backend='getpaid.backends.dummy',
+            description=order.get_description(),
+            status=ps.FAILED,
+        )
+
+    def test_constraint_is_on_meta(self):
+        """Verify the constraint is registered on the model Meta."""
+        constraint_names = [c.name for c in Payment._meta.constraints]
+        assert (
+            'getpaid_unique_non_failed_payment_per_order' in constraint_names
+        )

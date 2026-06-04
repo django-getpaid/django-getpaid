@@ -8,6 +8,7 @@ import swapper
 from django import forms
 from django.conf import settings as django_settings
 from django.db import models
+from django.db.models import Q
 from django.db.transaction import atomic
 from django.forms import BaseForm
 from django.http import HttpRequest, HttpResponse
@@ -192,6 +193,13 @@ class AbstractPayment(models.Model):
         ordering = ['-created_on']
         verbose_name = _('Payment')
         verbose_name_plural = _('Payments')
+        constraints = [
+            models.UniqueConstraint(
+                fields=['order'],
+                condition=~Q(status=ps.FAILED),
+                name='getpaid_unique_non_failed_payment_per_order',
+            ),
+        ]
 
     def __str__(self):
         return f'Payment #{self.id}'

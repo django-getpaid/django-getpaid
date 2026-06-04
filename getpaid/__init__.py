@@ -30,4 +30,4 @@ from getpaid_core.types import (
 
 from .types import FraudStatus, PaymentStatus  # noqa: F401
 
-__version__ = '3.0.0a4'
+__version__ = '3.0.0'

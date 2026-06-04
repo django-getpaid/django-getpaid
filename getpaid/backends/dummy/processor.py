@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 from django.http import HttpResponseBadRequest
+from django.urls import reverse
 from getpaid_core.backends.dummy import DummyProcessor
 from getpaid_core.enums import BackendMethod, PaymentEvent
 from getpaid_core.types import (
@@ -26,7 +27,9 @@ class PaymentProcessor(BaseProcessor, DummyProcessor):
     def get_paywall_method(self):
         return self.get_setting('paywall_method', 'REST')
 
-    async def prepare_transaction(self, **kwargs) -> TransactionResult:
+    async def prepare_transaction(
+        self, request=None, **kwargs
+    ) -> TransactionResult:
         method = BackendMethod(self.get_paywall_method())
         if method is BackendMethod.POST:
             return TransactionResult(
@@ -38,6 +41,30 @@ class PaymentProcessor(BaseProcessor, DummyProcessor):
                     'currency': self.payment.currency,
                 },
             )
+        # For REST method: redirect to local fake gateway when request is
+        # available (Django integration / E2E testing), otherwise fall back
+        # to the external dummy URL (core-only usage).
+        if request is not None:
+            base = request.build_absolute_uri('/')
+            import os; os.environ.setdefault('DEBUG_DUMMY', '1')
+            callback = request.build_absolute_uri(
+                reverse('getpaid:callback', kwargs={'pk': self.payment.id})
+            )
+            success = request.build_absolute_uri(
+                reverse('getpaid:payment-success', kwargs={'pk': self.payment.id})
+            )
+            failure = request.build_absolute_uri(
+                reverse('getpaid:payment-failure', kwargs={'pk': self.payment.id})
+            )
+            gateway = f'{base}paywall/fake_gateway/'
+            gateway += f'?ext_id={self.payment.external_id}'
+            gateway += f'&value={self.payment.amount_required}'
+            gateway += f'&currency={self.payment.currency}'
+            gateway += f'&description={self.payment.description}'
+            gateway += f'&callback={callback}'
+            gateway += f'&success_url={success}'
+            gateway += f'&failure_url={failure}'
+            return TransactionResult(method=method, redirect_url=gateway)
         return TransactionResult(
             method=method,
             redirect_url=f'https://dummy.example.com/pay/{self.payment.id}',

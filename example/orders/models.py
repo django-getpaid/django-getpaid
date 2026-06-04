@@ -14,7 +14,7 @@ class Order(AbstractOrder):
     """
 
     name = models.CharField(
-        max_length=100, default='Lock, Stock and Two Smoking Barrels'
+        max_length=100, blank=False, default='Order'
     )
     total = models.DecimalField(
         decimal_places=2, max_digits=8, default='199.99'
