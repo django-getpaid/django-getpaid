@@ -24,10 +24,12 @@ jobs:
       - name: Install uv
         run: pip install uv
 
-      - name: Detect version from pyproject.toml
+      # Version is read from __init__.py (dynamic via hatch)
+      - name: Detect version from __init__.py
         id: get-version
         run: |
-          version=$(grep -E '^version\s*=' pyproject.toml | head -1 | sed -E "s/.*=\s*['\"]([^'\"]+)['\"].*/\1/")
+          init_py=$(grep -A2 '\[tool\.hatch\.version\]' pyproject.toml | grep '^path\s*=' | head -1 | sed -E "s/path\s*=\s*['\"]([^'\"]+)['\"].*/\1/")
+          version=$(grep '__version__' "$init_py" | head -1 | sed -E "s/.*= ['\"]([^'\"]+)['\"].*/\1/")
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Check if tag already exists
