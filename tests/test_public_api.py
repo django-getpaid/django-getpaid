@@ -10,7 +10,7 @@ import getpaid
 
 
 def test_version() -> None:
-    assert getpaid.__version__ == '3.0.0a4'
+    assert getpaid.__version__ == '3.0.0'
 
 
 def test_core_dependency_floor() -> None:
