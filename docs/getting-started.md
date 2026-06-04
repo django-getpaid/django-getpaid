@@ -18,7 +18,7 @@ Then install a payment backend plugin. Make sure the plugin supports v3 —
 v2 plugins are **not** compatible:
 
 ```bash
-pip install django-getpaid-payu  # if a v3-compatible version is available
+pip install python-getpaid-payu  # if a v3-compatible version is available
 ```
 
 ## Create an Order model
