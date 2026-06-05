@@ -1,5 +1,21 @@
 # Changelog
 
+## v3.0.1 (2026-06-05)
+
+### Fixes
+
+- **Python 3.14 compatibility**: `PaymentStatus` and `FraudStatus` in
+  `getpaid/types.py` no longer subclass core enums directly. Python 3.14's
+  `EnumType._check_for_existing_members_` rejects any enum subclassing of an
+  existing enum with members, regardless of naming. The wrappers now use
+  composition via a metaclass (`_EnumWrapperMeta`) and mixin (`_EnumWrapper`)
+  to delegate class-level attribute access and instance behavior to the
+  composed core enum while preserving `.choices`/`.CHOICES` for Django model
+  fields. All existing imports, comparisons, and bracket access patterns
+  remain unchanged.
+
+---
+
 ## v3.0.0 (2026-06-04)
 
 Major stable release — multi-broker payment processing framework for Django.
