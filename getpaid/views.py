@@ -100,7 +100,9 @@ class CallbackDetailView(View):
         try:
             enforce_callback_security(processor, request)
             if _uses_semantic_callback(processor):
-                return _handle_paywall_callback(payment, request, **kwargs)
+                return _handle_paywall_callback(
+                    payment, request, processor=processor, **kwargs,
+                )
             call_processor_verify_callback(processor, request)
             return processor.handle_paywall_callback(request, **kwargs)
         except GetPaidException:
