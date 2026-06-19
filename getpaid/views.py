@@ -13,12 +13,11 @@ from django.views.generic import CreateView, TemplateView
 
 from .abstracts import _handle_paywall_callback
 from .adapters import call_processor_verify_callback
-from .async_detection import is_async_callable
+from .bridge import bridge
 from .callback_security import enforce_callback_security
 from .exceptions import GetPaidException
 from .forms import PaymentMethodForm
 from .processor import BaseProcessor as DjangoBaseProcessor
-from getpaid_core.processor import BaseProcessor as CoreBaseProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -139,13 +138,7 @@ health = HealthCheckView.as_view()
 
 def _uses_semantic_callback(processor) -> bool:
     """Return True when the processor implements the core async callback contract."""
-    handle_method = getattr(processor, 'handle_callback', None)
-    if handle_method is None:
-        return False
-    type_handle_method = getattr(type(processor), 'handle_callback', None)
-    if type_handle_method is None:
-        return is_async_callable(handle_method)
-    return type_handle_method is not CoreBaseProcessor.handle_callback
+    return bridge.is_semantic_callback(processor)
 
 
 def _get_version() -> str:

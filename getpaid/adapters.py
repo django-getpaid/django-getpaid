@@ -5,8 +5,7 @@ from typing import Any
 
 from django.http import HttpRequest
 
-from getpaid.async_detection import is_async_callable
-from getpaid.async_runner import run_awaitable
+from getpaid.bridge import bridge
 
 
 def adapt_callback_request(
@@ -44,20 +43,11 @@ def call_processor_verify_callback(
 ) -> None:
     """Call processor.verify_callback, handling async/sync bridge.
 
-    Detects if processor has async verify_callback and runs it on the shared
-    async runner. Falls back to Django-style verify_callback(request) for
-    backward compat.
+    Delegates to ProcessorBridge.call_verify_callback which handles:
+    - Core-style (async): verify_callback(data, headers, raw_body=...)
+    - Django-style (sync): verify_callback(request)
     """
-    verify_method = getattr(processor, 'verify_callback', None)
-
-    if verify_method is None:
-        return  # No verification needed
-
-    # Check if it's an async method
-    if is_async_callable(verify_method):
-        # Core-style: async def verify_callback(data, headers, **kwargs)
-        data, headers, raw_body = adapt_callback_request(request)
-        run_awaitable(verify_method(data, headers, raw_body=raw_body))
-    else:
-        # Django-style (backward compat): def verify_callback(request)
-        verify_method(request)
+    data, headers, raw_body = adapt_callback_request(request)
+    bridge.call_verify_callback(
+        processor, data, headers, raw_body, request,
+    )

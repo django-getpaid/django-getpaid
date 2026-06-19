@@ -23,8 +23,7 @@ from getpaid_core.fsm import apply_payment_update
 from getpaid_core.protocols import Payment as CorePaymentProtocol
 from getpaid_core.types import PaymentUpdate
 
-from getpaid.async_detection import is_async_callable
-from getpaid.async_runner import run_awaitable
+from getpaid.bridge import bridge
 from getpaid.exceptions import ChargeFailure
 from getpaid.repository import DjangoPaymentRepository
 from getpaid.types import (
@@ -458,9 +457,7 @@ def _resolve_processor_config(
 
 def _call_processor_method(processor, method, *args, **kwargs):
     """Call a processor method, bridging async/sync."""
-    if is_async_callable(method):
-        return run_awaitable(method(*args, **kwargs))
-    return method(*args, **kwargs)
+    return bridge.call(processor, method, *args, **kwargs)
 
 
 def _save_payment(payment):
@@ -627,23 +624,14 @@ def _cancel_payment_refund(payment, **kwargs):
 def _handle_paywall_callback(payment, request, **kwargs):
     """Handle paywall callback via core async path."""
     from getpaid.adapters import adapt_callback_request
-    from getpaid.async_detection import is_async_callable
     from django.http import HttpResponse
 
     processor = payment._get_processor()
     data, headers, raw_body = adapt_callback_request(request)
-    # verify_callback may be Django-style (sync, takes request) or
-    # core-style (async, takes data, headers). Handle both.
-    verify_method = getattr(processor, 'verify_callback', None)
-    if verify_method is not None:
-        if is_async_callable(verify_method):
-            _call_processor_method(
-                processor, verify_method,
-                data, headers, raw_body=raw_body, **kwargs,
-            )
-        else:
-            verify_method(request)
-    update = _call_processor_method(
+    bridge.call_verify_callback(
+        processor, data, headers, raw_body, request, **kwargs,
+    )
+    update = bridge.call(
         processor, processor.handle_callback,
         data, headers, raw_body=raw_body, **kwargs,
     )
