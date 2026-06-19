@@ -36,7 +36,7 @@ class TestPrepareTransaction:
         mock_request = MagicMock()
 
         with patch(
-            'getpaid.abstracts._prepare_transaction',
+            'getpaid.abstracts.prepare_transaction',
             return_value=HttpResponseRedirect('/redirect'),
         ) as mock_prep:
             payment.prepare_transaction(request=mock_request, view=mock_view)

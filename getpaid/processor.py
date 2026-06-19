@@ -191,9 +191,9 @@ class BaseProcessor(CoreBaseProcessor):
         raise NotImplementedError
 
     def prepare_transaction(self, request=None, view=None, **kwargs):
-        from getpaid.abstracts import _prepare_transaction
+        from getpaid.flow_adapter import prepare_transaction
 
-        return _prepare_transaction(
+        return prepare_transaction(
             self.payment,
             request=request,
             view=view,
