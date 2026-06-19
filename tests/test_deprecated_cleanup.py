@@ -40,13 +40,14 @@ class TestNoTypingExtensions:
 
 
 class TestNoClasspropertyFallback:
-    """classproperty is in django.utils.functional since Django 3.1."""
+    """types.py no longer uses classproperty — the enum wrapper was
+    replaced with a flat re-export, so classproperty is unnecessary."""
 
-    def test_types_module_no_try_except_classproperty(self):
+    def test_types_module_no_classproperty(self):
         source_file = importlib.import_module('getpaid.types').__file__
         source = pathlib.Path(source_file).read_text()
         assert 'django.utils.decorators' not in source
-        assert 'from django.utils.functional import classproperty' in source
+        assert 'classproperty' not in source
 
 
 class TestDefaultAutoField:

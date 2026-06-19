@@ -28,6 +28,11 @@ from getpaid_core.types import (
     TransactionResult,  # noqa: F401
 )
 
-from .types import FraudStatus, PaymentStatus  # noqa: F401
+from .types import (  # noqa: F401
+    FRAUD_STATUS_CHOICES,
+    PAYMENT_STATUS_CHOICES,
+    FraudStatus,
+    PaymentStatus,
+)
 
 __version__ = '3.0.1'

@@ -16,6 +16,7 @@ from django.shortcuts import resolve_url
 from django.utils.translation import gettext_lazy as _
 from django.views import View
 from getpaid_core.enums import FraudEvent
+from getpaid_core.enums import FraudStatus
 from getpaid_core.enums import PaymentEvent
 from getpaid_core.enums import PaymentStatus
 from getpaid_core.fsm import apply_payment_update
@@ -27,13 +28,13 @@ from getpaid.async_runner import run_awaitable
 from getpaid.exceptions import ChargeFailure
 from getpaid.repository import DjangoPaymentRepository
 from getpaid.types import (
+    PAYMENT_STATUS_CHOICES,
+    FRAUD_STATUS_CHOICES,
     BuyerInfo,
     ChargeResponse,
     ItemInfo,
     RestfulResult,
 )
-from getpaid.types import FraudStatus as fs
-from getpaid.types import PaymentStatus as ps
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +69,7 @@ class AbstractOrder(models.Model):
         Override for custom validation. Raise ValidationError
         for verbose error messages.
         """
-        if self.payments.exclude(status=ps.FAILED).exists():  # ty: ignore[unresolved-attribute]
+        if self.payments.exclude(status=PaymentStatus.FAILED).exists():  # ty: ignore[unresolved-attribute]
             raise forms.ValidationError(
                 _('Non-failed Payments exist for this Order.')
             )
@@ -119,8 +120,8 @@ class AbstractPayment(models.Model):
     status = models.CharField(
         _('status'),
         max_length=50,
-        choices=ps.choices,
-        default=ps.NEW,
+        choices=PAYMENT_STATUS_CHOICES,
+        default=PaymentStatus.NEW,
         db_index=True,
     )
     backend = models.CharField(_('backend'), max_length=100, db_index=True)
@@ -175,8 +176,8 @@ class AbstractPayment(models.Model):
     fraud_status = models.CharField(
         _('fraud status'),
         max_length=20,
-        choices=fs.choices,
-        default=fs.UNKNOWN,
+        choices=FRAUD_STATUS_CHOICES,
+        default=FraudStatus.UNKNOWN,
         db_index=True,
     )
     fraud_message = models.TextField(_('fraud message'), blank=True)
@@ -192,7 +193,7 @@ class AbstractPayment(models.Model):
         constraints = [
             models.UniqueConstraint(
                 fields=['order'],
-                condition=~Q(status=ps.FAILED),
+                condition=~Q(status=PaymentStatus.FAILED),
                 name='getpaid_unique_non_failed_payment_per_order',
             ),
         ]

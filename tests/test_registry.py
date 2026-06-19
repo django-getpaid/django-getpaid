@@ -53,11 +53,10 @@ class TestRegistry:
             assert code == code.upper()
 
     def test_choices(self):
-        fraud_choices = FraudStatus.CHOICES
-        assert type(fraud_choices) == tuple
+        from getpaid.types import FRAUD_STATUS_CHOICES, PAYMENT_STATUS_CHOICES
 
-        payment_choices = PaymentStatus.CHOICES
-        assert type(payment_choices) == tuple
+        assert type(FRAUD_STATUS_CHOICES) == tuple
+        assert type(PAYMENT_STATUS_CHOICES) == tuple
 
     def test_module_registry_wraps_core_singleton(self):
         assert registry._core is core_registry

@@ -2,9 +2,9 @@ import uuid
 
 import httpx
 from django.db import models
+from getpaid_core.enums import FraudStatus, PaymentStatus
 
-from getpaid.status import FraudStatus as fs
-from getpaid.status import PaymentStatus as ps
+from getpaid.types import FRAUD_STATUS_CHOICES, PAYMENT_STATUS_CHOICES
 
 
 class PaymentEntry(models.Model):
@@ -18,13 +18,13 @@ class PaymentEntry(models.Model):
     failure_url = models.URLField(blank=True)
     payment_status = models.CharField(
         max_length=50,
-        choices=ps.choices,
-        default=ps.PREPARED,
+        choices=PAYMENT_STATUS_CHOICES,
+        default=PaymentStatus.PREPARED,
     )
     fraud_status = models.CharField(
         max_length=50,
-        choices=fs.choices,
-        default=fs.UNKNOWN,
+        choices=FRAUD_STATUS_CHOICES,
+        default=FraudStatus.UNKNOWN,
     )
 
     def _send_status_to_callback(self, status):
@@ -33,29 +33,29 @@ class PaymentEntry(models.Model):
         )
 
     def send_confirm_lock(self):
-        self.payment_status = ps.PRE_AUTH
+        self.payment_status = PaymentStatus.PRE_AUTH
         self.save()
-        self._send_status_to_callback(ps.PRE_AUTH)
+        self._send_status_to_callback(PaymentStatus.PRE_AUTH)
 
     def send_confirm_charge(self):
-        self.payment_status = ps.PAID
+        self.payment_status = PaymentStatus.PAID
         self.save()
-        self._send_status_to_callback(ps.PAID)
+        self._send_status_to_callback(PaymentStatus.PAID)
 
     def send_fail(self):
-        self.payment_status = ps.FAILED
+        self.payment_status = PaymentStatus.FAILED
         self.save()
-        self._send_status_to_callback(ps.FAILED)
+        self._send_status_to_callback(PaymentStatus.FAILED)
 
     def start_refund(self):
-        self.payment_status = ps.REFUND_STARTED
+        self.payment_status = PaymentStatus.REFUND_STARTED
         self.save()
 
     def send_confirm_refund(self):
-        self.payment_status = ps.REFUNDED
+        self.payment_status = PaymentStatus.REFUNDED
         self.save()
-        self._send_status_to_callback(ps.REFUNDED)
+        self._send_status_to_callback(PaymentStatus.REFUNDED)
 
     def cancel_refund(self):
-        self.payment_status = ps.PAID
+        self.payment_status = PaymentStatus.PAID
         self.save()
