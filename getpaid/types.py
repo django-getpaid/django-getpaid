@@ -12,7 +12,7 @@ from getpaid_core.enums import FraudStatus
 from getpaid_core.enums import PaymentStatus
 
 # Also re-exported from getpaid_core for consumer convenience.
-from getpaid_core.types import BuyerInfo, ChargeResponse, ItemInfo
+from getpaid_core.types import BuyerInfo, ChargeResult as ChargeResponse, ItemInfo
 
 __all__ = [
     'BackendMethod',
@@ -22,7 +22,7 @@ __all__ = [
     'FraudStatus',
     'ItemInfo',
     'PaymentStatus',
-    'PaymentStatusResponse',
+
     'RestfulResult',
 ]
 
@@ -65,18 +65,6 @@ from decimal import Decimal  # noqa: E402
 from typing import Any, TypedDict  # noqa: E402
 
 from django.http import HttpResponse  # noqa: E402
-
-
-class GetpaidInternalResponse(TypedDict):
-    raw_response: Any
-    exception: Exception | None
-
-
-class PaymentStatusResponse(GetpaidInternalResponse):
-    amount: Decimal | None
-    callback: str | None
-    callback_result: Any | None
-    saved: bool | None
 
 
 class FormField(TypedDict):
