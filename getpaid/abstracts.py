@@ -16,20 +16,16 @@ from django.shortcuts import resolve_url
 from django.utils.translation import gettext_lazy as _
 from django.views import View
 from getpaid_core.enums import FraudEvent
+from getpaid_core.enums import PaymentEvent
+from getpaid_core.enums import PaymentStatus
 from getpaid_core.fsm import apply_payment_update
 from getpaid_core.protocols import Payment as CorePaymentProtocol
 from getpaid_core.types import PaymentUpdate
 
+from getpaid.async_detection import is_async_callable
+from getpaid.async_runner import run_awaitable
 from getpaid.exceptions import ChargeFailure
-from getpaid.runtime import (
-    cancel_payment_refund,
-    charge_payment,
-    fetch_and_update_payment_status,
-    fetch_payment_status,
-    prepare_payment,
-    release_payment_lock,
-    start_payment_refund,
-)
+from getpaid.repository import DjangoPaymentRepository
 from getpaid.types import (
     BuyerInfo,
     ChargeResponse,
@@ -297,17 +293,14 @@ class AbstractPayment(models.Model):
     def handle_paywall_callback(
         self, request: HttpRequest, **kwargs
     ) -> HttpResponse:
-        from getpaid.runtime import handle_callback_request
-
-        return handle_callback_request(self, request, **kwargs)
+        return _handle_paywall_callback(self, request, **kwargs)
 
     def fetch_status(self):
-        return fetch_payment_status(self)
+        return _fetch_payment_status(self)
 
     @atomic
     def fetch_and_update_status(self):
-        fetch_and_update_payment_status(self)
-        return self
+        return _fetch_and_update_payment_status(self)
 
     def get_return_redirect_url(
         self, request: HttpRequest, success: bool
@@ -329,7 +322,7 @@ class AbstractPayment(models.Model):
     ) -> dict:
         return {'pk': self.id}
 
-    # ---- Action helpers (delegate to processor) ----
+    # ---- Action helpers (delegate to module-level functions) ----
 
     def prepare_transaction(
         self,
@@ -337,7 +330,7 @@ class AbstractPayment(models.Model):
         view: View | None = None,
         **kwargs,
     ) -> HttpResponse:
-        return prepare_payment(self, request=request, view=view, **kwargs)
+        return _prepare_transaction(self, request=request, view=view, **kwargs)
 
     def prepare_transaction_for_rest(
         self,
@@ -383,7 +376,7 @@ class AbstractPayment(models.Model):
             amount_to_charge = self.amount_locked
         if amount_to_charge > self.amount_locked:
             raise ValueError('Cannot charge more than locked value.')
-        result = charge_payment(self, amount=amount_to_charge, **kwargs)
+        result = _charge_payment(self, amount=amount_to_charge, **kwargs)
         if not result.success:
             raise ChargeFailure(
                 'Error occurred while trying to charge locked amount.'
@@ -392,7 +385,7 @@ class AbstractPayment(models.Model):
 
     @atomic
     def release_lock(self, **kwargs):
-        return release_payment_lock(self, **kwargs)
+        return _release_payment_lock(self, **kwargs)
 
     @atomic
     def start_refund(
@@ -401,11 +394,11 @@ class AbstractPayment(models.Model):
         **kwargs,
     ):
         refund_amount = Decimal(str(amount)) if amount is not None else None
-        return start_payment_refund(self, amount=refund_amount, **kwargs)
+        return _start_payment_refund(self, amount=refund_amount, **kwargs)
 
     @atomic
     def cancel_refund(self, **kwargs):
-        return cancel_payment_refund(self, **kwargs)
+        return _cancel_payment_refund(self, **kwargs)
 
 
 def _resolve_processor_config(
@@ -447,3 +440,215 @@ def _resolve_processor_config(
         if key in backend_settings:
             return backend_settings[key]
     return {}
+
+
+# ---- Module-level delegates ----
+# These functions orchestrate payment operations by:
+# 1. Resolving the processor (via payment._get_processor)
+# 2. Calling the processor method (via run_awaitable for async processors)
+# 3. Applying FSM transitions (via getpaid_core.fsm.apply_payment_update)
+# 4. Persisting via DjangoPaymentRepository (sync, same thread)
+#
+# This replaces the old runtime.py pipeline while reusing the core FSM.
+# Processor calls use run_awaitable (AsyncRunner thread) for async
+# compatibility, but persistence happens on the main thread to avoid
+# SQLite locking issues.
+
+
+def _call_processor_method(processor, method, *args, **kwargs):
+    """Call a processor method, bridging async/sync."""
+    if is_async_callable(method):
+        return run_awaitable(method(*args, **kwargs))
+    return method(*args, **kwargs)
+
+
+def _save_payment(payment):
+    """Persist a payment via the sync repository (main thread)."""
+    repository = DjangoPaymentRepository(type(payment))
+    return repository._save(payment)
+
+
+def _prepare_transaction(payment, request=None, view=None, **kwargs):
+    """Prepare a transaction: call processor, apply FSM, build response."""
+    from django.core.exceptions import ImproperlyConfigured
+    from django.http import HttpResponseRedirect
+    from django.template.response import TemplateResponse
+    from getpaid_core.enums import BackendMethod
+
+    processor = payment._get_processor()
+    result = _call_processor_method(
+        processor, processor.prepare_transaction,
+        request=request, view=view, **kwargs,
+    )
+    if isinstance(result, HttpResponse):
+        return result
+    apply_payment_update(
+        payment,
+        PaymentUpdate(
+            payment_event=PaymentEvent.PREPARED,
+            external_id=result.external_id,
+            provider_data=result.provider_data,
+        ),
+    )
+    _save_payment(payment)
+    if result.method is BackendMethod.POST:
+        if not hasattr(processor, 'get_form') or not hasattr(
+            processor,
+            'get_template_names',
+        ):
+            raise ImproperlyConfigured(
+                'POST-based payments require a Django-aware processor.'
+            )
+        form = processor.get_form(result.form_data or {})
+        return TemplateResponse(
+            request=request,
+            template=processor.get_template_names(view=view),
+            context={
+                'form': form,
+                'paywall_url': result.redirect_url or '#',
+            },
+        )
+    redirect_url = (
+        result.redirect_url
+        or processor.get_our_baseurl(request)
+    )
+    return HttpResponseRedirect(redirect_url)
+
+
+def _fetch_payment_status(payment):
+    """Fetch payment status from gateway (PULL flow)."""
+    processor = payment._get_processor()
+    update = _call_processor_method(processor, processor.fetch_payment_status)
+    if update is not None:
+        apply_payment_update(payment, update)
+        _save_payment(payment)
+    return update
+
+
+def _fetch_and_update_payment_status(payment):
+    """Fetch status and update payment, returning the payment."""
+    update = _fetch_payment_status(payment)
+    return payment
+
+
+def _charge_payment(payment, amount=None, **kwargs):
+    """Charge a pre-authorized payment."""
+    from getpaid_core.exceptions import InvalidTransitionError
+
+    if payment.status not in {PaymentStatus.PRE_AUTH, PaymentStatus.IN_CHARGE}:
+        raise InvalidTransitionError(
+            f"Cannot charge payment in {payment.status!r} status. "
+            "Payment must be PRE_AUTH or IN_CHARGE."
+        )
+    processor = payment._get_processor()
+    result = _call_processor_method(
+        processor, processor.charge, amount=amount, **kwargs,
+    )
+    if result.success:
+        if result.async_call:
+            update = PaymentUpdate(
+                payment_event=PaymentEvent.CHARGE_REQUESTED,
+                provider_data=result.provider_data,
+            )
+        else:
+            update = PaymentUpdate(
+                payment_event=PaymentEvent.PAYMENT_CAPTURED,
+                paid_amount=payment.amount_paid + result.amount_charged,
+                provider_data=result.provider_data,
+            )
+        apply_payment_update(payment, update)
+        _save_payment(payment)
+    return result
+
+
+def _release_payment_lock(payment, **kwargs):
+    """Release a pre-authorized lock."""
+    from getpaid_core.exceptions import InvalidTransitionError
+
+    if payment.status != PaymentStatus.PRE_AUTH:
+        raise InvalidTransitionError(
+            f"Cannot release lock for payment in {payment.status!r} "
+            "status. Payment must be PRE_AUTH."
+        )
+    processor = payment._get_processor()
+    amount = _call_processor_method(processor, processor.release_lock, **kwargs)
+    apply_payment_update(
+        payment,
+        PaymentUpdate(payment_event=PaymentEvent.LOCK_RELEASED),
+    )
+    _save_payment(payment)
+    return amount
+
+
+def _start_payment_refund(payment, amount=None, **kwargs):
+    """Start a refund."""
+    from getpaid_core.exceptions import InvalidTransitionError
+
+    if payment.status not in {
+        PaymentStatus.PAID,
+        PaymentStatus.PARTIAL,
+        PaymentStatus.REFUND_STARTED,
+    }:
+        raise InvalidTransitionError(
+            f"Cannot start refund for payment in {payment.status!r} "
+            "status. Payment must be PAID, PARTIAL, or REFUND_STARTED."
+        )
+    processor = payment._get_processor()
+    result = _call_processor_method(
+        processor, processor.start_refund, amount=amount, **kwargs,
+    )
+    apply_payment_update(
+        payment,
+        PaymentUpdate(
+            payment_event=PaymentEvent.REFUND_REQUESTED,
+            provider_data=result.provider_data,
+        ),
+    )
+    _save_payment(payment)
+    return result
+
+
+def _cancel_payment_refund(payment, **kwargs):
+    """Cancel an in-progress refund."""
+    processor = payment._get_processor()
+    success = _call_processor_method(
+        processor, processor.cancel_refund, **kwargs,
+    )
+    if success:
+        apply_payment_update(
+            payment,
+            PaymentUpdate(payment_event=PaymentEvent.REFUND_CANCELLED),
+        )
+        _save_payment(payment)
+    return success
+
+
+def _handle_paywall_callback(payment, request, **kwargs):
+    """Handle paywall callback via core async path."""
+    from getpaid.adapters import adapt_callback_request
+    from getpaid.async_detection import is_async_callable
+    from django.http import HttpResponse
+
+    processor = payment._get_processor()
+    data, headers, raw_body = adapt_callback_request(request)
+    # verify_callback may be Django-style (sync, takes request) or
+    # core-style (async, takes data, headers). Handle both.
+    verify_method = getattr(processor, 'verify_callback', None)
+    if verify_method is not None:
+        if is_async_callable(verify_method):
+            _call_processor_method(
+                processor, verify_method,
+                data, headers, raw_body=raw_body, **kwargs,
+            )
+        else:
+            verify_method(request)
+    update = _call_processor_method(
+        processor, processor.handle_callback,
+        data, headers, raw_body=raw_body, **kwargs,
+    )
+    if isinstance(update, HttpResponse):
+        return update
+    if update is not None:
+        apply_payment_update(payment, update)
+        _save_payment(payment)
+    return HttpResponse(b'OK')

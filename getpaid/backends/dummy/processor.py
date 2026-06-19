@@ -119,9 +119,9 @@ class PaymentProcessor(BaseProcessor, DummyProcessor):
         )
 
     def handle_paywall_callback(self, request, **kwargs):
-        from getpaid.runtime import handle_callback_request
+        from getpaid.abstracts import _handle_paywall_callback
 
-        return handle_callback_request(self.payment, request, **kwargs)
+        return _handle_paywall_callback(self.payment, request, **kwargs)
 
     async def fetch_payment_status(self, **kwargs):
         confirmation_status = self.get_setting('confirmation_status', 'paid')

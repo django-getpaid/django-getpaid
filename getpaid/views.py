@@ -11,10 +11,14 @@ from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import CreateView, TemplateView
 
+from .abstracts import _handle_paywall_callback
+from .adapters import call_processor_verify_callback
+from .async_detection import is_async_callable
 from .callback_security import enforce_callback_security
 from .exceptions import GetPaidException
 from .forms import PaymentMethodForm
-from .runtime import handle_callback_request
+from .processor import BaseProcessor as DjangoBaseProcessor
+from getpaid_core.processor import BaseProcessor as CoreBaseProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +100,10 @@ class CallbackDetailView(View):
         processor = payment._get_processor()
         try:
             enforce_callback_security(processor, request)
-            return handle_callback_request(payment, request, **kwargs)
+            if _uses_semantic_callback(processor):
+                return _handle_paywall_callback(payment, request, **kwargs)
+            call_processor_verify_callback(processor, request)
+            return processor.handle_paywall_callback(request, **kwargs)
         except GetPaidException:
             logger.warning('Callback verification failed for payment %s', pk)
             return http.HttpResponseForbidden(b'Callback verification failed')
@@ -128,6 +135,17 @@ class HealthCheckView(View):
 
 
 health = HealthCheckView.as_view()
+
+
+def _uses_semantic_callback(processor) -> bool:
+    """Return True when the processor implements the core async callback contract."""
+    handle_method = getattr(processor, 'handle_callback', None)
+    if handle_method is None:
+        return False
+    type_handle_method = getattr(type(processor), 'handle_callback', None)
+    if type_handle_method is None:
+        return is_async_callable(handle_method)
+    return type_handle_method is not CoreBaseProcessor.handle_callback
 
 
 def _get_version() -> str:

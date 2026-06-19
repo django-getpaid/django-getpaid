@@ -35,17 +35,13 @@ class TestPrepareTransaction:
         mock_view = MagicMock()
         mock_request = MagicMock()
 
-        proc = payment._get_processor()
-        with (
-            patch.object(
-                type(proc),
-                'prepare_transaction',
-                return_value=HttpResponseRedirect('/redirect'),
-            ) as mock_prep,
-            patch.object(type(payment), '_get_processor', return_value=proc),
-        ):
+        with patch(
+            'getpaid.abstracts._prepare_transaction',
+            return_value=HttpResponseRedirect('/redirect'),
+        ) as mock_prep:
             payment.prepare_transaction(request=mock_request, view=mock_view)
             mock_prep.assert_called_once_with(
+                payment,
                 request=mock_request,
                 view=mock_view,
             )
