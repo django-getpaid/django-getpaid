@@ -35,4 +35,4 @@ from .types import (  # noqa: F401
     PaymentStatus,
 )
 
-__version__ = '3.0.1'
+__version__ = '3.1.0'
