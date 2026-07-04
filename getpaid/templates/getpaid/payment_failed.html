@@ -1,0 +1,29 @@
+{% extends "getpaid/base.html" %}
+{% load i18n %}
+
+{% block title %}{% translate "Payment failed" %}{% endblock title %}
+
+{% block content %}
+<section class="getpaid-payment getpaid-payment--failed">
+  {% block heading %}
+  <h1>{% translate "Payment failed" %}</h1>
+  {% endblock heading %}
+
+  {% block message %}
+  <p>{% translate "Your payment could not be completed." %}</p>
+  {% endblock message %}
+
+  {% block payment_details %}
+  {% if payment %}
+  <dl>
+    <dt>{% translate "Payment ID" %}</dt>
+    <dd>{{ payment.pk }}</dd>
+    <dt>{% translate "Amount" %}</dt>
+    <dd>{{ payment.amount_required }} {{ payment.currency }}</dd>
+  </dl>
+  {% endif %}
+  {% endblock payment_details %}
+
+  {% block actions %}{% endblock actions %}
+</section>
+{% endblock content %}

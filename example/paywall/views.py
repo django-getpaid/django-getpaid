@@ -7,7 +7,6 @@ from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import FormView
-
 from getpaid_core.enums import PaymentStatus as ps
 
 from .forms import QuestionForm

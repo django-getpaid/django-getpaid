@@ -4,7 +4,6 @@
 UNIT_TESTS = \
 	tests/test_reexports.py \
 	tests/test_callback_adapter.py \
-	tests/test_utils.py \
 	tests/test_deprecated_cleanup.py \
 	tests/test_migration_checks.py \
 	tests/test_database_settings.py

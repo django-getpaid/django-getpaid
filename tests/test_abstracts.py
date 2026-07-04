@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import swapper
 from django import forms
+from django.db import IntegrityError
 from django.http import HttpResponseRedirect
 
 from getpaid.status import FraudStatus as fs
@@ -314,7 +315,7 @@ class TestUniqueNonFailedPaymentPerOrder:
             backend='getpaid.backends.dummy',
             description=order.get_description(),
         )
-        with pytest.raises(Exception):  # IntegrityError (DB-specific)
+        with pytest.raises(IntegrityError):
             Payment.objects.create(
                 order=order,
                 currency=order.currency,
@@ -370,3 +371,30 @@ class TestUniqueNonFailedPaymentPerOrder:
         assert (
             'getpaid_unique_non_failed_payment_per_order' in constraint_names
         )
+
+
+class TestExternalIdBlank:
+    """Regression: multiple payments without external id must not collide.
+
+    external_id is unique; the old default of '' made the second payment
+    ever created crash with IntegrityError. NULLs do not collide.
+    """
+
+    def test_two_payments_without_external_id(self):
+        payment_1 = _make_payment()
+        payment_2 = _make_payment()
+        assert payment_1.external_id is None
+        assert payment_2.external_id is None
+
+    def test_empty_string_external_id_is_normalized_to_none(self):
+        payment_1 = _make_payment(external_id='')
+        payment_2 = _make_payment(external_id='')
+        payment_1.refresh_from_db()
+        payment_2.refresh_from_db()
+        assert payment_1.external_id is None
+        assert payment_2.external_id is None
+
+    def test_duplicate_real_external_id_still_rejected(self):
+        _make_payment(external_id='EXT-1')
+        with pytest.raises(IntegrityError):
+            _make_payment(external_id='EXT-1')

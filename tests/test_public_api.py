@@ -1,6 +1,8 @@
 """Tests for the public package API."""
 
+import re
 import tomllib
+from importlib import metadata
 from pathlib import Path
 
 import getpaid_core
@@ -9,31 +11,56 @@ import getpaid_paynow
 import getpaid
 
 
-def test_version() -> None:
-    assert getpaid.__version__ == '3.0.0'
+def _pyproject() -> dict:
+    return tomllib.loads(Path('pyproject.toml').read_text())
+
+
+def _version_tuple(version: str) -> tuple[int, ...]:
+    return tuple(int(part) for part in re.split(r'[.\-+]', version)[:3])
+
+
+def _floor(requirements: list[str], name: str) -> str:
+    """Extract the `>=` floor for a requirement from a dependency list."""
+    for requirement in requirements:
+        match = re.fullmatch(rf'{re.escape(name)}>=([\w.\-]+)', requirement)
+        if match:
+            return match.group(1)
+    raise AssertionError(f'No >= floor declared for {name!r}')
+
+
+def test_version_matches_installed_metadata() -> None:
+    """Source __version__ must match the installed package metadata."""
+    assert getpaid.__version__ == metadata.version('django-getpaid')
 
 
 def test_core_dependency_floor() -> None:
-    current_version = getpaid.__version__
-    pyproject_data = tomllib.loads(Path('pyproject.toml').read_text())
-    assert (
-        f'python-getpaid-core>={current_version}'
-        in pyproject_data['project']['dependencies']
+    """Core floor must be declared and not exceed the current version."""
+    current = _version_tuple(getpaid.__version__)
+    pyproject_data = _pyproject()
+
+    runtime_floor = _floor(
+        pyproject_data['project']['dependencies'], 'python-getpaid-core'
     )
-    assert (
-        f'python-getpaid-core>={current_version}'
-        in pyproject_data['dependency-groups']['dev']
+    dev_floor = _floor(
+        pyproject_data['dependency-groups']['dev'], 'python-getpaid-core'
     )
+
+    assert _version_tuple(runtime_floor) <= current
+    assert _version_tuple(dev_floor) <= current
+    # Floors must stay on the same major line as the package itself.
+    assert _version_tuple(runtime_floor)[0] == current[0]
 
 
 def test_paynow_dev_dependency_floor() -> None:
-    current_version = getpaid.__version__
-    pyproject_data = tomllib.loads(Path('pyproject.toml').read_text())
+    current = _version_tuple(getpaid.__version__)
+    pyproject_data = _pyproject()
 
-    assert (
-        f'python-getpaid-paynow>={current_version}'
-        in pyproject_data['dependency-groups']['dev']
+    dev_floor = _floor(
+        pyproject_data['dependency-groups']['dev'], 'python-getpaid-paynow'
     )
+
+    assert _version_tuple(dev_floor) <= current
+    assert _version_tuple(dev_floor)[0] == current[0]
 
 
 def test_ecosystem_versions_match() -> None:

@@ -17,6 +17,9 @@ GETPAID_PAYMENT_MODEL = 'orders.CustomPayment'
 # For production: set env vars to override sandbox keys
 # For development: sandbox keys are used by default
 
+# Only backends that are actually installed in this example project are
+# configured here. To try another processor (e.g. getpaid-paynow), install
+# its plugin package and add a matching configuration entry.
 GETPAID_BACKEND_SETTINGS = {
     'getpaid.backends.dummy': {
         'pos_id': int(os.environ.get('DUMMY_POS_ID', '12345')),
@@ -30,26 +33,6 @@ GETPAID_BACKEND_SETTINGS = {
         'confirmation_method': 'push',
         'gateway': reverse_lazy('paywall:gateway'),
     },
-    'getpaid_payu.processor.PayUProcessor': {
-        'pos_id': int(os.environ.get('PAYU_POS_ID', '300746')),
-        'second_key': os.environ.get(
-            'PAYU_SECOND_KEY', 'b6ca15b0d1020e8094d9b5f8d163db54'
-        ),
-        'oauth_id': int(os.environ.get('PAYU_OAUTH_ID', '300746')),
-        'oauth_secret': os.environ.get(
-            'PAYU_OAUTH_SECRET', '2ee86a66e5d97e3fadc400c9f19b065d'
-        ),
-        'sandbox': True,
-    },
-    'getpaid_paynow.processor.PaynowProcessor': {
-        'api_key': os.environ.get(
-            'PAYNOW_API_KEY', 'd2e1d881-40b0-4b7e-9168-181bae3dc4e0'
-        ),
-        'signature_key': os.environ.get(
-            'PAYNOW_SIGN_KEY', '8e42a868-5562-440d-817c-4921632fb049'
-        ),
-        'sandbox': True,
-    },
 }
 
 PAYWALL_MODE = 'PAY'  # PAY for instant paying, LOCK for pre-auth
@@ -60,6 +43,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.sessions',
     'django.contrib.contenttypes',
+    'django.contrib.staticfiles',
     'getpaid',
     'getpaid.backends.dummy',
     'orders',
@@ -106,3 +90,7 @@ DATABASES = {
 TIME_ZONE = 'UTC'
 USE_I18N = False
 USE_TZ = True
+
+# Static files (Django admin assets)
+STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')

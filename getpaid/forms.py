@@ -5,18 +5,20 @@ from django.utils.translation import gettext_lazy as _
 
 from getpaid.validators import run_getpaid_validators
 
-Order = swapper.load_model('getpaid', 'Order')
-
 
 class PaymentMethodForm(forms.ModelForm):
     """
     Usable example.
     Displays all available payments backends as choice list.
+
+    The ``order`` queryset can be injected via the ``order_queryset``
+    keyword argument (e.g. from ``CreatePaymentView.get_order_queryset``)
+    to scope which orders may be paid; it defaults to all orders.
     """
 
-    order = forms.ModelChoiceField(
-        widget=forms.HiddenInput, queryset=Order.objects.all()
-    )
+    # The Order model is swappable, so the queryset is resolved lazily
+    # in __init__ instead of at module import time.
+    order = forms.ModelChoiceField(widget=forms.HiddenInput, queryset=None)
 
     class Meta:
         model = swapper.load_model('getpaid', 'Payment')
@@ -33,10 +35,14 @@ class PaymentMethodForm(forms.ModelForm):
             'currency': forms.HiddenInput,
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, order_queryset=None, **kwargs):
         from .registry import registry
 
         super().__init__(*args, **kwargs)
+        if order_queryset is None:
+            Order = swapper.load_model('getpaid', 'Order')
+            order_queryset = Order._default_manager.all()
+        self.fields['order'].queryset = order_queryset
         order = self.initial.get('order')
         currency = getattr(order, 'currency', None) or self.data.get('currency')
         if order is not None:
@@ -105,7 +111,7 @@ class PaymentMethodForm(forms.ModelForm):
         cleaned_data = self._apply_order_defaults(cleaned_data)
         return run_getpaid_validators(cleaned_data)
 
-    def save(self, commit=True):
+    def save(self, commit=True):  # noqa: FBT002
         """Always persist server-computed values from the order,
         regardless of what the form received."""
         instance = super().save(commit=False)

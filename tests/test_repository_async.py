@@ -46,7 +46,9 @@ def payment_for_update(payment_factory):
 @pytest.fixture
 def order_with_payments(order_factory, payment_factory):
     order = order_factory()
-    first = payment_factory(order=order)
+    # Only one non-failed payment per order is allowed by the
+    # getpaid_unique_non_failed_payment_per_order constraint.
+    first = payment_factory(order=order, status=ps.FAILED)
     second = payment_factory(order=order)
     payment_factory()
     return order, first, second

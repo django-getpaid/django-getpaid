@@ -1,5 +1,76 @@
 # Changelog
 
+## v3.2.0 (2026-07-04)
+
+### Important upgrade notes
+
+- **`external_id` schema change (new migration)**: `Payment.external_id`
+  is now nullable (`null=True, default=None`) instead of defaulting to an
+  empty string. The old `unique=True` + `default=''` combination made the
+  *second* payment ever created fail with `IntegrityError` (empty strings
+  collide; `NULL`s do not). Empty strings are normalized to `NULL` in
+  `save()`/`clean()` and by a data migration. **Run `manage.py migrate`
+  after upgrading.** If you use a custom (swapped) Payment model, run
+  `makemigrations` for your app as well.
+- **Row-level locking on payment state changes**: the paywall callback
+  view, `Payment.fetch_and_update_status()` and the admin charge/release/
+  refund actions now run inside `transaction.atomic()` and lock the
+  payment row with `select_for_update()`, serializing concurrent webhook
+  and status updates. If you call these from your own long-running
+  transactions, be aware of the new locking semantics.
+
+### Fixes
+
+- Dependency floors raised to `python-getpaid-core>=3.1.0` and
+  `python-getpaid-paynow>=3.1.0` (dev); dropped git-branch `uv` sources so
+  both resolve from PyPI.
+- The example `orders` app was missing migrations for the unique
+  `external_id` field and the "single non-failed payment per order"
+  constraint; they are now generated and `makemigrations --check` passes
+  for all apps.
+- Callback error handling: malformed JSON payloads now return HTTP 400
+  (previously 500), and duplicate/late provider callbacks that raise
+  `InvalidTransitionError` are acknowledged with HTTP 200 and an
+  "already processed" body (providers retry on non-2xx). Verification
+  failures still return HTTP 403.
+- Admin actions (`charge_payment`, `release_lock_action`, `start_refund`)
+  no longer silently swallow errors: failures are logged with tracebacks
+  and both success and failure counts are reported via admin messages
+  (errors use `messages.ERROR`). Hardcoded status strings were replaced
+  with `PaymentStatus` enum values.
+- `make test-unit` no longer references the nonexistent
+  `tests/test_utils.py` (which aborted the whole CI pipeline), and the
+  public-API version tests are now dynamic (source `__version__` vs
+  installed metadata; dependency floors parsed from `pyproject.toml`).
+- E2E tests now skip with a clear reason when the dockerized e2e server
+  is not reachable instead of timing out.
+
+### Features
+
+- Default `getpaid/payment_success.html` and `getpaid/payment_failed.html`
+  templates (plus a minimal `getpaid/base.html`) are now shipped with the
+  package; they are block-based and easy to override per project.
+- `CreatePaymentView.validate_order(request, order)`: overridable
+  ownership hook called before creating a payment. By default, when the
+  order exposes a `user`/`owner` attribute it must match `request.user`
+  (403 otherwise); models without such attributes are allowed but a
+  security warning is logged once. The order queryset used by
+  `PaymentMethodForm` can be scoped via
+  `CreatePaymentView.get_order_queryset()` / the form's
+  `order_queryset` kwarg.
+- New Django system checks: `getpaid.E001`/`getpaid.E002` validate that
+  `GETPAID_ORDER_MODEL` is set and resolvable, `getpaid.E003` validates
+  that `GETPAID_BACKEND_SETTINGS` is a dict. The Order model is now
+  loaded lazily in `getpaid.forms`.
+
+### Packaging / CI
+
+- `.plans/` and `.sisyphus/` are excluded from the sdist.
+- The release workflow now runs only after the CI workflow succeeds on
+  `main` (`workflow_run` trigger) instead of on every push.
+- The example project now includes `django.contrib.staticfiles` and
+  `STATIC_URL`, and only configures backends that are actually installed.
+
 ## v3.0.1 (2026-06-05)
 
 ### Fixes

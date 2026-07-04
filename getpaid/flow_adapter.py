@@ -13,12 +13,12 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Any
 
-from getpaid.bridge import bridge
 from getpaid_core.enums import PaymentEvent, PaymentStatus
 from getpaid_core.exceptions import InvalidTransitionError
 from getpaid_core.fsm import apply_payment_update
 from getpaid_core.types import PaymentUpdate
 
+from getpaid.bridge import bridge
 from getpaid.registry import registry as django_registry
 from getpaid.repository import DjangoPaymentRepository
 
@@ -33,14 +33,14 @@ def _resolve_backend_config(
     from django.conf import settings as django_settings
 
     backend_settings = getattr(
-        django_settings, "GETPAID_BACKEND_SETTINGS", {}
+        django_settings, 'GETPAID_BACKEND_SETTINGS', {}
     )
-    slug = getattr(processor_class, "slug", "")
+    slug = getattr(processor_class, 'slug', '')
     class_module = processor_class.__module__
 
     candidate_keys: list[str] = []
     if slug:
-        candidate_keys.extend([slug, f"getpaid.backends.{slug}"])
+        candidate_keys.extend([slug, f'getpaid.backends.{slug}'])
 
     candidate_keys.extend(
         key
@@ -48,13 +48,13 @@ def _resolve_backend_config(
             backend_key,
             *sorted(aliases),
             class_module,
-            f"{class_module}.{processor_class.__name__}",
+            f'{class_module}.{processor_class.__name__}',
         )
         if key not in candidate_keys
     )
 
-    if class_module.endswith(".processor"):
-        backend_module = class_module.rsplit(".", 1)[0]
+    if class_module.endswith('.processor'):
+        backend_module = class_module.rsplit('.', 1)[0]
         if backend_module not in candidate_keys:
             candidate_keys.append(backend_module)
 
@@ -140,8 +140,8 @@ class DjangoPaymentFlowAdapter:
             PaymentStatus.IN_CHARGE,
         }:
             raise InvalidTransitionError(
-                f"Cannot charge payment in {self.payment.status!r} status. "
-                "Payment must be PRE_AUTH or IN_CHARGE."
+                f'Cannot charge payment in {self.payment.status!r} status. '
+                'Payment must be PRE_AUTH or IN_CHARGE.'
             )
         processor = _get_processor(self.payment, self.model_class)
         result = bridge.call(processor, processor.charge, amount=amount, **kwargs)
@@ -165,8 +165,8 @@ class DjangoPaymentFlowAdapter:
         """Release a pre-authorized lock."""
         if self.payment.status != PaymentStatus.PRE_AUTH:
             raise InvalidTransitionError(
-                f"Cannot release lock for payment in {self.payment.status!r} "
-                "status. Payment must be PRE_AUTH."
+                f'Cannot release lock for payment in {self.payment.status!r} '
+                'status. Payment must be PRE_AUTH.'
             )
         processor = _get_processor(self.payment, self.model_class)
         amount = bridge.call(processor, processor.release_lock, **kwargs)
@@ -187,8 +187,8 @@ class DjangoPaymentFlowAdapter:
             PaymentStatus.REFUND_STARTED,
         }:
             raise InvalidTransitionError(
-                f"Cannot start refund for payment in {self.payment.status!r} "
-                "status. Payment must be PAID, PARTIAL, or REFUND_STARTED."
+                f'Cannot start refund for payment in {self.payment.status!r} '
+                'status. Payment must be PAID, PARTIAL, or REFUND_STARTED.'
             )
         processor = _get_processor(self.payment, self.model_class)
         result = bridge.call(
@@ -226,7 +226,6 @@ def prepare_transaction(payment, request=None, view=None, **kwargs):
     from django.core.exceptions import ImproperlyConfigured
     from django.http import HttpResponseRedirect
     from django.template.response import TemplateResponse
-
     from getpaid_core.enums import BackendMethod
 
     result = DjangoPaymentFlowAdapter(payment, type(payment)).prepare(
@@ -236,19 +235,19 @@ def prepare_transaction(payment, request=None, view=None, **kwargs):
         return result
     if result.method is BackendMethod.POST:
         processor = _get_processor(payment, type(payment))
-        if not hasattr(processor, "get_form") or not hasattr(
-            processor, "get_template_names"
+        if not hasattr(processor, 'get_form') or not hasattr(
+            processor, 'get_template_names'
         ):
             raise ImproperlyConfigured(
-                "POST-based payments require a Django-aware processor."
+                'POST-based payments require a Django-aware processor.'
             )
         form = processor.get_form(result.form_data or {})
         return TemplateResponse(
             request=request,
             template=processor.get_template_names(view=view),
             context={
-                "form": form,
-                "paywall_url": result.redirect_url or "#",
+                'form': form,
+                'paywall_url': result.redirect_url or '#',
             },
         )
     redirect_url = result.redirect_url or _get_processor(

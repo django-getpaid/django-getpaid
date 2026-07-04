@@ -1,6 +1,5 @@
 """Tests that getpaid re-exports core types correctly."""
 
-import sys
 
 
 class TestEnumIsNotWrapper:
@@ -10,6 +9,7 @@ class TestEnumIsNotWrapper:
     def test_payment_status_is_core_enum(self):
         """getpaid.types.PaymentStatus IS getpaid_core.enums.PaymentStatus."""
         from getpaid_core.enums import PaymentStatus as CorePS
+
         from getpaid.types import PaymentStatus
 
         assert PaymentStatus is CorePS
@@ -17,6 +17,7 @@ class TestEnumIsNotWrapper:
     def test_fraud_status_is_core_enum(self):
         """getpaid.types.FraudStatus IS getpaid_core.enums.FraudStatus."""
         from getpaid_core.enums import FraudStatus as CoreFS
+
         from getpaid.types import FraudStatus
 
         assert FraudStatus is CoreFS
@@ -52,14 +53,14 @@ class TestEnumIsNotWrapper:
     def test_choices_are_plain_tuples(self):
         """PAYMENT_STATUS_CHOICES and FRAUD_STATUS_CHOICES must be plain
         tuples of (value, label) — not classproperties on a wrapper."""
-        from getpaid.types import PAYMENT_STATUS_CHOICES, FRAUD_STATUS_CHOICES
+        from getpaid.types import FRAUD_STATUS_CHOICES, PAYMENT_STATUS_CHOICES
 
         assert isinstance(PAYMENT_STATUS_CHOICES, tuple)
         assert isinstance(FRAUD_STATUS_CHOICES, tuple)
         # Each entry is (str, str)
-        for value, label in PAYMENT_STATUS_CHOICES:
+        for value, _label in PAYMENT_STATUS_CHOICES:
             assert isinstance(value, str)
-        for value, label in FRAUD_STATUS_CHOICES:
+        for value, _label in FRAUD_STATUS_CHOICES:
             assert isinstance(value, str)
 
     def test_choices_values_match_core_enum(self):
@@ -69,7 +70,7 @@ class TestEnumIsNotWrapper:
 
         for member in PaymentStatus:
             matching = [c for c in PAYMENT_STATUS_CHOICES if c[0] == member.value]
-            assert len(matching) == 1, f"No choice for {member.value!r}"
+            assert len(matching) == 1, f'No choice for {member.value!r}'
 
     def test_payment_status_new_works_as_django_default(self):
         """PaymentStatus.NEW must be usable as a Django CharField default.
@@ -83,16 +84,18 @@ class TestEnumIsNotWrapper:
     def test_status_identity_across_imports(self):
         """Importing PaymentStatus from getpaid, getpaid.types, or
         getpaid_core.enums must yield the same object."""
-        import getpaid
         from getpaid_core.enums import PaymentStatus as CorePS
+
+        import getpaid
         from getpaid.types import PaymentStatus
 
         assert getpaid.PaymentStatus is PaymentStatus
         assert PaymentStatus is CorePS
 
     def test_fraud_status_identity_across_imports(self):
-        import getpaid
         from getpaid_core.enums import FraudStatus as CoreFS
+
+        import getpaid
         from getpaid.types import FraudStatus
 
         assert getpaid.FraudStatus is FraudStatus
@@ -114,7 +117,7 @@ class TestEnumIsNotWrapper:
             name for name in dir(mod)
             if 'wrapper' in name.lower() or 'Wrapper' in name
         ]
-        assert wrapper_names == [], f"Found wrapper artifacts: {wrapper_names}"
+        assert wrapper_names == [], f'Found wrapper artifacts: {wrapper_names}'
 
 
 from decimal import Decimal

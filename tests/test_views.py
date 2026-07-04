@@ -79,3 +79,44 @@ class TestHealthCheck:
         response = client.get('/payments/health/')
         data = json.loads(response.content)
         assert data['version'] == getpaid.__version__
+
+
+class TestFallbackViewDefaultTemplates:
+    """SuccessView/FailureView must render with package-shipped templates.
+
+    The example project overrides getpaid/payment_success.html and
+    getpaid/payment_failed.html; the package must still work without them.
+    """
+
+    APP_DIRS_ONLY_TEMPLATES = [
+        {
+            'BACKEND': 'django.template.backends.django.DjangoTemplates',
+            'DIRS': [],  # no project-level template overrides
+            'APP_DIRS': True,
+            'OPTIONS': {'context_processors': []},
+        }
+    ]
+
+    @override_settings(TEMPLATES=APP_DIRS_ONLY_TEMPLATES)
+    def test_success_view_renders_default_template(
+        self, client, payment_factory
+    ):
+        payment = payment_factory()
+
+        response = client.get(f'/payments/success/{payment.pk}/')
+
+        assert response.status_code == 200
+        assert response.templates[0].name == 'getpaid/payment_success.html'
+        assert str(payment.pk).encode() in response.content
+
+    @override_settings(TEMPLATES=APP_DIRS_ONLY_TEMPLATES)
+    def test_failure_view_renders_default_template(
+        self, client, payment_factory
+    ):
+        payment = payment_factory()
+
+        response = client.get(f'/payments/failure/{payment.pk}/')
+
+        assert response.status_code == 200
+        assert response.templates[0].name == 'getpaid/payment_failed.html'
+        assert str(payment.pk).encode() in response.content

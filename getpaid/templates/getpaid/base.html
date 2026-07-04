@@ -1,0 +1,14 @@
+{# Minimal base template shipped with django-getpaid. Override by placing
+   your own getpaid/base.html earlier in the template search path. #}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Payment{% endblock title %}</title>
+  {% block extra_head %}{% endblock extra_head %}
+</head>
+<body>
+  {% block content %}{% endblock content %}
+</body>
+</html>

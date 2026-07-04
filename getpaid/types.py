@@ -6,13 +6,16 @@ as plain module-level constants.
 """
 
 from django.utils.translation import pgettext_lazy
-from getpaid_core.enums import BackendMethod
-from getpaid_core.enums import ConfirmationMethod
-from getpaid_core.enums import FraudStatus
-from getpaid_core.enums import PaymentStatus
+from getpaid_core.enums import (
+    BackendMethod,
+    ConfirmationMethod,
+    FraudStatus,
+    PaymentStatus,
+)
 
 # Also re-exported from getpaid_core for consumer convenience.
-from getpaid_core.types import BuyerInfo, ChargeResult as ChargeResponse, ItemInfo
+from getpaid_core.types import BuyerInfo, ItemInfo
+from getpaid_core.types import ChargeResult as ChargeResponse
 
 __all__ = [
     'BackendMethod',
@@ -61,10 +64,9 @@ FRAUD_STATUS_CHOICES = tuple(
 # TypedDicts (Django-specific)
 # ---------------------------------------------------------------------------
 
-from decimal import Decimal  # noqa: E402
-from typing import Any, TypedDict  # noqa: E402
+from typing import Any, TypedDict
 
-from django.http import HttpResponse  # noqa: E402
+from django.http import HttpResponse
 
 
 class FormField(TypedDict):

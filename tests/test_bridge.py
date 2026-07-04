@@ -1,9 +1,6 @@
 """Tests for ProcessorBridge — the single async/sync call seam."""
 
-import asyncio
 from unittest.mock import AsyncMock, Mock, patch
-
-import pytest
 
 from getpaid.bridge import ProcessorBridge
 
@@ -15,34 +12,34 @@ class TestBridgeCall:
     def test_call_sync_method(self):
         """A sync method is called directly, return value passed through."""
         bridge = ProcessorBridge()
-        method = Mock(return_value="sync_result")
+        method = Mock(return_value='sync_result')
 
-        result = bridge.call(Mock(), method, "arg1", key="val")
+        result = bridge.call(Mock(), method, 'arg1', key='val')
 
-        method.assert_called_once_with("arg1", key="val")
-        assert result == "sync_result"
+        method.assert_called_once_with('arg1', key='val')
+        assert result == 'sync_result'
 
     def test_call_async_method(self):
         """An async method is run via run_awaitable."""
         bridge = ProcessorBridge()
-        method = AsyncMock(return_value="async_result")
+        method = AsyncMock(return_value='async_result')
 
-        with patch("getpaid.bridge.run_awaitable", return_value="bridged") as mock_run:
-            result = bridge.call(Mock(), method, "arg1")
+        with patch('getpaid.bridge.run_awaitable', return_value='bridged') as mock_run:
+            result = bridge.call(Mock(), method, 'arg1')
 
         # The async method is NOT called directly — run_awaitable handles it
-        method.assert_called_once_with("arg1")
+        method.assert_called_once_with('arg1')
         mock_run.assert_called_once()
-        assert result == "bridged"
+        assert result == 'bridged'
 
     def test_call_passes_all_args(self):
         """All positional and keyword args are forwarded."""
         bridge = ProcessorBridge()
         method = Mock(return_value=None)
 
-        bridge.call(Mock(), method, 1, 2, 3, a="x", b="y")
+        bridge.call(Mock(), method, 1, 2, 3, a='x', b='y')
 
-        method.assert_called_once_with(1, 2, 3, a="x", b="y")
+        method.assert_called_once_with(1, 2, 3, a='x', b='y')
 
 
 class TestBridgeIsSemanticCallback:
@@ -142,12 +139,12 @@ class TestBridgeCallVerifyCallback:
         processor = Mock()
         processor.verify_callback = AsyncMock()
 
-        data = {"status": "ok"}
-        headers = {"Signature": "abc"}
+        data = {'status': 'ok'}
+        headers = {'Signature': 'abc'}
         raw_body = b'{"status": "ok"}'
         request = Mock()
 
-        with patch("getpaid.bridge.run_awaitable") as mock_run:
+        with patch('getpaid.bridge.run_awaitable') as mock_run:
             bridge.call_verify_callback(
                 processor, data, headers, raw_body, request,
             )
@@ -163,9 +160,9 @@ class TestBridgeCallVerifyCallback:
         processor = Mock()
         processor.verify_callback = Mock()  # Sync
 
-        data = {"status": "ok"}
+        data = {'status': 'ok'}
         headers = {}
-        raw_body = b""
+        raw_body = b''
         request = Mock()
 
         bridge.call_verify_callback(
@@ -181,7 +178,7 @@ class TestBridgeCallVerifyCallback:
 
         # Should not raise
         bridge.call_verify_callback(
-            processor, {}, {}, b"", Mock(),
+            processor, {}, {}, b'', Mock(),
         )
 
     def test_async_verify_with_extra_kwargs(self):
@@ -190,14 +187,14 @@ class TestBridgeCallVerifyCallback:
         processor = Mock()
         processor.verify_callback = AsyncMock()
 
-        with patch("getpaid.bridge.run_awaitable") as mock_run:
+        with patch('getpaid.bridge.run_awaitable'):
             bridge.call_verify_callback(
-                processor, {"a": 1}, {"h": "v"}, b"body", Mock(),
-                extra_kw="extra",
+                processor, {'a': 1}, {'h': 'v'}, b'body', Mock(),
+                extra_kw='extra',
             )
 
         processor.verify_callback.assert_called_once_with(
-            {"a": 1}, {"h": "v"}, raw_body=b"body", extra_kw="extra",
+            {'a': 1}, {'h': 'v'}, raw_body=b'body', extra_kw='extra',
         )
 
 
@@ -212,6 +209,6 @@ class TestBridgeSingleton:
     def test_singleton_is_reusable(self):
         from getpaid.bridge import bridge
 
-        method = Mock(return_value="ok")
+        method = Mock(return_value='ok')
         result = bridge.call(Mock(), method)
-        assert result == "ok"
+        assert result == 'ok'

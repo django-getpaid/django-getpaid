@@ -1,0 +1,29 @@
+{% extends "getpaid/base.html" %}
+{% load i18n %}
+
+{% block title %}{% translate "Payment successful" %}{% endblock title %}
+
+{% block content %}
+<section class="getpaid-payment getpaid-payment--success">
+  {% block heading %}
+  <h1>{% translate "Payment successful" %}</h1>
+  {% endblock heading %}
+
+  {% block message %}
+  <p>{% translate "Your payment has been processed successfully." %}</p>
+  {% endblock message %}
+
+  {% block payment_details %}
+  {% if payment %}
+  <dl>
+    <dt>{% translate "Payment ID" %}</dt>
+    <dd>{{ payment.pk }}</dd>
+    <dt>{% translate "Amount" %}</dt>
+    <dd>{{ payment.amount_required }} {{ payment.currency }}</dd>
+  </dl>
+  {% endif %}
+  {% endblock payment_details %}
+
+  {% block actions %}{% endblock actions %}
+</section>
+{% endblock content %}

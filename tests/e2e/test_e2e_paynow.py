@@ -11,7 +11,6 @@ Tests the complete user journey:
 
 import re
 
-import pytest
 from playwright.sync_api import expect
 
 from .conftest import E2E_SERVER_URL

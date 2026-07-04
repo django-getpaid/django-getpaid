@@ -26,7 +26,7 @@ classifiers = [
 ]
 dependencies = [
     "Django>=5.2",
-    "python-getpaid-core>=3.0.0",
+    "python-getpaid-core>=3.1.0",
     "swapper>=1.4",
 ]
 
@@ -51,8 +51,8 @@ dev = [
     "ruff>=0.15.1",
     "tox>=4.35.0",
     "ty>=0.0.16",
-    "python-getpaid-core>=3.0.0",
-    "python-getpaid-paynow>=3.0.0",
+    "python-getpaid-core>=3.1.0",
+    "python-getpaid-paynow>=3.1.0",
     "furo>=2025.12.19",
     "sphinx>=9.1.0",
     "myst-parser>=5.0.0",
@@ -68,6 +68,12 @@ asyncio_mode = "auto"
 testpaths = ["tests"]
 markers = [
     "e2e: E2E tests that require a running Django server",
+]
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+    ".plans",
+    ".sisyphus",
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -164,7 +170,7 @@ mccabe.max-complexity = 9
 pydocstyle.convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S101", "S105", "PT015", "PT018", "PLW1514", "SIM115", "SIM117", "N817", "B011", "PIE810", "PTH100", "PTH118", "PTH120"]
+"tests/**" = ["S101", "S105", "PT015", "PT018", "PLW0717", "PLW1514", "SIM115", "SIM117", "N817", "B011", "PIE810", "PTH100", "PTH118", "PTH120"]
 "example/**" = ["PTH100", "PTH118", "PTH120", "S105"]
 
 # --- ty type checker ---
@@ -192,7 +198,3 @@ possibly-missing-attribute = "ignore"
 include = ["getpaid/backends/dummy/processor.py"]
 [tool.ty.overrides.rules]
 invalid-method-override = "ignore"
-
-[tool.uv.sources]
-python-getpaid-core = { git = "https://github.com/django-getpaid/python-getpaid-core", rev = "main" }
-python-getpaid-paynow = { git = "https://github.com/django-getpaid/python-getpaid-paynow", rev = "main" }

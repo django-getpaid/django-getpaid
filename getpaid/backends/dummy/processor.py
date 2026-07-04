@@ -46,7 +46,6 @@ class PaymentProcessor(BaseProcessor, DummyProcessor):
         # to the external dummy URL (core-only usage).
         if request is not None:
             base = request.build_absolute_uri('/')
-            import os; os.environ.setdefault('DEBUG_DUMMY', '1')
             callback = request.build_absolute_uri(
                 reverse('getpaid:callback', kwargs={'pk': self.payment.id})
             )

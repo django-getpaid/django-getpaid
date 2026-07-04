@@ -3,7 +3,6 @@ from django.conf import settings
 from django.http import HttpResponse
 from getpaid_core.registry import registry as core_registry
 
-from getpaid import FraudStatus, PaymentStatus
 from getpaid.processor import BaseProcessor
 from getpaid.registry import registry
 

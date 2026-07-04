@@ -18,11 +18,9 @@ All delegate to ProcessorBridge, which owns:
 
 from __future__ import annotations
 
-import inspect
 from typing import Any
 
 from getpaid.async_runner import run_awaitable
-from getpaid_core.processor import BaseProcessor as CoreBaseProcessor
 
 
 class ProcessorBridge:
