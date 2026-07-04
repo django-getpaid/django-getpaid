@@ -67,9 +67,8 @@ venv
 virtualenv
 .virtualenv
 
-# poetry / uv
+# poetry
 /poetry.lock
-/uv.lock
 
 # Codacy
 /.codacy-coverage
