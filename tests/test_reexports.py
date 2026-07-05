@@ -164,11 +164,11 @@ class TestEnumReExports:
 
     def test_payment_status_has_choices(self):
         """PAYMENT_STATUS_CHOICES must be a plain tuple of (value, label)."""
-        from getpaid.types import PAYMENT_STATUS_CHOICES
+        from getpaid.types import PAYMENT_STATUS_CHOICES, PaymentStatus
 
         choices = PAYMENT_STATUS_CHOICES
         assert isinstance(choices, tuple)
-        assert len(choices) == 9
+        assert len(choices) == len(PaymentStatus)
         for value, _label in choices:
             assert isinstance(value, str)
 

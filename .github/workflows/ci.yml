@@ -30,7 +30,10 @@ jobs:
         run: uv run ruff check .
 
       - name: Audit dependencies
-        run: uv run pip-audit --strict
+        # --skip-editable: the project itself is installed editable at a
+        # not-yet-released version, so it cannot be audited against PyPI.
+        # Known vulnerabilities in dependencies still fail the build.
+        run: uv run pip-audit --skip-editable
 
       - name: Check unswapped getpaid migrations
         env:

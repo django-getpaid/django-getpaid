@@ -163,7 +163,9 @@ class TestDummyPullAndActions:
         payment.refresh_from_db()
         assert result == Decimal('100.00')
         assert payment.amount_locked == Decimal('0.00')
-        assert payment.status == ps.REFUNDED
+        # Core >=3.2.0: releasing a lock with nothing charged means the
+        # payment was cancelled, not refunded.
+        assert payment.status == ps.CANCELLED
 
     def test_start_refund_stores_provider_data(self):
         payment = _make_payment(

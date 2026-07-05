@@ -46,6 +46,7 @@ PAYMENT_STATUS_CHOICES = tuple(
         (PaymentStatus.FAILED, pgettext_lazy('payment status', 'failed')),
         (PaymentStatus.REFUND_STARTED, pgettext_lazy('payment status', 'refund started')),
         (PaymentStatus.REFUNDED, pgettext_lazy('payment status', 'refunded')),
+        (PaymentStatus.CANCELLED, pgettext_lazy('payment status', 'cancelled')),
     ]
 )
 
