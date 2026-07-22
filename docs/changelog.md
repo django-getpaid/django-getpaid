@@ -1,5 +1,24 @@
 # Changelog
 
+## v3.2.1 (2026-07-22)
+
+### Features
+
+- **Paymentless/global webhook callback view**: added a backend-slugged
+  `callback/<backend>/` route and `BackendCallbackView` for gateways
+  (e.g. Stripe) that deliver every webhook to a single Dashboard-configured
+  URL with no payment pk. The view resolves the `Payment` from the event
+  body via the backend processor's optional
+  `extract_callback_correlation(data, headers)` hook and runs the same
+  locked verify/apply/dedup machinery as the per-payment route.
+  Uncorrelatable or foreign traffic is acked with `200`; unknown backend or
+  a backend without the hook returns `404`.
+
+### Fixes
+
+- CI: adapt to `python-getpaid-core` 3.2.0 and fix the pip-audit self-audit.
+- CI: commit `uv.lock` so `uv sync --frozen` works on CI.
+
 ## v3.2.0 (2026-07-04)
 
 ### Important upgrade notes
