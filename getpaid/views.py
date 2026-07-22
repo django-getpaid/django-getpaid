@@ -6,21 +6,25 @@ import logging
 import swapper
 from django import http
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
-from django.http import HttpRequest, HttpResponse
+from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import CreateView, TemplateView
-from getpaid_core.exceptions import InvalidTransitionError
+from getpaid_core.exceptions import (
+    BackendNotFoundError,
+    InvalidTransitionError,
+)
 
 from .abstracts import _handle_paywall_callback
-from .adapters import call_processor_verify_callback
+from .adapters import adapt_callback_request, call_processor_verify_callback
 from .bridge import bridge
 from .callback_security import enforce_callback_security
 from .exceptions import GetPaidException
 from .forms import PaymentMethodForm
+from .registry import registry
 
 logger = logging.getLogger(__name__)
 
@@ -180,17 +184,128 @@ class CallbackDetailView(View):
         payment = get_object_or_404(
             Payment.objects.select_for_update(), pk=pk
         )
-        processor = payment._get_processor()
-        enforce_callback_security(processor, request)
-        if _uses_semantic_callback(processor):
-            return _handle_paywall_callback(
-                payment, request, processor=processor, **kwargs,
-            )
-        call_processor_verify_callback(processor, request)
-        return processor.handle_paywall_callback(request, **kwargs)
+        return _run_locked_callback(request, payment, **kwargs)
 
 
 callback = csrf_exempt(CallbackDetailView.as_view())
+
+
+def _run_locked_callback(
+    request: HttpRequest, payment, **kwargs
+) -> HttpResponse:
+    """Verify + apply a callback against an already-locked payment row.
+
+    Shared by the per-payment ``CallbackDetailView`` and the paymentless
+    ``BackendCallbackView``: both resolve the payment (by URL pk / by event
+    body), then run this — verification gates every state change.
+    """
+    processor = payment._get_processor()
+    enforce_callback_security(processor, request)
+    if _uses_semantic_callback(processor):
+        return _handle_paywall_callback(
+            payment, request, processor=processor, **kwargs,
+        )
+    call_processor_verify_callback(processor, request)
+    return processor.handle_paywall_callback(request, **kwargs)
+
+
+def _resolve_locked_payment(correlation):
+    """Resolve and row-lock the Payment a paymentless webhook refers to.
+
+    ``correlation`` is what the backend's ``extract_callback_correlation``
+    returned: our ``payment_id`` (session / intent events) and/or the
+    gateway-side ``external_id`` (refund / review events, which carry no
+    payment_id). Prefer the pk, then fall back to external_id. Returns
+    ``None`` when nothing matches — the caller acks so the gateway stops
+    retrying uncorrelatable or foreign traffic.
+    """
+    if not correlation:
+        return None
+    Payment = swapper.load_model('getpaid', 'Payment')
+    locked = Payment.objects.select_for_update()
+    payment_id = correlation.get('payment_id')
+    if payment_id:
+        try:
+            payment = locked.filter(pk=payment_id).first()
+        except (ValidationError, ValueError, TypeError):
+            # An attacker-supplied handle that is not a valid pk for this
+            # model is simply not a match, not a 500.
+            payment = None
+        if payment is not None:
+            return payment
+    external_id = correlation.get('external_id')
+    if external_id:
+        payment = locked.filter(external_id=external_id).first()
+        if payment is not None:
+            return payment
+    return None
+
+
+class BackendCallbackView(View):
+    """Paymentless webhook endpoint, keyed by backend slug in the URL.
+
+    For gateways whose webhook is a single Dashboard-configured URL with no
+    payment pk (e.g. Stripe): ``callback/<backend>/``. The backend's processor
+    must expose an ``extract_callback_correlation(data, headers)`` classmethod
+    returning the handles that locate the local Payment. Once resolved, the
+    same locked machinery as :class:`CallbackDetailView` runs — signature
+    verification gates every state change, exactly as for the per-payment route
+    whose pk is likewise untrusted URL input.
+    """
+
+    def post(self, request: HttpRequest, backend, *args, **kwargs):
+        try:
+            processor_class = registry.get_by_slug(backend)
+        except BackendNotFoundError as exc:
+            raise Http404(
+                f'No payment backend registered for {backend!r}.'
+            ) from exc
+        extractor = getattr(
+            processor_class, 'extract_callback_correlation', None
+        )
+        if extractor is None:
+            raise Http404(
+                f'Backend {backend!r} does not support paymentless callbacks.'
+            )
+        try:
+            with transaction.atomic():
+                return self._handle_backend_callback(
+                    request, extractor, backend, **kwargs
+                )
+        except json.JSONDecodeError:
+            logger.warning(
+                'Malformed JSON in paymentless %s callback', backend
+            )
+            return http.HttpResponseBadRequest(b'Malformed JSON payload')
+        except InvalidTransitionError:
+            logger.info(
+                'Paymentless %s callback already processed; acknowledging',
+                backend,
+            )
+            return HttpResponse(b'Already processed')
+        except GetPaidException:
+            logger.warning(
+                'Paymentless %s callback verification failed', backend
+            )
+            return http.HttpResponseForbidden(b'Callback verification failed')
+
+    def _handle_backend_callback(
+        self, request: HttpRequest, extractor, backend, **kwargs
+    ) -> HttpResponse:
+        data, headers, _raw_body = adapt_callback_request(request)
+        correlation = extractor(data, headers)
+        payment = _resolve_locked_payment(correlation)
+        if payment is None:
+            logger.info(
+                'Paymentless %s callback: no payment matched correlation %r',
+                backend,
+                correlation,
+            )
+            return HttpResponse(b'No matching payment')
+        return _run_locked_callback(request, payment, **kwargs)
+
+
+backend_callback = csrf_exempt(BackendCallbackView.as_view())
 
 
 class HealthCheckView(View):
