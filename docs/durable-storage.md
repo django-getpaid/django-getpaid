@@ -137,6 +137,22 @@ Root payment
 and order rows still provide application identity/context. Do not infer current
 money from them after cutover, or save a previously loaded instance.
 
+**The legacy single-payment constraint is also a consumer of retired state.**
+`AbstractPayment.Meta.constraints` declares
+`getpaid_unique_non_failed_payment_per_order`, whose predicate reads the root's
+legacy `status`. A payment that fails through the durable path can still retain
+NEW/PREPARED there; inserting its replacement then raises `IntegrityError`, even
+when all application readers use durable facts. Before enabling replacement
+payments, the integration must explicitly replace that constraint and its
+single-payment enforcement strategy for its concrete payment model. Preserve
+the intended rule under concurrent creation using current durable state and an
+appropriate order-level database lock; simply dropping uniqueness is not an
+alternative enforcement strategy. An integration deliberately permitting
+multiple receipt payments per settlement context must document that different
+rule and remove the legacy single-payment validation as well. This adapter
+neither changes the constraint automatically nor updates legacy status to keep
+it satisfied.
+
 Operation projections may change under core planners; the whole row is **not
 append-only**. Their `conflicting_outcomes`, `recovery_evidence` and `resolutions`
 are retained evidence, and facts retain `observation_conflicts`. Repository
@@ -196,8 +212,10 @@ provider's idempotency window.
    available. Payments without a durable operation cannot be repaired through
    `resolve_operation`; an application-owned audited repair/import procedure is
    still required. This adapter does not provide a generic flag-clearing escape.
-5. Switch readers to durable facts and explicitly construct the next-major core
-   durable flow with suitable upgraded processors. Start only those writers.
+5. Switch readers to durable facts and replace any legacy-state-dependent
+   creation constraints/validation, including the single-payment constraint
+   described above. Explicitly construct the next-major core durable flow with
+   suitable upgraded processors. Start only those writers.
    Use both discovery methods to find unresolved work; supply scheduling,
    authorization and provider evidence in the integration.
 
