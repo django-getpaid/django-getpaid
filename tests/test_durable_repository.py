@@ -4,6 +4,8 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 import pytest
+from asgiref.sync import sync_to_async
+from django.core.management import call_command
 
 pytest.importorskip(
     'getpaid_core.durable',
@@ -19,6 +21,7 @@ from getpaid_core.durable import (
     OperatorResolution,
     PaymentObservation,
     RecoveryEvidence,
+    run_conformance_suite,
 )
 from getpaid_core.enums import PaymentStatus
 from getpaid_core.exceptions import StateConflictError
@@ -27,6 +30,26 @@ from getpaid_core.types import PaymentUpdate
 from getpaid.durable_repository import DjangoDurablePaymentRepository
 
 pytestmark = pytest.mark.django_db(transaction=True)
+
+
+async def test_core_conformance_against_database(payment_factory, monkeypatch):
+    # Core's suite uses one identity; adapt its fixture constant to this model's
+    # UUID primary key, not the repository or any planner behavior.
+    monkeypatch.setattr(
+        'getpaid_core.durable.conformance.PAYMENT_ID',
+        '0a90fbb5-43da-4ead-94e1-d6c4aaebc291',
+    )
+
+    @sync_to_async(thread_sensitive=True)
+    def factory(facts):
+        # Each check requires exactly its facts and an empty TEST database.
+        call_command('flush', interactive=False, verbosity=0)
+        payment_factory(id=facts.payment_id)
+        repository = DjangoDurablePaymentRepository()
+        repository.seed_sync(facts)
+        return repository
+
+    await run_conformance_suite(factory)
 
 
 def test_migration_reads_stored_payment_not_stale_snapshot(payment_factory):

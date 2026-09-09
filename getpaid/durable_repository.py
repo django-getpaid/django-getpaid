@@ -101,6 +101,55 @@ class DjangoDurablePaymentRepository:
             )
             return plan
 
+    def seed_sync(self, facts):
+        """Initialize an uninitialized root from explicitly supplied import facts.
+
+        This is not a repair/update API. Core migration validation may add a
+        reconciliation flag; it never clears a supplied flag or retained claims.
+        """
+        if type(facts) is not PaymentFacts:
+            raise TypeError('seed requires PaymentFacts.')
+        with self._locked_payment(facts.payment_id) as payment:
+            if str(payment.pk) != facts.payment_id:
+                raise ValueError(
+                    'Use the canonical string payment primary key.'
+                )
+            if (
+                DurablePaymentState.objects
+                .using(self.using)
+                .filter(payment_id=payment.pk)
+                .exists()
+            ):
+                raise ValueError('Durable payment already initialized.')
+            plan = plan_migration(
+                LegacyPaymentState(
+                    payment_id=facts.payment_id,
+                    amount_required=facts.amount_required,
+                    backend=facts.backend,
+                    amount_paid=facts.captured_funds,
+                    amount_refunded=facts.refunded_funds,
+                    amount_locked=facts.remaining_authorization,
+                    status=facts.status,
+                    external_id=facts.external_id,
+                    fraud_status=facts.fraud_status,
+                    fraud_message=facts.fraud_message,
+                    provider_data=facts.provider_data,
+                )
+            )
+            facts = replace(
+                facts,
+                reconciliation_required=facts.reconciliation_required
+                or plan.facts.reconciliation_required,
+            )
+            _insert(
+                DurablePaymentState,
+                self.using,
+                payment_id=payment.pk,
+                facts=dump_record(facts),
+                reconciliation_required=facts.reconciliation_required,
+            )
+            return replace(plan, facts=facts)
+
     def get_payment_facts_sync(self, payment_id):
         try:
             state = DurablePaymentState.objects.using(self.using).get(
@@ -353,6 +402,7 @@ class DjangoDurablePaymentRepository:
     list_unresolved_operations = sync_to_async(
         list_unresolved_operations_sync, thread_sensitive=True
     )
+    seed = sync_to_async(seed_sync, thread_sensitive=True)
     migrate_payment = sync_to_async(migrate_payment_sync, thread_sensitive=True)
     get_payment_facts = sync_to_async(
         get_payment_facts_sync, thread_sensitive=True
