@@ -7,6 +7,7 @@ from zoneinfo import ZoneInfo
 import pytest
 from asgiref.sync import sync_to_async
 from django.core.management import call_command
+from django.db import connections
 
 pytest.importorskip(
     'getpaid_core.durable',
@@ -25,12 +26,128 @@ from getpaid_core.durable import (
     run_conformance_suite,
 )
 from getpaid_core.enums import PaymentStatus
-from getpaid_core.exceptions import StateConflictError
+from getpaid_core.exceptions import (
+    ReconciliationBlockedError,
+    StateConflictError,
+)
 from getpaid_core.types import PaymentUpdate
 
 from getpaid.durable_repository import DjangoDurablePaymentRepository
 
 pytestmark = pytest.mark.django_db(transaction=True)
+
+
+@pytest.mark.parametrize('channel', ['outcome', 'observation', 'resolution'])
+def test_complete_refund_history_and_related_records_commit(
+    payment_factory, channel
+):
+    payment = payment_factory(
+        amount_required=Decimal(100),
+        amount_paid=Decimal(100),
+        status=PaymentStatus.PAID,
+    )
+    identity = str(payment.pk)
+    repository = DjangoDurablePaymentRepository()
+    repository.migrate_payment_sync(identity)
+    repository.reserve_operation_sync(
+        identity,
+        OperationIntent('first', OperationType.START_REFUND, Decimal(30)),
+    )
+    repository.record_operation_outcome_sync(
+        identity,
+        'first',
+        OperationOutcome(
+            OperationState.PROVIDER_PENDING, correlation='refund-1'
+        ),
+    )
+    cancellation = repository.reserve_operation_sync(
+        identity,
+        OperationIntent(
+            'cancel',
+            OperationType.CANCEL_REFUND,
+            parameters={'target_operation_id': 'first'},
+        ),
+    )
+    outcome = OperationOutcome(OperationState.SUCCEEDED)
+    if channel == 'outcome':
+        repository.record_operation_outcome_sync(identity, 'cancel', outcome)
+    elif channel == 'observation':
+        repository.apply_observation_sync(
+            identity,
+            PaymentObservation(
+                operation_id='cancel',
+                outcome=outcome,
+                provider_event_id='cancellation',
+            ),
+        )
+    else:
+        decision = OperatorResolution(
+            'cancel-review',
+            'operator',
+            'Cancellation confirmed',
+            ('ledger:cancel',),
+            datetime(2026, 9, 9, tzinfo=UTC),
+            outcome,
+        )
+        repository.resolve_operation_sync(
+            identity,
+            'cancel',
+            decision,
+            expected_operation=cancellation,
+            expected_facts=repository.get_payment_facts_sync(identity),
+        )
+    assert (
+        repository.get_operation_sync(identity, 'first').state
+        == OperationState.REJECTED
+    )
+    repository.reserve_operation_sync(
+        identity,
+        OperationIntent('second', OperationType.START_REFUND, Decimal(40)),
+    )
+    repository.record_operation_outcome_sync(
+        identity,
+        'second',
+        OperationOutcome(OperationState.SUCCEEDED, correlation='refund-2'),
+    )
+    # Late settlement of the cancelled first refund must include the completed
+    # second intent, not only whatever operations currently count as active.
+    plan = repository.record_operation_outcome_sync(
+        identity,
+        'first',
+        OperationOutcome(OperationState.SUCCEEDED, correlation='refund-1'),
+    )
+    assert plan.facts.refunded_funds == Decimal(70)
+    assert plan.facts.reconciliation_required
+    assert repository.get_operation_sync(
+        identity, 'second'
+    ).settled_amount == Decimal(40)
+
+
+@pytest.mark.parametrize(
+    ('paid', 'status'),
+    [('120', PaymentStatus.PAID), ('0', PaymentStatus.IN_CHARGE)],
+)
+def test_ambiguous_migration_remains_readable_and_blocked(
+    payment_factory, paid, status
+):
+    payment = payment_factory(
+        amount_required=Decimal(100), amount_paid=Decimal(paid), status=status
+    )
+    repository = DjangoDurablePaymentRepository()
+    identity = str(payment.pk)
+    migrated = repository.migrate_payment_sync(identity)
+    assert migrated.mutation_blocked
+    assert repository.get_payment_facts_sync(
+        identity
+    ).captured_funds == Decimal(paid)
+    assert (
+        migrated.facts
+        in repository.list_payments_requiring_reconciliation_sync()
+    )
+    with pytest.raises(ReconciliationBlockedError):
+        repository.reserve_operation_sync(
+            identity, OperationIntent('new', OperationType.CHARGE)
+        )
 
 
 def test_submission_roundtrips_ambiguous_aware_datetime(payment_factory):
@@ -74,7 +191,11 @@ async def test_core_conformance_against_database(payment_factory, monkeypatch):
         repository.seed_sync(facts)
         return repository
 
-    await run_conformance_suite(factory)
+    try:
+        await run_conformance_suite(factory)
+    finally:
+        # pytest's main-thread teardown cannot close this async worker's DB.
+        await sync_to_async(connections.close_all, thread_sensitive=True)()
 
 
 def test_migration_reads_stored_payment_not_stale_snapshot(payment_factory):

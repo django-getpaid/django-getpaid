@@ -147,6 +147,48 @@ def test_observation_rolls_back_facts_operations_and_replay(
     assert DurableReplay.objects.count() == 1
 
 
+def test_audit_write_failure_rolls_back_settlement(retained_rows, monkeypatch):
+    from datetime import UTC, datetime
+
+    from getpaid_core.durable import (
+        OperationOutcome,
+        OperationState,
+        OperatorResolution,
+    )
+
+    payment, _rows = retained_rows
+    repository = DjangoDurablePaymentRepository()
+    identity = str(payment.pk)
+    before = repository.get_payment_facts_sync(identity)
+    operation = repository.get_operation_sync(identity, 'refund')
+    resolution = OperatorResolution(
+        'review',
+        'operator',
+        'Confirmed',
+        ('ledger:refund',),
+        datetime(2026, 9, 9, tzinfo=UTC),
+        OperationOutcome(OperationState.SUCCEEDED),
+    )
+    original = models.QuerySet.update
+
+    def fail_audit(queryset, *args, **kwargs):
+        if queryset.model is DurableOperation:
+            raise RuntimeError('audit storage failed')
+        return original(queryset, *args, **kwargs)
+
+    monkeypatch.setattr(models.QuerySet, 'update', fail_audit)
+    with pytest.raises(RuntimeError, match='audit storage failed'):
+        repository.resolve_operation_sync(
+            identity,
+            'refund',
+            resolution,
+            expected_operation=operation,
+            expected_facts=before,
+        )
+    assert repository.get_payment_facts_sync(identity) == before
+    assert repository.get_operation_sync(identity, 'refund') == operation
+
+
 def test_outer_application_transaction_rolls_back_both_writes(retained_rows):
     payment, _rows = retained_rows
     repository = DjangoDurablePaymentRepository()

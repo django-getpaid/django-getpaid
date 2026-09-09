@@ -10,7 +10,7 @@ from dataclasses import replace
 import swapper
 from asgiref.sync import sync_to_async
 from django.core.exceptions import ObjectDoesNotExist
-from django.db import models, transaction
+from django.db import NotSupportedError, connections, models, transaction
 from getpaid_core.durable import (
     LegacyPaymentState,
     OperationRecord,
@@ -67,6 +67,18 @@ class DjangoDurablePaymentRepository:
     @contextmanager
     def _locked_payment(self, payment_id):
         with self.atomic():
+            database = connections[self.using]
+            if database.vendor == 'postgresql':
+                with database.cursor() as cursor:
+                    cursor.execute('SHOW transaction_isolation')
+                    if cursor.fetchone()[0] != 'read committed':
+                        raise NotSupportedError(
+                            'Durable storage requires PostgreSQL READ COMMITTED.'
+                        )
+            elif database.vendor != 'sqlite':
+                raise NotSupportedError(
+                    'Durable storage supports PostgreSQL; SQLite is for semantic tests only.'
+                )
             try:
                 payment = (
                     self.model_class._default_manager
