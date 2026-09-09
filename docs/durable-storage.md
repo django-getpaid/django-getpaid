@@ -4,9 +4,9 @@
 
 `getpaid.durable_repository.DjangoDurablePaymentRepository` implements the
 next-major `getpaid_core.durable.DurablePaymentRepository` contract. This work
-was developed against core revision
-`40474307e0781aea8baeeea3d45217a89579f42c`. Published core **3.2.0 does not contain
-that contract**. Installing the released dependencies does not enable this
+was developed against core revision `f5a8aa4`, including the separate
+`getpaid_core.recorded_money` API. Published core **3.2.0 does not contain
+these contracts**. Installing the released dependencies does not enable this
 adapter. There is no version bump, release, automatic flow selection, or unsafe
 fallback in this change.
 
@@ -16,9 +16,11 @@ claims, outcomes, observations and audited resolution. See core's
 revision. This adapter only supplies Django storage. It calls no provider and
 retries neither provider commands nor database failures.
 
-The existing `getpaid.repository.DjangoPaymentRepository`, instance methods,
-views and legacy flow remain unchanged. Importing the normal Django models does
-not import unreleased core modules. Only explicit durable imports require them.
+The existing legacy repository and model/flow entrypoints now **refuse durable
+roots** through a shared persisted-ownership guard (see below). Their ordinary
+non-durable payment semantics are unchanged. Importing normal Django models,
+legacy repositories and flows does not import unreleased core modules. Only
+explicit durable imports require them.
 
 ## Public API
 
@@ -41,6 +43,8 @@ named `<method>_sync`, with identical arguments and return value.
 | Method | Return |
 |---|---|
 | `get_payment_facts(payment_id)` | `PaymentFacts`; missing/uninitialized raises `KeyError` |
+| `record_money(payment_id, command, *, now)` | Core `RecordedMoneyPlan`; atomically initialize/append/update, or exact replay without writes |
+| `get_recorded_money_history(payment_id)` | Complete commit-ordered `tuple[RecordedMoneyEntry, ...]` under the root lock; missing/uninitialized raises `KeyError`, wrong source raises `InvalidTransitionError` |
 | `reserve_operation(payment_id, intent)` | `OperationRecord`, including identical-intent retries |
 | `claim_submission(payment_id, operation_id, *, expected_attempt, now, retry_until=None, idempotency_scope=None)` | `SubmissionPlan` |
 | `apply_observation(payment_id, update)` | `ObservationPlan`, including retained conflicts when `applied=False` |
@@ -56,7 +60,9 @@ named `<method>_sync`, with identical arguments and return value.
 `seed` runs core's migration validation too. It preserves supplied facts and may
 add a reconciliation flag; it never clears an existing requirement. Both
 initializers refuse an already-initialized root with `ValueError`. Neither is an
-update, reset, durable-history import, or repair API. They create no operation
+update, reset, durable-history import, or repair API. Both reject a persisted
+recorded-money backend; `seed` also rejects supplied recorded-money facts even
+when the persisted backend differs. Use `record_money_sync` instead. They create no operation
 identities or trusted replay evidence. Do not use `seed` to bypass review of
 ambiguous legacy data or to import an existing durable aggregate without its
 operation/replay history.
@@ -74,6 +80,47 @@ They never imply provider rejection or authorize resubmission. Backend limits
 on indexed identity size still apply; an oversized identity can fail a write,
 not be silently shortened. Invalid primary-key representations may raise the
 configured Django field's validation exception before lookup.
+
+## Recorded money: source ownership and initialization
+
+Core's `docs/recorded-money.md` at `f5a8aa4` owns the command fields, evidence,
+correction rules, replay semantics and projection. This adapter does not duplicate
+that arithmetic, invoke a provider, reserve an operation, or fabricate confirmation
+events. Callers supply an authenticated/authorized `RecordedMoneyCommand` and an
+aware integration clock `now`; use core's public `project_recorded_money(history)`
+for effective receipt/repayment views. Currency precision, application allocation,
+credit rules and authorization remain application responsibilities.
+
+`record_money_sync(payment_id, command, *, now)` addresses an **existing payment
+row**. Under the same root lock and transaction used by provider storage, it reloads
+current facts, **all** recorded entries ordered by insertion primary key, **all**
+provider operations, and **all** provider replay records. The core planner receives
+those histories, never caller-provided facts, a filtered history or a precomputed
+plan. A history whose receipt/correction entries net to zero is still retained.
+Provider history on a recorded root causes core refusal, including on replay.
+
+The first command may initialize durable state only from the locked, persisted
+legacy/root fields through `LegacyPaymentState` and core's migration conversion.
+The root must already have `backend=RECORDED_MONEY_BACKEND`, zero paid/refunded/
+authorized totals, no external handle, provider metadata, fraud or reconciliation
+evidence, and NEW/PREPARED status. Core validates the resulting facts against empty
+history before any write. Nonzero fields are never reset to manufacture a clean
+source. This initializes new roots; it does not import historic cash or convert a
+provider durable root. After initialization, retries read durable facts/history,
+not retired root amounts/backend/status.
+
+On `plan.applied=True`, the repository inserts the complete versioned entry and
+writes new facts in one transaction. On replay, it inserts/updates nothing and
+returns core's plan with the original entry and **current** facts. A first-command
+refusal leaves no durable initialization. A failed evidence/facts write or enclosing
+application transaction rolls back both, including initialization. As with other
+methods, a result remains provisional until the outermost transaction commits.
+
+Every provider mutation (reservation, submission claim, outcome, failure,
+observation, resolution) rejects recorded-money facts at its common private
+boundary **before provider planners run**, including no-op observations and
+zero-summary roots. Payment identity, backend and required amount cannot change
+through repository updates. There is no public fact-replacement/repair method.
 
 ## Transaction boundary and supported database
 
@@ -125,6 +172,14 @@ rather than a dependency on an example application:
 | `DurableOperation` / `getpaid_durableoperation` | `payment` references the durable state with `PROTECT`; database uniqueness on `(payment, operation_id)`. Versioned `record` JSON contains **all** `OperationRecord` fields; indexed `unresolved` is a discovery projection. |
 | `DurableReplay` / `getpaid_durablereplay` | `payment` references the durable state with `PROTECT`; database uniqueness on `(payment, backend, event_identity)`; core's `content_digest` is stored unchanged. Insert-only repository path, no conflict-upsert. |
 
+Generated migration `getpaid.0012` (after `0011`) adds
+`DurableRecordedMoneyEntry` / `getpaid_durablerecordedmoneyentry`: insertion `id`,
+`payment` FK to `DurablePaymentState` with `PROTECT`, `command_id` text, and `record`
+JSON containing the complete core `RecordedMoneyEntry`. Database constraint
+`getpaid_recorded_money_identity` makes `(payment, command_id)` unique. Reads order
+by insertion PK, **not** business time, audit time or command ID. Entries are
+append-only through the public API; originals and corrections remain together.
+
 **The durable facts are the only authoritative financial representation after
 cutover. Legacy payment amounts, status, backend, handles and metadata remain
 retired snapshots, not maintained compatibility projections.** The adapter does
@@ -160,7 +215,7 @@ writers additionally reject removal of previously retained evidence. Pending
 response attempts are preserved or retired only by the relevant core plan.
 Replay bookkeeping is never merged into `provider_data`.
 
-All three models have read-only public managers/querysets and instances. Normal
+All four models have read-only public managers/querysets and instances. Normal
 `save`, `save_base`, `delete`, creation, updates, bulk writes, conflict-upserts,
 `get_or_create` and `update_or_create` are refused with
 `DurableStorageReadOnlyError`; their async counterparts are refused too. Root
@@ -170,6 +225,26 @@ These are **ordinary ORM guards**, not a security boundary against database
 administrators, raw SQL, private ORM bypasses, or schema migrations. Restrict
 such access operationally. There is no public evidence deletion/archive API.
 
+### Legacy-use guard and cutover limits
+
+`AbstractPayment.save`/`save_base` (and inherited async saves), legacy repository
+reads used for dispatch (`get_by_id`/`list_by_order` and sync twins), processor
+resolution in the flow adapter, and paywall callback handling now check persisted
+durable ownership. Callbacks check **before verification/dispatch**, even when an
+explicit `processor=` bypasses resolution. The lookup uses the model's DB alias
+(or the explicit save alias), not a cached related object or stale backend field.
+It refuses all durable roots with `DurableStorageReadOnlyError`; it imports no
+upcoming core API. Brand-new payment creation, historical migration models, the
+configured swappable payment and ordinary non-durable payments remain usable.
+
+This is an ordinary entrypoint guard, **not an atomic check-before-network
+protocol**. Quiesce and drain old writers **before** cutover; no guard can undo I/O
+already dispatched or prevent a caller deliberately bypassing these entrypoints.
+Normal root queryset/metadata updates are not authoritative durable writes and are
+not prevented. Raw SQL, private ORM, arbitrary custom managers/overrides, database
+administrators and schema migrations are outside these guarantees. Legacy views,
+callback routing and parser inputs still need explicit durable integration.
+
 ### Encoding and retention
 
 Codec version 1 is tagged JSON, with an explicit allowlist of record types and
@@ -178,8 +253,13 @@ lists, nested JSON mappings, and aware datetimes including microseconds, offset,
 `fold`, and a `ZoneInfo` key or fixed timezone name. Custom arbitrary `tzinfo`
 implementations are refused rather than serialized unsafely. A timezone-rule
 change that disagrees with a stored offset fails closed for investigation.
-Unknown versions, missing fields and changed derived idempotency keys fail
-closed. There is no pickle, eval, raw-result serialization, repr fallback,
+Unknown versions, missing fields, changed core dataclass schemas (including added
+optional fields) and changed derived idempotency keys fail closed. The same version
+1 allowlist includes `RecordedMoneyCommand`, `RecordedMoneyEntry`,
+`RecordedMoneyKind`, and `RecordingCorrectionReason`, preserving every field,
+Decimal scale, UTC business instant, recorded/effective timestamps, target/reason,
+actor/note, and original/correction evidence references. There is no separate money
+codec. There is no pickle, eval, raw-result serialization, repr fallback,
 implicit empty-history default, truncation, expiry or archival.
 
 Every normalized conflict field, recovery field and resolution field survives
@@ -202,11 +282,13 @@ provider's idempotency window.
 2. Stop **all** legacy writers for the selected payments: callbacks, pollers,
    commands, jobs and unconditional-save workers. Drain their in-flight work.
    Old and durable writers cannot safely coexist against the same payment.
-3. Call `migrate_payment_sync(str(payment.pk))` for each selected stored root.
+3. For provider roots, call `migrate_payment_sync(str(payment.pk))` for each selected stored root.
    Read `MigrationPlan.findings`. Amounts, status and metadata are preserved;
    legacy `applied_event_ids` remains readable **untrusted metadata**. No
    historical operation IDs are invented. Nonfinite source amounts refuse
-   migration; repair source data under controlled review first.
+   migration; repair source data under controlled review first. For new recorded-money
+   roots, instead call `record_money_sync` with the first truthful command under the
+   initialization rules above; do not use either generic initializer.
 4. Ambiguous balances/statuses and unidentifiable pending legacy work stay
    reconciliation-required and new-command-blocked. Observations remain
    available. Payments without a durable operation cannot be repaired through
@@ -237,14 +319,17 @@ DEV=(uv run --no-default-groups --with "$CORE_CHECKOUT"
      --with pytest --with pytest-django --with pytest-asyncio
      --with pytest-factoryboy --with httpx)
 set -o pipefail
-"${DEV[@]}" pytest tests/test_durable_repository.py \
-  tests/test_durable_storage_guards.py tests/test_durable_codec.py -q \
+timeout 600s "${DEV[@]}" pytest tests/test_reexports.py \
+  tests/test_durable_repository.py tests/test_durable_storage_guards.py \
+  tests/test_durable_codec.py tests/test_recorded_money.py \
+  tests/test_durable_legacy_guard.py tests/test_repository_async.py \
+  tests/test_legacy_import_boundary.py tests/test_migration_checks.py -q \
   2>&1 | tee /tmp/getpaid-durable-sqlite.log
-"${DEV[@]}" pytest --ds=tests.settings_durable \
+timeout 600s "${DEV[@]}" pytest --ds=tests.settings_durable \
   tests/test_durable_custom_model.py -q 2>&1 | tee /tmp/getpaid-durable-custom.log
 ```
 
-The first file invokes core's complete `run_conformance_suite` against actual
+`test_durable_repository.py` invokes core's complete `run_conformance_suite` against actual
 adapter-backed tables. Its factory resets the isolated test database between
 checks and uses a valid UUID for core's fixture identity. This is not an
 in-memory repository or a substitute for process races.
@@ -255,9 +340,10 @@ Point `TEST_DATABASE_URL` at that isolated database (not a development or
 production database), and run:
 
 ```bash
-"${DEV[@]}" --with 'psycopg[binary]' --with pytest-timeout pytest \
-  tests/test_durable_postgres.py tests/test_durable_repository.py \
-  tests/test_durable_storage_guards.py --timeout=300 -q \
+timeout 1800s "${DEV[@]}" --with 'psycopg[binary]' --with pytest-timeout pytest \
+  tests/test_durable_postgres.py tests/test_recorded_money.py \
+  tests/test_durable_repository.py tests/test_durable_storage_guards.py \
+  tests/test_durable_legacy_guard.py --timeout=300 -q \
   2>&1 | tee /tmp/getpaid-durable-postgres.log
 ```
 
@@ -265,19 +351,72 @@ Give the command an outer timeout of at least 1800 seconds. Process tests use
 spawned workers and independent connections, plus a PostgreSQL blocking-lock
 probe. They cover empty-history reservations, duplicate submission claims,
 stale/full captures, duplicate/conflicting event identities and concurrent
-retained disputes. Run the custom-model test under PostgreSQL too to exercise
-swappable migrations, joined managers and an independent `storage` alias.
-PostgreSQL 17 Alpine was used for development verification with a local image
-override; the repository's default compose image is PostgreSQL 16, not separately
+retained disputes. Recorded-money tests additionally cover exact concurrent replay,
+competing receipts, corrections and repayments, root-lock serialization of initial
+empty history, outer application rollback and injected facts-write failure. Run the
+custom-model test under PostgreSQL too to exercise swappable migrations, joined
+managers, legacy guards and an independent `storage` alias:
+
+```bash
+timeout 1800s "${DEV[@]}" --with 'psycopg[binary]' --with pytest-timeout pytest \
+  tests/test_durable_custom_model.py --ds=tests.settings_durable \
+  --timeout=300 -q 2>&1 | tee /tmp/getpaid-durable-custom-postgres.log
+```
+
+Repeat the selections with `--with 'Django>=5.2,<5.3'` and
+`--with 'Django>=6.0,<6.1'` in the uv argument list. Verification used Django
+5.2.17 and 6.0.6: each passed 180 selected SQLite tests, two custom-model SQLite
+tests, 144 PostgreSQL tests and two custom/alias PostgreSQL tests. PostgreSQL
+17.11 Alpine was used with a local image override; the repository's default compose image is PostgreSQL 16, not separately
 certified by that run. SQLite runs skip the PostgreSQL tests explicitly.
 
-Check migration drift for both `tests.settings` and
-`tests.settings_default_payment`; the custom-model test checks its own graph.
+Check migration drift for `tests.settings`, `tests.settings_default_payment`,
+`tests.settings_durable`, and `example.settings`. Keep these probes isolated too:
+
+```bash
+# Repeat for each settings module and each Django version above.
+PYTHONPATH=.:example DJANGO_SETTINGS_MODULE=tests.settings \
+  timeout 600s "${DEV[@]}" python -c '
+import django
+from django.conf import settings
+from django.core.management import call_command
+settings.DATABASES = {"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": ":memory:"}}
+django.setup()
+call_command("makemigrations", check=True, dry_run=True)
+call_command("migrate", verbosity=0)
+call_command("migrate", check_unapplied=True, verbosity=0)
+' 2>&1 | tee /tmp/getpaid-durable-migration-drift.log
+```
+
+All four graphs migrated without drift under both verified Django versions.
 Run Ruff on changed Python paths and `ty check` on the touched library paths;
 when ty does not follow uv's temporary overlay, add
 `--extra-search-path "$CORE_CHECKOUT/src"` for this invocation only.
 No Playwright, provider integration, browser flow or application allocation
 behavior is covered or required by this storage-only prerequisite.
+
+### Verification limitations outside this adapter
+
+Normal imports are also tested with a finder that refuses upcoming core modules.
+A released-core 3.2.0 selection of model, callback adapter, async repository,
+reexport and import-boundary tests passed under both Django lines (69 passed;
+seven skips comprise four existing vendor-dependent tests, two durable modules,
+and the upcoming-core default-model probe). That is import/legacy regression
+evidence, **not durable 3.2 support**.
+
+Broader legacy checks are not green even at this work's baseline `00ff3e2`:
+14 `test_abstracts.py`/`test_flow_adapter.py` cases fail against development core
+because newly created monetary fields can still be integers and the core now
+requires Decimal. With released core, the lock-release test expects REFUNDED but
+receives CANCELLED, and the ecosystem-version parity test compares Django 3.2.1
+with core 3.2.0. These failures were reproduced on an isolated baseline source
+export; no tests were skipped or changed to conceal them. They need separate
+legacy next-major integration work, not changes to recorded-money arithmetic.
+
+`ty` on all touched library files reports ten pre-existing diagnostics in
+`abstracts.py` (Django descriptor inference and legacy REST result typing),
+reproduced at the same baseline. Other touched library paths pass. Ruff passes
+on all touched Python paths. No full-stack or release readiness is claimed.
 
 ### Next-major presentation compatibility
 
