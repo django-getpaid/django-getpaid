@@ -25,6 +25,103 @@ from getpaid_core.durable import (
 from getpaid.durable_codec import dump_record, load_record
 
 
+def test_recorded_money_codec_preserves_all_fields_and_refuses_changed_schema(
+    monkeypatch,
+):
+    from dataclasses import make_dataclass
+    from zoneinfo import ZoneInfo
+
+    from getpaid_core.recorded_money import (
+        RecordedMoneyCommand,
+        RecordedMoneyEntry,
+        RecordedMoneyKind,
+        RecordingCorrectionReason,
+    )
+
+    import getpaid.durable_codec as codec
+
+    command = RecordedMoneyCommand(
+        'receipt',
+        RecordedMoneyKind.RECEIPT,
+        'actor',
+        Decimal('1.2300'),
+        datetime(
+            2026,
+            10,
+            25,
+            2,
+            30,
+            0,
+            123456,
+            tzinfo=ZoneInfo('Europe/Warsaw'),
+            fold=1,
+        ),
+        note='safe note',
+        evidence_reference='source:1',
+    )
+    audit = datetime(
+        2026, 10, 25, 2, 30, 0, 123456, tzinfo=ZoneInfo('Europe/Warsaw'), fold=1
+    )
+    entry = RecordedMoneyEntry(
+        'root',
+        command,
+        audit,
+        Decimal('1.2300'),
+        command.occurred_at,
+        'source:1',
+    )
+    loaded = load_record(
+        json.loads(json.dumps(dump_record(entry))), RecordedMoneyEntry
+    )
+    assert loaded == entry
+    assert loaded.command.amount.as_tuple() == Decimal('1.2300').as_tuple()
+    assert loaded.signed_amount.as_tuple() == Decimal('1.2300').as_tuple()
+    assert (
+        loaded.command.occurred_at.isoformat()
+        == '2026-10-25T01:30:00.123456+00:00'
+    )
+    assert loaded.recorded_at.fold == 1
+    assert loaded.recorded_at.tzinfo.key == 'Europe/Warsaw'
+    correction = RecordedMoneyCommand(
+        'correction',
+        RecordedMoneyKind.CORRECTION,
+        'reviewer',
+        target_command_id='receipt',
+        correction_reason=RecordingCorrectionReason.INCORRECT_REFERENCE,
+    )
+    inverse = RecordedMoneyEntry(
+        'root',
+        correction,
+        audit,
+        Decimal('-1.2300'),
+        command.occurred_at,
+        'source:1',
+    )
+    assert load_record(dump_record(inverse), RecordedMoneyEntry) == inverse
+    for record in (command, entry):
+        encoded = dump_record(record)
+        for name in encoded['value'][2]:
+            incomplete = json.loads(json.dumps(encoded))
+            del incomplete['value'][2][name]
+            with pytest.raises(
+                ValueError, match='Invalid durable storage encoding'
+            ):
+                load_record(incomplete, type(record))
+    encoded_entry = dump_record(entry)
+    definition = codec._RECORDS['RecordedMoneyEntry']
+    evolved = make_dataclass(
+        'RecordedMoneyEntry',
+        [('new_optional', str, 'default')],
+        bases=(RecordedMoneyEntry,),
+        frozen=True,
+    )
+    monkeypatch.setitem(
+        codec._RECORDS, 'RecordedMoneyEntry', (evolved, definition[1])
+    )
+    with pytest.raises(ValueError, match='schema changed'):
+        load_record(encoded_entry, evolved)
+
+
 def test_complete_normalized_record_roundtrip():
     outcome = OperationOutcome(
         OperationState.SUCCEEDED,

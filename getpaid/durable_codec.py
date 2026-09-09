@@ -165,6 +165,10 @@ def decode(value):
         return tuple(items) if tag == 'tuple' else items
     if tag == 'record' and len(parts) == 2:
         cls, names = _RECORDS[parts[0]]
+        if set(names.split()) != {field.name for field in fields(cls)}:
+            raise ValueError(
+                'Core record schema changed; upgrade storage codec.'
+            )
         if set(parts[1]) == set(names.split()):
             decoded = {key: decode(item) for key, item in parts[1].items()}
             derived = {
