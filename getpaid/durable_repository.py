@@ -119,6 +119,10 @@ class DjangoDurablePaymentRepository:
     def migrate_payment_sync(self, payment_id: str) -> MigrationPlan:
         """Initialize once from stored 3.x state after stopping legacy writers."""
         with self._locked_payment(payment_id) as payment:
+            if payment.backend == RECORDED_MONEY_BACKEND:
+                raise InvalidTransitionError(
+                    'Initialize through record_money_sync.'
+                )
             if (
                 DurablePaymentState.objects
                 .using(self.using)
@@ -149,6 +153,10 @@ class DjangoDurablePaymentRepository:
         if type(facts) is not PaymentFacts:
             raise TypeError('seed requires PaymentFacts.')
         with self._locked_payment(facts.payment_id) as payment:
+            if RECORDED_MONEY_BACKEND in (facts.backend, payment.backend):
+                raise InvalidTransitionError(
+                    'Initialize through record_money_sync.'
+                )
             if str(payment.pk) != facts.payment_id:
                 raise ValueError(
                     'Use the canonical string payment primary key.'
@@ -276,7 +284,11 @@ class DjangoDurablePaymentRepository:
         self, payment_id: str
     ) -> tuple[RecordedMoneyEntry, ...]:
         """Return complete commit-ordered evidence, not an empty missing root."""
-        with self._current(payment_id) as (state, facts, _operations):
+        with self._current(payment_id, recorded=True) as (
+            state,
+            facts,
+            _operations,
+        ):
             if facts.backend != RECORDED_MONEY_BACKEND:
                 raise InvalidTransitionError(
                     'A recorded-money root is required.'
@@ -306,7 +318,7 @@ class DjangoDurablePaymentRepository:
         return load_record(row.record, OperationRecord)
 
     @contextmanager
-    def _current(self, payment_id):
+    def _current(self, payment_id, *, recorded=False):
         with self._locked_payment(payment_id) as payment:
             try:
                 state = DurablePaymentState.objects.using(self.using).get(
@@ -315,6 +327,10 @@ class DjangoDurablePaymentRepository:
             except ObjectDoesNotExist as exc:
                 raise KeyError(payment_id) from exc
             facts = load_record(state.facts, PaymentFacts)
+            if not recorded and facts.backend == RECORDED_MONEY_BACKEND:
+                raise InvalidTransitionError(
+                    'Provider mutation refuses recorded-money roots.'
+                )
             operations = self._operations(state)
             yield state, facts, operations
 
@@ -332,6 +348,7 @@ class DjangoDurablePaymentRepository:
         if (
             facts.payment_id != previous.payment_id
             or facts.backend != previous.backend
+            or facts.amount_required != previous.amount_required
         ):
             raise ValueError('Durable identity cannot change.')
         if any(
