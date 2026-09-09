@@ -1,11 +1,11 @@
 import logging
 import uuid
 from decimal import Decimal
-from typing import cast
+from typing import cast, override
 
 import swapper
 from django import forms
-from django.db import models
+from django.db import models, router
 from django.db.models import Q
 from django.db.transaction import atomic
 from django.forms import BaseForm
@@ -27,6 +27,7 @@ from getpaid.flow_adapter import (
     _get_processor,
     prepare_transaction,
 )
+from getpaid.legacy_guard import require_legacy_payment
 from getpaid.repository import DjangoPaymentRepository
 from getpaid.types import (
     FRAUD_STATUS_CHOICES,
@@ -208,8 +209,31 @@ class AbstractPayment(models.Model):
         self._normalize_external_id()
 
     def save(self, *args, **kwargs):
+        # Django 5.2 still accepts using as the third positional argument.
+        using = kwargs.get('using', args[2] if len(args) > 2 else None)
+        using = using or router.db_for_write(type(self), instance=self)
+        require_legacy_payment(self, using=using)
         self._normalize_external_id()
         super().save(*args, **kwargs)
+
+    @override
+    def save_base(
+        self,
+        raw=False,
+        force_insert=False,
+        force_update=False,
+        using=None,
+        update_fields=None,
+    ):
+        using = using or router.db_for_write(type(self), instance=self)
+        require_legacy_payment(self, using=using)
+        return super().save_base(
+            raw=raw,
+            force_insert=force_insert,
+            force_update=force_update,
+            using=using,
+            update_fields=update_fields,
+        )
 
     def _normalize_external_id(self) -> None:
         """Normalize empty external_id to None.
@@ -339,9 +363,7 @@ class AbstractPayment(models.Model):
         view: View | None = None,
         **kwargs,
     ) -> HttpResponse:
-        return prepare_transaction(
-            self, request=request, view=view, **kwargs
-        )
+        return prepare_transaction(self, request=request, view=view, **kwargs)
 
     def prepare_transaction_for_rest(
         self,
@@ -349,9 +371,7 @@ class AbstractPayment(models.Model):
         view: View | None = None,
         **kwargs,
     ) -> RestfulResult:
-        result = self.prepare_transaction(
-            request=request, view=view, **kwargs
-        )
+        result = self.prepare_transaction(request=request, view=view, **kwargs)
         data = {'status_code': result.status_code, 'result': result}
         if result.status_code == 200:
             ctx = getattr(result, 'context_data', None)
@@ -391,9 +411,7 @@ class AbstractPayment(models.Model):
 
     @atomic
     def release_lock(self, **kwargs):
-        return DjangoPaymentFlowAdapter(self, type(self)).release_lock(
-            **kwargs
-        )
+        return DjangoPaymentFlowAdapter(self, type(self)).release_lock(**kwargs)
 
     @atomic
     def start_refund(
@@ -418,6 +436,7 @@ def _handle_paywall_callback(payment, request, **kwargs):
     from getpaid.adapters import adapt_callback_request
     from getpaid.bridge import bridge
 
+    require_legacy_payment(payment)
     processor = kwargs.pop('processor', None) or _get_processor(
         payment, type(payment)
     )

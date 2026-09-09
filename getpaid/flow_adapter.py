@@ -19,6 +19,7 @@ from getpaid_core.fsm import apply_payment_update
 from getpaid_core.types import PaymentUpdate
 
 from getpaid.bridge import bridge
+from getpaid.legacy_guard import require_legacy_payment
 from getpaid.registry import registry as django_registry
 from getpaid.repository import DjangoPaymentRepository
 
@@ -32,9 +33,7 @@ def _resolve_backend_config(
     """Resolve GETPAID_BACKEND_SETTINGS for a backend path."""
     from django.conf import settings as django_settings
 
-    backend_settings = getattr(
-        django_settings, 'GETPAID_BACKEND_SETTINGS', {}
-    )
+    backend_settings = getattr(django_settings, 'GETPAID_BACKEND_SETTINGS', {})
     slug = getattr(processor_class, 'slug', '')
     class_module = processor_class.__module__
 
@@ -68,6 +67,7 @@ def _get_processor(payment, model_class):
     """Resolve processor instance using Django registry and config."""
     from importlib import import_module
 
+    require_legacy_payment(payment)
     backend_key = str(payment.backend)
     if payment.backend in django_registry:
         processor_class = django_registry[backend_key]
@@ -102,7 +102,7 @@ class DjangoPaymentFlowAdapter:
     Usage::
 
         adapter = DjangoPaymentFlowAdapter(payment, PaymentModel)
-        result = adapter.charge(amount=Decimal("50.00"))
+        result = adapter.charge(amount=Decimal('50.00'))
     """
 
     def __init__(self, payment, model_class) -> None:
@@ -144,7 +144,9 @@ class DjangoPaymentFlowAdapter:
                 'Payment must be PRE_AUTH or IN_CHARGE.'
             )
         processor = _get_processor(self.payment, self.model_class)
-        result = bridge.call(processor, processor.charge, amount=amount, **kwargs)
+        result = bridge.call(
+            processor, processor.charge, amount=amount, **kwargs
+        )
         if result.success:
             if result.async_call:
                 update = PaymentUpdate(
@@ -154,7 +156,8 @@ class DjangoPaymentFlowAdapter:
             else:
                 update = PaymentUpdate(
                     payment_event=PaymentEvent.PAYMENT_CAPTURED,
-                    paid_amount=self.payment.amount_paid + result.amount_charged,
+                    paid_amount=self.payment.amount_paid
+                    + result.amount_charged,
                     provider_data=result.provider_data,
                 )
             apply_payment_update(self.payment, update)
@@ -177,9 +180,7 @@ class DjangoPaymentFlowAdapter:
         _save(self.payment, self.model_class)
         return amount
 
-    def start_refund(
-        self, amount: Decimal | None = None, **kwargs: Any
-    ):
+    def start_refund(self, amount: Decimal | None = None, **kwargs: Any):
         """Start a refund."""
         if self.payment.status not in {
             PaymentStatus.PAID,
