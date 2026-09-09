@@ -279,16 +279,17 @@ when ty does not follow uv's temporary overlay, add
 No Playwright, provider integration, browser flow or application allocation
 behavior is covered or required by this storage-only prerequisite.
 
-### Known next-major integration gap
+### Next-major presentation compatibility
 
-Under the local core override, the unchanged legacy choice-table tests
-`TestEnumIsNotWrapper.test_choices_values_match_core_enum` and
-`TestEnumReExports.test_payment_status_has_choices` in `tests/test_reexports.py`
-fail: core has eleven statuses, including `PARTIALLY_REFUNDED`, while Django's
-released `PAYMENT_STATUS_CHOICES` has ten. The durable JSON codec handles the new
-status, but this storage slice deliberately does not change released legacy
-choices or migrations. Those tests pass against released core 3.2.0. Consequently
-this prerequisite is not a claim that the entire Django wrapper has completed
-its next-major integration or that its whole suite passes against development
-core. Resolve the legacy presentation/parser integration separately before a
-next-major release.
+Django's payment choices now include the upcoming `PARTIALLY_REFUNDED` state,
+with a translated label and generated migrations for the default, example and
+custom test payment models. Core's enum determines which choices are exposed;
+released core still imports normally without being asked for a member it does
+not define. The two legacy choice-table tests in `tests/test_reexports.py`
+therefore pass against development core too.
+
+This fixes the missing status label, not legacy callback/parser wiring or
+financial readers. Those still need explicit durable integration before a
+next-major release. Schema-state/migration drift checks for this branch target
+the upcoming core enum; ordinary import compatibility does not make published
+core 3.2.0 a supported durable runtime.

@@ -25,7 +25,6 @@ __all__ = [
     'FraudStatus',
     'ItemInfo',
     'PaymentStatus',
-
     'RestfulResult',
 ]
 
@@ -34,20 +33,25 @@ __all__ = [
 # Django CHOICES constants
 # ---------------------------------------------------------------------------
 
+# Core owns which states exist; Django supplies their translated labels. This
+# includes the upcoming partially-refunded state without requiring released
+# core to expose that member merely to import the ordinary Django models.
+_PAYMENT_STATUS_LABELS = {
+    'NEW': pgettext_lazy('payment status', 'new'),
+    'PREPARED': pgettext_lazy('payment status', 'in progress'),
+    'PRE_AUTH': pgettext_lazy('payment status', 'pre-authed'),
+    'IN_CHARGE': pgettext_lazy('payment status', 'charge process started'),
+    'PARTIAL': pgettext_lazy('payment status', 'partially paid'),
+    'PAID': pgettext_lazy('payment status', 'paid'),
+    'FAILED': pgettext_lazy('payment status', 'failed'),
+    'REFUND_STARTED': pgettext_lazy('payment status', 'refund started'),
+    'REFUNDED': pgettext_lazy('payment status', 'refunded'),
+    'PARTIALLY_REFUNDED': pgettext_lazy('payment status', 'partially refunded'),
+    'CANCELLED': pgettext_lazy('payment status', 'cancelled'),
+}
 PAYMENT_STATUS_CHOICES = tuple(
-    (member.value, label)
-    for member, label in [
-        (PaymentStatus.NEW, pgettext_lazy('payment status', 'new')),
-        (PaymentStatus.PREPARED, pgettext_lazy('payment status', 'in progress')),
-        (PaymentStatus.PRE_AUTH, pgettext_lazy('payment status', 'pre-authed')),
-        (PaymentStatus.IN_CHARGE, pgettext_lazy('payment status', 'charge process started')),
-        (PaymentStatus.PARTIAL, pgettext_lazy('payment status', 'partially paid')),
-        (PaymentStatus.PAID, pgettext_lazy('payment status', 'paid')),
-        (PaymentStatus.FAILED, pgettext_lazy('payment status', 'failed')),
-        (PaymentStatus.REFUND_STARTED, pgettext_lazy('payment status', 'refund started')),
-        (PaymentStatus.REFUNDED, pgettext_lazy('payment status', 'refunded')),
-        (PaymentStatus.CANCELLED, pgettext_lazy('payment status', 'cancelled')),
-    ]
+    (member.value, _PAYMENT_STATUS_LABELS[member.name])
+    for member in PaymentStatus
 )
 
 FRAUD_STATUS_CHOICES = tuple(
@@ -56,7 +60,10 @@ FRAUD_STATUS_CHOICES = tuple(
         (FraudStatus.UNKNOWN, pgettext_lazy('fraud status', 'unknown')),
         (FraudStatus.ACCEPTED, pgettext_lazy('fraud status', 'accepted')),
         (FraudStatus.REJECTED, pgettext_lazy('fraud status', 'rejected')),
-        (FraudStatus.CHECK, pgettext_lazy('fraud status', 'needs manual verification')),
+        (
+            FraudStatus.CHECK,
+            pgettext_lazy('fraud status', 'needs manual verification'),
+        ),
     ]
 )
 
