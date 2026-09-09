@@ -15,12 +15,29 @@ from getpaid.repository import DjangoPaymentRepository
 pytestmark = pytest.mark.django_db(transaction=True)
 
 
-@pytest.fixture
-def stale_root(payment_factory):
-    payment = payment_factory()
+@pytest.fixture(params=['provider', 'recorded-zero'])
+def stale_root(payment_factory, request):
+    from getpaid_core.recorded_money import RECORDED_MONEY_BACKEND
+
+    from tests.test_recorded_money import NOW, correction, receipt
+
+    recorded = request.param == 'recorded-zero'
+    payment = payment_factory(
+        **(
+            {'backend': RECORDED_MONEY_BACKEND, 'amount_required': Decimal(100)}
+            if recorded
+            else {}
+        )
+    )
     # Cache absence before cutover: ownership checks must issue a fresh query.
     assert not hasattr(payment, 'durable_state')
-    DjangoDurablePaymentRepository().migrate_payment_sync(str(payment.pk))
+    repository = DjangoDurablePaymentRepository()
+    if recorded:
+        repository.record_money_sync(str(payment.pk), receipt(), now=NOW)
+        repository.record_money_sync(str(payment.pk), correction(), now=NOW)
+        payment.backend = 'getpaid.backends.dummy'
+    else:
+        repository.migrate_payment_sync(str(payment.pk))
     return payment
 
 

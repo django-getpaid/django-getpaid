@@ -4,6 +4,7 @@ This is not a cutover lock: stop and drain legacy writers before ownership
 changes. Raw SQL/private ORM and already-dispatched provider I/O are outside it.
 """
 
+import swapper
 from django.db import models, router
 
 from getpaid.durable_models import (
@@ -16,9 +17,7 @@ def _ownership(payment, using):
     """Build a fresh lookup shared by sync and native async entrypoints."""
     if not isinstance(payment, models.Model) or payment.pk is None:
         return None
-    configured = DurablePaymentState._meta.get_field(
-        'payment'
-    ).remote_field.model
+    configured = swapper.load_model('getpaid', 'Payment')
     if payment._meta.concrete_model is not configured._meta.concrete_model:
         return None
     alias = (

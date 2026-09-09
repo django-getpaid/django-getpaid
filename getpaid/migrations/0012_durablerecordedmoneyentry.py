@@ -5,39 +5,38 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ("getpaid", "0011_alter_payment_status"),
+        ('getpaid', '0011_alter_payment_status'),
     ]
 
     operations = [
         migrations.CreateModel(
-            name="DurableRecordedMoneyEntry",
+            name='DurableRecordedMoneyEntry',
             fields=[
                 (
-                    "id",
+                    'id',
                     models.AutoField(
                         auto_created=True,
                         primary_key=True,
                         serialize=False,
-                        verbose_name="ID",
+                        verbose_name='ID',
                     ),
                 ),
-                ("command_id", models.TextField()),
-                ("record", models.JSONField()),
+                ('command_id', models.TextField()),
+                ('record', models.JSONField()),
                 (
-                    "payment",
+                    'payment',
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.PROTECT,
-                        to="getpaid.durablepaymentstate",
+                        to='getpaid.durablepaymentstate',
                     ),
                 ),
             ],
             options={
-                "constraints": [
+                'constraints': [
                     models.UniqueConstraint(
-                        fields=("payment", "command_id"),
-                        name="getpaid_recorded_money_identity",
+                        fields=('payment', 'command_id'),
+                        name='getpaid_recorded_money_identity',
                     )
                 ],
             },
