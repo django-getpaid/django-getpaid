@@ -27,7 +27,8 @@ class DurableQuerySet(models.QuerySet):
 
 
 class DurableStorageModel(models.Model):
-    objects = DurableQuerySet.as_manager()
+    # Django installs as_manager as a classmethod dynamically.
+    objects = DurableQuerySet.as_manager()  # ty: ignore[missing-argument]
     save = _refuse_write
     save_base = _refuse_write
     delete = _refuse_write

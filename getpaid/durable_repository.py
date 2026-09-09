@@ -9,6 +9,7 @@ from dataclasses import replace
 
 import swapper
 from asgiref.sync import sync_to_async
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import models, transaction
 from getpaid_core.durable import (
     LegacyPaymentState,
@@ -155,7 +156,7 @@ class DjangoDurablePaymentRepository:
             state = DurablePaymentState.objects.using(self.using).get(
                 payment_id=payment_id
             )
-        except DurablePaymentState.DoesNotExist as exc:
+        except ObjectDoesNotExist as exc:
             raise KeyError(payment_id) from exc
         return load_record(state.facts, PaymentFacts)
 
@@ -177,7 +178,7 @@ class DjangoDurablePaymentRepository:
                 state = DurablePaymentState.objects.using(self.using).get(
                     payment_id=payment.pk
                 )
-            except DurablePaymentState.DoesNotExist as exc:
+            except ObjectDoesNotExist as exc:
                 raise KeyError(payment_id) from exc
             facts = load_record(state.facts, PaymentFacts)
             operations = tuple(

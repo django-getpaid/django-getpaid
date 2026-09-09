@@ -8,9 +8,10 @@ Unknown versions/fields fail closed rather than erase retained evidence.
 import math
 from collections.abc import Mapping
 from dataclasses import fields
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from enum import Enum
+from zoneinfo import ZoneInfo
 
 from getpaid_core.durable import (
     ObservationConflict,
@@ -33,8 +34,6 @@ _RECORDS = {
         ObservationConflict,
         'event_identity semantic_content reason',
     ),
-}
-_RECORDS.update({
     'OperationRecord': (
         OperationRecord,
         'payment_id operation_id operation_type state resolved_amount parameters_digest starting_captured starting_refunded parameters starting_authorization backend reservation_sequence idempotency_key submitted_at submission_attempts pending_response_attempts retry_until idempotency_scope settled_amount correlation reconciliation_required conflicting_outcomes recovery_evidence resolutions',
@@ -51,7 +50,7 @@ _RECORDS.update({
         OperatorResolution,
         'resolution_id actor reason evidence_references resolved_at outcome clear_payment_reconciliation',
     ),
-})
+}
 _ENUMS = {
     cls.__name__: cls
     for cls in (PaymentStatus, FraudStatus, OperationState, OperationType)
@@ -71,7 +70,15 @@ def encode(value):
     if type(value) is Decimal and value.is_finite():
         return ['decimal', str(value)]
     if type(value) is datetime and value.utcoffset() is not None:
-        return ['datetime', value.isoformat(), value.fold]
+        if isinstance(value.tzinfo, ZoneInfo):
+            zone = ['zoneinfo', value.tzinfo.key]
+        elif isinstance(value.tzinfo, timezone):
+            zone = ['fixed', value.tzname()]
+        else:
+            raise ValueError(
+                'Durable datetimes require ZoneInfo or datetime.timezone.'
+            )
+        return ['datetime', value.isoformat(), value.fold, zone]
     if isinstance(value, Mapping):
         if any(type(key) is not str for key in value):
             raise ValueError('Durable mapping keys must be strings.')
@@ -108,9 +115,21 @@ def decode(value):
         result = Decimal(parts[0])
         if result.is_finite():
             return result
-    if tag == 'datetime' and len(parts) == 2:
-        result = datetime.fromisoformat(parts[0]).replace(fold=parts[1])
-        if result.utcoffset() is not None:
+    if tag == 'datetime' and len(parts) == 3:
+        parsed = datetime.fromisoformat(parts[0])
+        offset = parsed.utcoffset()
+        zone_kind, zone_name = parts[2]
+        if offset is not None and zone_kind in ('zoneinfo', 'fixed'):
+            zone = (
+                ZoneInfo(zone_name)
+                if zone_kind == 'zoneinfo'
+                else timezone(offset, zone_name)
+            )
+            result = parsed.replace(tzinfo=zone, fold=parts[1])
+            if result.utcoffset() != offset:
+                raise ValueError(
+                    'Stored timezone rules changed; reconcile before writing.'
+                )
             return result
     if tag == 'enum' and len(parts) == 2:
         return _ENUMS[parts[0]](parts[1])

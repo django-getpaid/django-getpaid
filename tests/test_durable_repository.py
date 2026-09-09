@@ -2,6 +2,7 @@
 
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from zoneinfo import ZoneInfo
 
 import pytest
 from asgiref.sync import sync_to_async
@@ -30,6 +31,30 @@ from getpaid_core.types import PaymentUpdate
 from getpaid.durable_repository import DjangoDurablePaymentRepository
 
 pytestmark = pytest.mark.django_db(transaction=True)
+
+
+def test_submission_roundtrips_ambiguous_aware_datetime(payment_factory):
+    payment = payment_factory(
+        amount_required=Decimal(100),
+        amount_locked=Decimal(100),
+        status=PaymentStatus.PRE_AUTH,
+    )
+    repository = DjangoDurablePaymentRepository()
+    identity = str(payment.pk)
+    repository.migrate_payment_sync(identity)
+    repository.reserve_operation_sync(
+        identity, OperationIntent('capture', OperationType.CHARGE)
+    )
+    now = datetime(
+        2026, 10, 25, 2, 30, tzinfo=ZoneInfo('Europe/Warsaw'), fold=1
+    )
+    claim = repository.claim_submission_sync(
+        identity, 'capture', expected_attempt=0, now=now
+    )
+    stored = repository.get_operation_sync(identity, 'capture')
+    assert stored == claim.operation
+    assert stored.submitted_at.tzinfo.key == 'Europe/Warsaw'
+    assert stored.submitted_at.fold == 1
 
 
 async def test_core_conformance_against_database(payment_factory, monkeypatch):
