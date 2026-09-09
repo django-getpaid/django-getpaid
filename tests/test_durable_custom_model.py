@@ -20,6 +20,86 @@ pytestmark = [
 ]
 
 
+def test_recorded_money_custom_model_alias_and_legacy_guard():
+    from datetime import UTC, datetime
+
+    from getpaid_core.recorded_money import (
+        RECORDED_MONEY_BACKEND,
+        RecordedMoneyCommand,
+        RecordedMoneyKind,
+    )
+
+    from getpaid.durable_models import (
+        DurablePaymentState,
+        DurableRecordedMoneyEntry,
+        DurableStorageReadOnlyError,
+    )
+    from getpaid.durable_repository import DjangoDurablePaymentRepository
+    from getpaid.repository import DjangoPaymentRepository
+    from tests.durable_test_app.models import Order, Payment
+
+    for alias in ('default', 'storage'):
+        order = Order.objects.using(alias).create(
+            name=alias, total=Decimal(100), currency='EUR'
+        )
+        Payment.objects.using(alias).create(
+            id='same-identity',
+            order=order,
+            amount_required=Decimal(100),
+            backend=RECORDED_MONEY_BACKEND
+            if alias == 'storage'
+            else 'getpaid.backends.dummy',
+            currency='EUR',
+        )
+    stale = Payment.objects.using('storage').get(pk='same-identity')
+    repository = DjangoDurablePaymentRepository(using='storage')
+    now = datetime(2026, 9, 10, tzinfo=UTC)
+    command = RecordedMoneyCommand(
+        'receipt', RecordedMoneyKind.RECEIPT, 'actor', Decimal('12.3400'), now
+    )
+    plan = repository.record_money_sync('same-identity', command, now=now)
+    assert plan.facts.captured_funds == Decimal('12.34')
+    assert repository.get_recorded_money_history_sync('same-identity') == (
+        plan.entry,
+    )
+    for model in (DurablePaymentState, DurableRecordedMoneyEntry):
+        assert model.objects.using('storage').count() == 1
+        assert not model.objects.using('default').exists()
+    for call in (stale.save, stale.save_base, stale._get_processor):
+        with pytest.raises(DurableStorageReadOnlyError):
+            call()
+    default = DjangoPaymentRepository(Payment)._get_by_id('same-identity')
+    default.save()
+    assert default.backend == 'getpaid.backends.dummy'
+    with pytest.raises(KeyError):
+        DjangoDurablePaymentRepository().get_recorded_money_history_sync(
+            'same-identity'
+        )
+    with pytest.raises(RuntimeError, match='application rollback'):  # noqa: PT012
+        with repository.atomic():
+            repository.record_money_sync(
+                'same-identity',
+                RecordedMoneyCommand(
+                    'second',
+                    RecordedMoneyKind.RECEIPT,
+                    'actor',
+                    Decimal(10),
+                    now,
+                ),
+                now=now,
+            )
+            Order.objects.using('storage').filter(pk=stale.order_id).update(
+                name='allocation'
+            )
+            raise RuntimeError('application rollback')
+    assert (
+        Order.objects.using('storage').get(pk=stale.order_id).name == 'storage'
+    )
+    assert repository.get_recorded_money_history_sync('same-identity') == (
+        plan.entry,
+    )
+
+
 def test_custom_string_identity_and_all_storage_stay_on_selected_alias():
     from getpaid_core.durable import OperationIntent, OperationType
     from getpaid_core.enums import PaymentStatus

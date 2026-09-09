@@ -35,7 +35,10 @@ def _worker(database, identity, action, value, barrier, output):
 
     django.setup()
     from django.db import connections
-    from getpaid_core.exceptions import OperationConflictError
+    from getpaid_core.exceptions import (
+        InvalidTransitionError,
+        OperationConflictError,
+    )
     from getpaid_core.types import PaymentUpdate
 
     from getpaid.durable_repository import DjangoDurablePaymentRepository
@@ -44,9 +47,28 @@ def _worker(database, identity, action, value, barrier, output):
     repository = DjangoDurablePaymentRepository()
     try:
         # Detached, independent snapshot before either worker may mutate.
-        repository.get_payment_facts_sync(identity)
+        if action == 'record_money':
+            try:
+                repository.get_payment_facts_sync(identity)
+                repository.get_recorded_money_history_sync(identity)
+            except KeyError:
+                # Initial callers both start before durable initialization.
+                assert not repository.model_class.objects.get(
+                    pk=identity
+                ).amount_paid
+        else:
+            repository.get_payment_facts_sync(identity)
         barrier.wait(timeout=30)
-        if action == 'observe':
+        if action == 'record_money':
+            from getpaid.durable_codec import dump_record
+            from tests.test_recorded_money import NOW
+
+            try:
+                plan = repository.record_money_sync(identity, value, now=NOW)
+                result = (plan.applied, dump_record(plan.entry))
+            except InvalidTransitionError:
+                result = 'refused'
+        elif action == 'observe':
             amount, event = value
             result = repository.apply_observation_sync(
                 identity,
@@ -124,18 +146,23 @@ def _run_race(identity, action, values):
 
 
 @pytest.fixture
-def postgres_payment(payment_factory):
+def postgres_payment(payment_factory, request):
     if connection.vendor != 'postgresql':
         pytest.skip('Requires PostgreSQL; SQLite cannot prove row locking.')
+    from getpaid_core.recorded_money import RECORDED_MONEY_BACKEND
+
     from getpaid.durable_repository import DjangoDurablePaymentRepository
 
+    recorded = getattr(request, 'param', 'provider') == 'recorded'
     payment = payment_factory(
         amount_required=Decimal(100),
-        amount_locked=Decimal(100),
-        status=PaymentStatus.PRE_AUTH,
+        amount_locked=Decimal(0) if recorded else Decimal(100),
+        status=PaymentStatus.NEW if recorded else PaymentStatus.PRE_AUTH,
+        **({'backend': RECORDED_MONEY_BACKEND} if recorded else {}),
     )
     repository = DjangoDurablePaymentRepository()
-    repository.migrate_payment_sync(str(payment.pk))
+    if not recorded:
+        repository.migrate_payment_sync(str(payment.pk))
     return repository, str(payment.pk)
 
 
@@ -206,7 +233,47 @@ def test_concurrent_disputes_preserve_both_claims(postgres_payment):
     ).captured_funds == Decimal(20)
 
 
-def _lock_worker(database, identity, output):
+@pytest.mark.parametrize('postgres_payment', ['recorded'], indirect=True)
+@pytest.mark.parametrize(
+    'race', ['same', 'receipts', 'corrections', 'repayments']
+)
+def test_recorded_money_independent_process_races(postgres_payment, race):
+    from tests.test_recorded_money import NOW, correction, receipt, repayment
+
+    repository, identity = postgres_payment
+    if race in ('corrections', 'repayments'):
+        repository.record_money_sync(identity, receipt(), now=NOW)
+    commands = {
+        'same': (receipt(), receipt()),
+        'receipts': (receipt('first', '60'), receipt('second', '60')),
+        'corrections': (correction('first'), correction('second')),
+        'repayments': (repayment('first', '30'), repayment('second', '30')),
+    }[race]
+    results = _run_race(identity, 'record_money', commands)
+    history = repository.get_recorded_money_history_sync(identity)
+    facts = repository.get_payment_facts_sync(identity)
+    if race == 'same':
+        assert sorted(applied for applied, _entry in results) == [False, True]
+        assert results[0][1] == results[1][1]
+        assert len(history) == 1
+        assert facts.captured_funds == Decimal(40)
+    else:
+        assert results.count('refused') == 1
+        assert len(history) == (1 if race == 'receipts' else 2)
+        assert (
+            facts.captured_funds
+            == {
+                'receipts': Decimal(60),
+                'corrections': Decimal(0),
+                'repayments': Decimal(40),
+            }[race]
+        )
+        assert facts.refunded_funds == (
+            Decimal(30) if race == 'repayments' else Decimal(0)
+        )
+
+
+def _lock_worker(database, identity, output, *, recorded=False):
     import django
 
     django.setup()
@@ -220,9 +287,16 @@ def _lock_worker(database, identity, output):
         with database_connection.cursor() as cursor:
             cursor.execute('SELECT pg_backend_pid()')
             output.put(cursor.fetchone()[0])
-        DjangoDurablePaymentRepository().reserve_operation_sync(
-            identity, OperationIntent('blocked', OperationType.CHARGE)
-        )
+        repository = DjangoDurablePaymentRepository()
+        if recorded:
+            from tests.test_recorded_money import NOW, receipt
+
+            plan = repository.record_money_sync(identity, receipt(), now=NOW)
+            assert not plan.applied
+        else:
+            repository.reserve_operation_sync(
+                identity, OperationIntent('blocked', OperationType.CHARGE)
+            )
     finally:
         connections.close_all()
 
@@ -241,13 +315,25 @@ def test_repeatable_read_refused_before_reservation(postgres_payment):
             )
 
 
+@pytest.mark.parametrize(
+    'postgres_payment', ['provider', 'recorded'], indirect=True
+)
 def test_mutation_waits_for_existing_payment_row_lock(postgres_payment):
+    from getpaid_core.recorded_money import RECORDED_MONEY_BACKEND
+
+    from tests.test_recorded_money import NOW, receipt
+
     repository, identity = postgres_payment
+    recorded = (
+        repository.model_class.objects.get(pk=identity).backend
+        == RECORDED_MONEY_BACKEND
+    )
     context = multiprocessing.get_context('spawn')
     output = context.Queue()
     worker = context.Process(
         target=_lock_worker,
         args=(connection.settings_dict['NAME'], identity, output),
+        kwargs={'recorded': recorded},
     )
     try:
         with repository.atomic():
@@ -267,9 +353,18 @@ def test_mutation_waits_for_existing_payment_row_lock(postgres_payment):
                 if not blocked:
                     sleep(0.01)
             assert blocked, 'Mutation did not wait for the payment row lock'
+            if recorded:
+                repository.record_money_sync(identity, receipt(), now=NOW)
         worker.join(timeout=30)
         assert worker.exitcode == 0
-        assert repository.get_operation_sync(identity, 'blocked') is not None
+        if recorded:
+            assert (
+                len(repository.get_recorded_money_history_sync(identity)) == 1
+            )
+        else:
+            assert (
+                repository.get_operation_sync(identity, 'blocked') is not None
+            )
     finally:
         if worker.is_alive():
             worker.terminate()
