@@ -16,9 +16,13 @@ from getpaid_core.durable import (
     OperationOutcome,
     OperationState,
     OperationType,
+    OperatorResolution,
+    PaymentObservation,
     RecoveryEvidence,
 )
 from getpaid_core.enums import PaymentStatus
+from getpaid_core.exceptions import StateConflictError
+from getpaid_core.types import PaymentUpdate
 
 from getpaid.durable_repository import DjangoDurablePaymentRepository
 
@@ -116,3 +120,92 @@ def test_reservation_submission_and_response_are_recoverable(payment_factory):
     assert response.operation.recovery_evidence == (evidence,)
     assert response.operation in repository.list_unresolved_operations_sync()
     assert repository.get_payment_facts_sync(identity) == response.facts
+
+
+def test_observation_conflict_and_audited_resolution_retain_all_evidence(
+    payment_factory,
+):
+    payment = payment_factory(
+        amount_required=Decimal(100),
+        amount_locked=Decimal(100),
+        status=PaymentStatus.PRE_AUTH,
+    )
+    identity = str(payment.pk)
+    repository = DjangoDurablePaymentRepository()
+    repository.migrate_payment_sync(identity)
+    repository.reserve_operation_sync(
+        identity, OperationIntent('capture', OperationType.CHARGE)
+    )
+    callback = PaymentObservation(
+        operation_id='capture',
+        outcome=OperationOutcome(
+            OperationState.SUCCEEDED, Decimal(30), 'capture-1'
+        ),
+        provider_event_id='event',
+    )
+    first = repository.apply_observation_sync(identity, callback)
+    assert first.applied
+    assert first.operations[0].state == OperationState.SUCCEEDED
+    assert not repository.apply_observation_sync(identity, callback).applied
+    reviewed = repository.get_operation_sync(identity, 'capture')
+    review_facts = repository.get_payment_facts_sync(identity)
+    disputed = repository.apply_observation_sync(
+        identity,
+        PaymentUpdate(paid_amount=Decimal(40), provider_event_id='event'),
+    )
+    assert not disputed.applied
+    assert disputed.facts.captured_funds == Decimal(30)
+    assert (
+        disputed.facts.observation_conflicts[0].reason == 'conflicting_identity'
+    )
+    assert (
+        disputed.facts
+        in repository.list_payments_requiring_reconciliation_sync()
+    )
+    resolution = OperatorResolution(
+        'review',
+        'operator',
+        'Confirmed ledger',
+        ('ledger:1',),
+        datetime(2026, 9, 9, tzinfo=UTC),
+        OperationOutcome(OperationState.SUCCEEDED, Decimal(40), 'capture-1'),
+        clear_payment_reconciliation=True,
+    )
+    with pytest.raises(StateConflictError):
+        repository.resolve_operation_sync(
+            identity,
+            'capture',
+            resolution,
+            expected_operation=reviewed,
+            expected_facts=review_facts,
+        )
+    plan = repository.resolve_operation_sync(
+        identity,
+        'capture',
+        resolution,
+        expected_operation=reviewed,
+        expected_facts=disputed.facts,
+    )
+    stored = repository.get_operation_sync(identity, 'capture')
+    assert stored == plan.operation
+    assert stored.resolutions == (resolution,)
+    assert stored.conflicting_outcomes == (
+        OperationOutcome(OperationState.SUCCEEDED, Decimal(30), 'capture-1'),
+    )
+    assert (
+        repository.get_payment_facts_sync(identity).observation_conflicts
+        == disputed.facts.observation_conflicts
+    )
+    assert plan.facts.captured_funds == Decimal(40)
+    assert (
+        repository.resolve_operation_sync(
+            identity,
+            'capture',
+            resolution,
+            expected_operation=reviewed,
+            expected_facts=review_facts,
+        )
+        == plan
+    )
+    assert not repository.list_payments_requiring_reconciliation_sync()
+    assert not repository.apply_observation_sync(identity, callback).applied

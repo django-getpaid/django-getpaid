@@ -14,16 +14,23 @@ from getpaid_core.durable import (
     LegacyPaymentState,
     OperationRecord,
     PaymentFacts,
+    ReplayRecord,
     plan_migration,
+    plan_observation,
     plan_operation_failure,
     plan_outcome,
     plan_reservation,
+    plan_resolution,
     plan_submission,
 )
 from getpaid_core.exceptions import OperationConflictError
 
 from getpaid.durable_codec import dump_record, load_record
-from getpaid.durable_models import DurableOperation, DurablePaymentState
+from getpaid.durable_models import (
+    DurableOperation,
+    DurablePaymentState,
+    DurableReplay,
+)
 
 
 def _writer(model, using):
@@ -251,6 +258,68 @@ class DjangoDurablePaymentRepository:
             self._write_operation(state, operation)
             return operation
 
+    def apply_observation_sync(self, payment_id, update):
+        with self._current(payment_id) as (state, facts, operations):
+            replay = tuple(
+                ReplayRecord(
+                    facts.payment_id,
+                    row.backend,
+                    row.event_identity,
+                    row.content_digest,
+                )
+                for row in DurableReplay.objects
+                .using(self.using)
+                .filter(payment_id=state.pk)
+                .order_by('pk')
+            )
+            plan = plan_observation(
+                facts, replay, update, operations=operations
+            )
+            self._write_facts(state, plan.facts)
+            for operation in plan.operations:
+                self._write_operation(state, operation)
+            if plan.replay_record is not None:
+                record = plan.replay_record
+                _insert(
+                    DurableReplay,
+                    self.using,
+                    payment_id=state.pk,
+                    backend=record.backend,
+                    event_identity=record.event_identity,
+                    content_digest=record.content_digest,
+                )
+            return plan
+
+    def resolve_operation_sync(
+        self,
+        payment_id,
+        operation_id,
+        resolution,
+        *,
+        expected_operation,
+        expected_facts,
+    ):
+        with self._current(payment_id) as (state, facts, operations):
+            plan = plan_resolution(
+                facts,
+                self._operation(operations, operation_id),
+                resolution,
+                expected_operation=expected_operation,
+                expected_facts=expected_facts,
+                operations=operations,
+            )
+            self._write_outcome(state, plan)
+            return plan
+
+    def list_payments_requiring_reconciliation_sync(self):
+        return tuple(
+            load_record(row.facts, PaymentFacts)
+            for row in DurablePaymentState.objects
+            .using(self.using)
+            .filter(reconciliation_required=True)
+            .order_by('pk')
+        )
+
     def list_unresolved_operations_sync(self):
         return tuple(
             load_record(row.record, OperationRecord)
@@ -260,6 +329,15 @@ class DjangoDurablePaymentRepository:
             .order_by('pk')
         )
 
+    apply_observation = sync_to_async(
+        apply_observation_sync, thread_sensitive=True
+    )
+    resolve_operation = sync_to_async(
+        resolve_operation_sync, thread_sensitive=True
+    )
+    list_payments_requiring_reconciliation = sync_to_async(
+        list_payments_requiring_reconciliation_sync, thread_sensitive=True
+    )
     reserve_operation = sync_to_async(
         reserve_operation_sync, thread_sensitive=True
     )
