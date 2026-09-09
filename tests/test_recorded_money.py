@@ -325,9 +325,42 @@ def test_history_reader_never_invents_empty_history(payment_factory, missing):
 
 
 @pytest.mark.parametrize('initialized', [False, True])
-@pytest.mark.parametrize('failure', ['outer', 'second_write'])
 def test_entry_facts_and_application_write_roll_back(
-    recorded_root, monkeypatch, initialized, failure
+    recorded_root, initialized
+):
+    from getpaid.durable_models import (
+        DurablePaymentState,
+        DurableRecordedMoneyEntry,
+    )
+
+    payment, repository = recorded_root
+    identity = str(payment.pk)
+    if initialized:
+        repository.record_money_sync(identity, receipt(), now=NOW)
+    before = (
+        repository.get_payment_facts_sync(identity) if initialized else None
+    )
+    with pytest.raises(RuntimeError, match='application failure'):  # noqa: PT012
+        with repository.atomic():
+            repository.record_money_sync(
+                identity, receipt('second', '20'), now=NOW
+            )
+            type(payment).objects.filter(pk=payment.pk).update(
+                description='allocation'
+            )
+            raise RuntimeError('application failure')
+    payment.refresh_from_db()
+    assert payment.description != 'allocation'
+    assert DurableRecordedMoneyEntry.objects.count() == int(initialized)
+    if initialized:
+        assert repository.get_payment_facts_sync(identity) == before
+    else:
+        assert not DurablePaymentState.objects.exists()
+
+
+@pytest.mark.parametrize('initialized', [False, True])
+def test_repository_rolls_back_entry_when_facts_write_fails(
+    recorded_root, monkeypatch, initialized
 ):
     from django.db import models
 
@@ -343,26 +376,21 @@ def test_entry_facts_and_application_write_roll_back(
     before = (
         repository.get_payment_facts_sync(identity) if initialized else None
     )
-    if failure == 'second_write':
-        original_update = models.QuerySet.update
+    original_update = models.QuerySet.update
+    injected_failure = RuntimeError('facts write failed')
 
-        def fail_facts(queryset, **kwargs):
-            if queryset.model is DurablePaymentState:
-                raise RuntimeError('injected failure')
-            return original_update(queryset, **kwargs)
+    def fail_facts(queryset, **kwargs):
+        if queryset.model is DurablePaymentState:
+            assert DurableRecordedMoneyEntry.objects.filter(
+                command_id='second'
+            ).exists()
+            raise injected_failure
+        return original_update(queryset, **kwargs)
 
-        monkeypatch.setattr(models.QuerySet, 'update', fail_facts)
-    with pytest.raises(RuntimeError, match='injected failure'):  # noqa: PT012
-        with repository.atomic():
-            repository.record_money_sync(
-                identity, receipt('second', '20'), now=NOW
-            )
-            type(payment).objects.filter(pk=payment.pk).update(
-                description='allocation'
-            )
-            raise RuntimeError('injected failure')
-    payment.refresh_from_db()
-    assert payment.description != 'allocation'
+    monkeypatch.setattr(models.QuerySet, 'update', fail_facts)
+    with pytest.raises(RuntimeError, match='facts write failed') as caught:
+        repository.record_money_sync(identity, receipt('second', '20'), now=NOW)
+    assert caught.value is injected_failure
     assert DurableRecordedMoneyEntry.objects.count() == int(initialized)
     if initialized:
         assert repository.get_payment_facts_sync(identity) == before
