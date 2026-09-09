@@ -24,8 +24,22 @@ from getpaid_core.durable import (
     RecoveryEvidence,
 )
 from getpaid_core.enums import FraudStatus, PaymentStatus
+from getpaid_core.recorded_money import (
+    RecordedMoneyCommand,
+    RecordedMoneyEntry,
+    RecordedMoneyKind,
+    RecordingCorrectionReason,
+)
 
 _RECORDS = {
+    'RecordedMoneyCommand': (
+        RecordedMoneyCommand,
+        'command_id kind actor amount occurred_at note evidence_reference target_command_id correction_reason',
+    ),
+    'RecordedMoneyEntry': (
+        RecordedMoneyEntry,
+        'payment_id command recorded_at signed_amount effective_at evidence_reference',
+    ),
     'PaymentFacts': (
         PaymentFacts,
         'payment_id amount_required backend captured_funds refunded_funds remaining_authorization status external_id fraud_status fraud_message reconciliation_required provider_data observation_conflicts',
@@ -53,7 +67,14 @@ _RECORDS = {
 }
 _ENUMS = {
     cls.__name__: cls
-    for cls in (PaymentStatus, FraudStatus, OperationState, OperationType)
+    for cls in (
+        PaymentStatus,
+        FraudStatus,
+        OperationState,
+        OperationType,
+        RecordedMoneyKind,
+        RecordingCorrectionReason,
+    )
 }
 
 

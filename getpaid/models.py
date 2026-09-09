@@ -4,6 +4,7 @@ from .abstracts import AbstractOrder, AbstractPayment  # noqa
 from .durable_models import (  # noqa: F401
     DurableOperation,
     DurablePaymentState,
+    DurableRecordedMoneyEntry,
     DurableReplay,
 )
 

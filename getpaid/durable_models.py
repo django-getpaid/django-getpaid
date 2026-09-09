@@ -67,6 +67,22 @@ class DurableOperation(DurableStorageModel):
         ]
 
 
+class DurableRecordedMoneyEntry(DurableStorageModel):
+    """Append-only core entry; insertion primary key defines commit order."""
+
+    payment = models.ForeignKey(DurablePaymentState, on_delete=models.PROTECT)
+    command_id = models.TextField()
+    record = models.JSONField()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=('payment', 'command_id'),
+                name='getpaid_recorded_money_identity',
+            )
+        ]
+
+
 class DurableReplay(DurableStorageModel):
     """Immutable replay evidence, never upserted or stored in provider metadata."""
 

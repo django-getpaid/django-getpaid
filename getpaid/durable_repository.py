@@ -33,13 +33,24 @@ from getpaid_core.durable import (
     plan_resolution,
     plan_submission,
 )
-from getpaid_core.exceptions import OperationConflictError
+from getpaid_core.exceptions import (
+    InvalidTransitionError,
+    OperationConflictError,
+)
+from getpaid_core.recorded_money import (
+    RECORDED_MONEY_BACKEND,
+    RecordedMoneyCommand,
+    RecordedMoneyEntry,
+    RecordedMoneyPlan,
+    plan_recorded_money,
+)
 from getpaid_core.types import PaymentUpdate
 
 from getpaid.durable_codec import dump_record, load_record
 from getpaid.durable_models import (
     DurableOperation,
     DurablePaymentState,
+    DurableRecordedMoneyEntry,
     DurableReplay,
 )
 
@@ -178,6 +189,100 @@ class DjangoDurablePaymentRepository:
             )
             return replace(plan, facts=facts)
 
+    def _recorded_history(self, state):
+        return tuple(
+            load_record(row.record, RecordedMoneyEntry)
+            for row in DurableRecordedMoneyEntry.objects
+            .using(self.using)
+            .filter(payment_id=state.pk)
+            .order_by('pk')
+        )
+
+    def _operations(self, state):
+        return tuple(
+            load_record(row.record, OperationRecord)
+            for row in DurableOperation.objects
+            .using(self.using)
+            .filter(payment_id=state.pk)
+            .order_by('pk')
+        )
+
+    def _replay(self, state, facts):
+        return tuple(
+            ReplayRecord(
+                facts.payment_id,
+                row.backend,
+                row.event_identity,
+                row.content_digest,
+            )
+            for row in DurableReplay.objects
+            .using(self.using)
+            .filter(payment_id=state.pk)
+            .order_by('pk')
+        )
+
+    def record_money_sync(
+        self, payment_id: str, command: RecordedMoneyCommand, *, now: datetime
+    ) -> RecordedMoneyPlan:
+        """Plan and append against locked complete history; never dispatch money."""
+        with self._locked_payment(payment_id) as payment:
+            state = (
+                DurablePaymentState.objects
+                .using(self.using)
+                .filter(payment_id=payment.pk)
+                .first()
+            )
+            if state is None:
+                facts = plan_migration(
+                    replace(
+                        LegacyPaymentState.from_payment(payment),
+                        payment_id=str(payment.pk),
+                    )
+                ).facts
+                history, operations, replay = (), (), ()
+            else:
+                facts = load_record(state.facts, PaymentFacts)
+                history = self._recorded_history(state)
+                operations = self._operations(state)
+                replay = self._replay(state, facts)
+            plan = plan_recorded_money(
+                facts,
+                history,
+                command,
+                now=now,
+                operations=operations,
+                replay_records=replay,
+            )
+            if plan.applied:
+                if state is None:
+                    state = _insert(
+                        DurablePaymentState,
+                        self.using,
+                        payment_id=payment.pk,
+                        facts=dump_record(facts),
+                        reconciliation_required=facts.reconciliation_required,
+                    )
+                _insert(
+                    DurableRecordedMoneyEntry,
+                    self.using,
+                    payment_id=state.pk,
+                    command_id=plan.entry.command.command_id,
+                    record=dump_record(plan.entry),
+                )
+                self._write_facts(state, plan.facts)
+            return plan
+
+    def get_recorded_money_history_sync(
+        self, payment_id: str
+    ) -> tuple[RecordedMoneyEntry, ...]:
+        """Return complete commit-ordered evidence, not an empty missing root."""
+        with self._current(payment_id) as (state, facts, _operations):
+            if facts.backend != RECORDED_MONEY_BACKEND:
+                raise InvalidTransitionError(
+                    'A recorded-money root is required.'
+                )
+            return self._recorded_history(state)
+
     def get_payment_facts_sync(self, payment_id: str) -> PaymentFacts:
         try:
             state = DurablePaymentState.objects.using(self.using).get(
@@ -210,13 +315,7 @@ class DjangoDurablePaymentRepository:
             except ObjectDoesNotExist as exc:
                 raise KeyError(payment_id) from exc
             facts = load_record(state.facts, PaymentFacts)
-            operations = tuple(
-                load_record(row.record, OperationRecord)
-                for row in DurableOperation.objects
-                .using(self.using)
-                .filter(payment_id=state.pk)
-                .order_by('pk')
-            )
+            operations = self._operations(state)
             yield state, facts, operations
 
     @staticmethod
@@ -350,18 +449,7 @@ class DjangoDurablePaymentRepository:
         self, payment_id: str, update: PaymentUpdate
     ) -> ObservationPlan:
         with self._current(payment_id) as (state, facts, operations):
-            replay = tuple(
-                ReplayRecord(
-                    facts.payment_id,
-                    row.backend,
-                    row.event_identity,
-                    row.content_digest,
-                )
-                for row in DurableReplay.objects
-                .using(self.using)
-                .filter(payment_id=state.pk)
-                .order_by('pk')
-            )
+            replay = self._replay(state, facts)
             plan = plan_observation(
                 facts, replay, update, operations=operations
             )
@@ -421,6 +509,10 @@ class DjangoDurablePaymentRepository:
             .order_by('pk')
         )
 
+    record_money = sync_to_async(record_money_sync, thread_sensitive=True)
+    get_recorded_money_history = sync_to_async(
+        get_recorded_money_history_sync, thread_sensitive=True
+    )
     apply_observation = sync_to_async(
         apply_observation_sync, thread_sensitive=True
     )
