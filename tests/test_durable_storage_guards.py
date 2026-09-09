@@ -26,6 +26,15 @@ from getpaid.durable_repository import DjangoDurablePaymentRepository
 pytestmark = pytest.mark.django_db(transaction=True)
 
 
+def test_durable_schema_is_applied_without_drift():
+    from django.core.management import call_command
+
+    call_command(
+        'makemigrations', 'getpaid', check=True, dry_run=True, verbosity=0
+    )
+    call_command('migrate', check_unapplied=True, verbosity=0)
+
+
 def test_migration_supports_implicit_default_payment(settings, monkeypatch):
     import importlib.util
     from pathlib import Path

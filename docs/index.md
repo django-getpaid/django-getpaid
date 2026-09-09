@@ -41,6 +41,13 @@ api/index
 
 ```{toctree}
 :maxdepth: 1
+:caption: Next-major Development (Unreleased)
+
+durable-storage
+```
+
+```{toctree}
+:maxdepth: 1
 :caption: Project
 
 roadmap
