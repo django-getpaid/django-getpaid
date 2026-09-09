@@ -6,6 +6,7 @@ Async methods run only local storage work on a thread-sensitive connection.
 
 from contextlib import contextmanager
 from dataclasses import replace
+from datetime import datetime
 
 import swapper
 from asgiref.sync import sync_to_async
@@ -13,9 +14,17 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db import NotSupportedError, connections, models, transaction
 from getpaid_core.durable import (
     LegacyPaymentState,
+    MigrationPlan,
+    ObservationPlan,
+    OperationIntent,
+    OperationOutcome,
     OperationRecord,
+    OperatorResolution,
+    OutcomePlan,
     PaymentFacts,
+    RecoveryEvidence,
     ReplayRecord,
+    SubmissionPlan,
     plan_migration,
     plan_observation,
     plan_operation_failure,
@@ -25,6 +34,7 @@ from getpaid_core.durable import (
     plan_submission,
 )
 from getpaid_core.exceptions import OperationConflictError
+from getpaid_core.types import PaymentUpdate
 
 from getpaid.durable_codec import dump_record, load_record
 from getpaid.durable_models import (
@@ -47,7 +57,12 @@ def _insert(model, using, **values):
 
 
 class DjangoDurablePaymentRepository:
-    def __init__(self, model_class=None, *, using='default'):
+    def __init__(
+        self,
+        model_class: type[models.Model] | None = None,
+        *,
+        using: str = 'default',
+    ) -> None:
         configured = swapper.load_model('getpaid', 'Payment')
         self.model_class = configured if model_class is None else model_class
         if self.model_class is not configured:
@@ -56,7 +71,7 @@ class DjangoDurablePaymentRepository:
             )
         self.using = using
 
-    def atomic(self):
+    def atomic(self) -> transaction.Atomic:
         """Compose synchronous storage and application writes on this DB alias.
 
         Never put provider I/O inside this boundary. Use *_sync methods here;
@@ -86,11 +101,11 @@ class DjangoDurablePaymentRepository:
                     .select_for_update(of=('self',))
                     .get(pk=payment_id)
                 )
-            except self.model_class.DoesNotExist as exc:
+            except ObjectDoesNotExist as exc:
                 raise KeyError(payment_id) from exc
             yield payment
 
-    def migrate_payment_sync(self, payment_id):
+    def migrate_payment_sync(self, payment_id: str) -> MigrationPlan:
         """Initialize once from stored 3.x state after stopping legacy writers."""
         with self._locked_payment(payment_id) as payment:
             if (
@@ -114,7 +129,7 @@ class DjangoDurablePaymentRepository:
             )
             return plan
 
-    def seed_sync(self, facts):
+    def seed_sync(self, facts: PaymentFacts) -> MigrationPlan:
         """Initialize an uninitialized root from explicitly supplied import facts.
 
         This is not a repair/update API. Core migration validation may add a
@@ -163,7 +178,7 @@ class DjangoDurablePaymentRepository:
             )
             return replace(plan, facts=facts)
 
-    def get_payment_facts_sync(self, payment_id):
+    def get_payment_facts_sync(self, payment_id: str) -> PaymentFacts:
         try:
             state = DurablePaymentState.objects.using(self.using).get(
                 payment_id=payment_id
@@ -172,7 +187,9 @@ class DjangoDurablePaymentRepository:
             raise KeyError(payment_id) from exc
         return load_record(state.facts, PaymentFacts)
 
-    def get_operation_sync(self, payment_id, operation_id):
+    def get_operation_sync(
+        self, payment_id: str, operation_id: str
+    ) -> OperationRecord | None:
         row = (
             DurableOperation.objects
             .using(self.using)
@@ -263,7 +280,9 @@ class DjangoDurablePaymentRepository:
                     )
             rows.update(**values)
 
-    def reserve_operation_sync(self, payment_id, intent):
+    def reserve_operation_sync(
+        self, payment_id: str, intent: OperationIntent
+    ) -> OperationRecord:
         with self._current(payment_id) as (state, facts, operations):
             plan = plan_reservation(facts, operations, intent)
             self._write_operation(state, plan.operation)
@@ -273,14 +292,14 @@ class DjangoDurablePaymentRepository:
 
     def claim_submission_sync(
         self,
-        payment_id,
-        operation_id,
+        payment_id: str,
+        operation_id: str,
         *,
-        expected_attempt,
-        now,
-        retry_until=None,
-        idempotency_scope=None,
-    ):
+        expected_attempt: int,
+        now: datetime,
+        retry_until: datetime | None = None,
+        idempotency_scope: str | None = None,
+    ) -> SubmissionPlan:
         with self._current(payment_id) as (state, facts, operations):
             plan = plan_submission(
                 facts,
@@ -299,8 +318,13 @@ class DjangoDurablePaymentRepository:
             self._write_operation(state, operation)
 
     def record_operation_outcome_sync(
-        self, payment_id, operation_id, outcome, *, response_attempt=None
-    ):
+        self,
+        payment_id: str,
+        operation_id: str,
+        outcome: OperationOutcome,
+        *,
+        response_attempt: int | None = None,
+    ) -> OutcomePlan:
         with self._current(payment_id) as (state, facts, operations):
             plan = plan_outcome(
                 facts,
@@ -312,7 +336,9 @@ class DjangoDurablePaymentRepository:
             self._write_outcome(state, plan)
             return plan
 
-    def record_operation_failure_sync(self, payment_id, operation_id, evidence):
+    def record_operation_failure_sync(
+        self, payment_id: str, operation_id: str, evidence: RecoveryEvidence
+    ) -> OperationRecord:
         with self._current(payment_id) as (state, _facts, operations):
             operation = plan_operation_failure(
                 self._operation(operations, operation_id), evidence
@@ -320,7 +346,9 @@ class DjangoDurablePaymentRepository:
             self._write_operation(state, operation)
             return operation
 
-    def apply_observation_sync(self, payment_id, update):
+    def apply_observation_sync(
+        self, payment_id: str, update: PaymentUpdate
+    ) -> ObservationPlan:
         with self._current(payment_id) as (state, facts, operations):
             replay = tuple(
                 ReplayRecord(
@@ -354,13 +382,13 @@ class DjangoDurablePaymentRepository:
 
     def resolve_operation_sync(
         self,
-        payment_id,
-        operation_id,
-        resolution,
+        payment_id: str,
+        operation_id: str,
+        resolution: OperatorResolution,
         *,
-        expected_operation,
-        expected_facts,
-    ):
+        expected_operation: OperationRecord,
+        expected_facts: PaymentFacts,
+    ) -> OutcomePlan:
         with self._current(payment_id) as (state, facts, operations):
             plan = plan_resolution(
                 facts,
@@ -373,7 +401,9 @@ class DjangoDurablePaymentRepository:
             self._write_outcome(state, plan)
             return plan
 
-    def list_payments_requiring_reconciliation_sync(self):
+    def list_payments_requiring_reconciliation_sync(
+        self,
+    ) -> tuple[PaymentFacts, ...]:
         return tuple(
             load_record(row.facts, PaymentFacts)
             for row in DurablePaymentState.objects
@@ -382,7 +412,7 @@ class DjangoDurablePaymentRepository:
             .order_by('pk')
         )
 
-    def list_unresolved_operations_sync(self):
+    def list_unresolved_operations_sync(self) -> tuple[OperationRecord, ...]:
         return tuple(
             load_record(row.record, OperationRecord)
             for row in DurableOperation.objects
