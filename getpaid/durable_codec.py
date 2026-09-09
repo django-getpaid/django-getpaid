@@ -12,7 +12,16 @@ from datetime import datetime
 from decimal import Decimal
 from enum import Enum
 
-from getpaid_core.durable import ObservationConflict, PaymentFacts
+from getpaid_core.durable import (
+    ObservationConflict,
+    OperationOutcome,
+    OperationRecord,
+    OperationState,
+    OperationType,
+    OperatorResolution,
+    PaymentFacts,
+    RecoveryEvidence,
+)
 from getpaid_core.enums import FraudStatus, PaymentStatus
 
 _RECORDS = {
@@ -25,7 +34,28 @@ _RECORDS = {
         'event_identity semantic_content reason',
     ),
 }
-_ENUMS = {cls.__name__: cls for cls in (PaymentStatus, FraudStatus)}
+_RECORDS.update({
+    'OperationRecord': (
+        OperationRecord,
+        'payment_id operation_id operation_type state resolved_amount parameters_digest starting_captured starting_refunded parameters starting_authorization backend reservation_sequence idempotency_key submitted_at submission_attempts pending_response_attempts retry_until idempotency_scope settled_amount correlation reconciliation_required conflicting_outcomes recovery_evidence resolutions',
+    ),
+    'OperationOutcome': (
+        OperationOutcome,
+        'state settled_amount correlation reconciliation_required external_id',
+    ),
+    'RecoveryEvidence': (
+        RecoveryEvidence,
+        'state settled_amount correlation external_id',
+    ),
+    'OperatorResolution': (
+        OperatorResolution,
+        'resolution_id actor reason evidence_references resolved_at outcome clear_payment_reconciliation',
+    ),
+})
+_ENUMS = {
+    cls.__name__: cls
+    for cls in (PaymentStatus, FraudStatus, OperationState, OperationType)
+}
 
 
 def encode(value):
@@ -96,7 +126,18 @@ def decode(value):
     if tag == 'record' and len(parts) == 2:
         cls, names = _RECORDS[parts[0]]
         if set(parts[1]) == set(names.split()):
-            return cls(**{key: decode(item) for key, item in parts[1].items()})
+            decoded = {key: decode(item) for key, item in parts[1].items()}
+            derived = {
+                field.name: decoded.pop(field.name)
+                for field in fields(cls)
+                if not field.init
+            }
+            record = cls(**decoded)
+            if any(
+                getattr(record, name) != item for name, item in derived.items()
+            ):
+                raise ValueError('Stored derived core field does not match.')
+            return record
     raise ValueError('Invalid durable storage encoding.')
 
 

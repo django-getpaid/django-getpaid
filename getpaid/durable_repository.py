@@ -12,9 +12,15 @@ from asgiref.sync import sync_to_async
 from django.db import models, transaction
 from getpaid_core.durable import (
     LegacyPaymentState,
+    OperationRecord,
     PaymentFacts,
     plan_migration,
+    plan_operation_failure,
+    plan_outcome,
+    plan_reservation,
+    plan_submission,
 )
+from getpaid_core.exceptions import OperationConflictError
 
 from getpaid.durable_codec import dump_record, load_record
 from getpaid.durable_models import DurableOperation, DurablePaymentState
@@ -105,9 +111,170 @@ class DjangoDurablePaymentRepository:
             .first()
         )
         if row is None:
-            return
-        raise ValueError('Operation decoding not implemented yet.')
+            return None
+        return load_record(row.record, OperationRecord)
 
+    @contextmanager
+    def _current(self, payment_id):
+        with self._locked_payment(payment_id) as payment:
+            try:
+                state = DurablePaymentState.objects.using(self.using).get(
+                    payment_id=payment.pk
+                )
+            except DurablePaymentState.DoesNotExist as exc:
+                raise KeyError(payment_id) from exc
+            facts = load_record(state.facts, PaymentFacts)
+            operations = tuple(
+                load_record(row.record, OperationRecord)
+                for row in DurableOperation.objects
+                .using(self.using)
+                .filter(payment_id=state.pk)
+                .order_by('pk')
+            )
+            yield state, facts, operations
+
+    @staticmethod
+    def _operation(operations, operation_id):
+        for operation in operations:
+            if operation.operation_id == operation_id:
+                return operation
+        raise OperationConflictError(
+            'Operation was never reserved on this payment.'
+        )
+
+    def _write_facts(self, state, facts):
+        previous = load_record(state.facts, PaymentFacts)
+        if (
+            facts.payment_id != previous.payment_id
+            or facts.backend != previous.backend
+        ):
+            raise ValueError('Durable identity cannot change.')
+        if any(
+            item not in facts.observation_conflicts
+            for item in previous.observation_conflicts
+        ):
+            raise ValueError('Retained observation evidence cannot be erased.')
+        _writer(DurablePaymentState, self.using).filter(pk=state.pk).update(
+            facts=dump_record(facts),
+            reconciliation_required=facts.reconciliation_required,
+        )
+
+    def _write_operation(self, state, operation):
+        rows = _writer(DurableOperation, self.using).filter(
+            payment_id=state.pk, operation_id=operation.operation_id
+        )
+        previous = rows.first()
+        values = dict(
+            record=dump_record(operation),
+            unresolved=operation.is_active
+            or operation.reconciliation_required
+            or operation.response_pending,
+        )
+        if previous is None:
+            _insert(
+                DurableOperation,
+                self.using,
+                payment_id=state.pk,
+                operation_id=operation.operation_id,
+                **values,
+            )
+        else:
+            retained = load_record(previous.record, OperationRecord)
+            for name in (
+                'conflicting_outcomes',
+                'recovery_evidence',
+                'resolutions',
+            ):
+                if any(
+                    item not in getattr(operation, name)
+                    for item in getattr(retained, name)
+                ):
+                    raise ValueError(
+                        'Retained operation evidence cannot be erased.'
+                    )
+            rows.update(**values)
+
+    def reserve_operation_sync(self, payment_id, intent):
+        with self._current(payment_id) as (state, facts, operations):
+            plan = plan_reservation(facts, operations, intent)
+            self._write_operation(state, plan.operation)
+            if plan.facts is not None:
+                self._write_facts(state, plan.facts)
+            return plan.operation
+
+    def claim_submission_sync(
+        self,
+        payment_id,
+        operation_id,
+        *,
+        expected_attempt,
+        now,
+        retry_until=None,
+        idempotency_scope=None,
+    ):
+        with self._current(payment_id) as (state, facts, operations):
+            plan = plan_submission(
+                facts,
+                self._operation(operations, operation_id),
+                expected_attempt=expected_attempt,
+                now=now,
+                retry_until=retry_until,
+                idempotency_scope=idempotency_scope,
+            )
+            self._write_operation(state, plan.operation)
+            return plan
+
+    def _write_outcome(self, state, plan):
+        self._write_facts(state, plan.facts)
+        for operation in (plan.operation, *plan.related_operations):
+            self._write_operation(state, operation)
+
+    def record_operation_outcome_sync(
+        self, payment_id, operation_id, outcome, *, response_attempt=None
+    ):
+        with self._current(payment_id) as (state, facts, operations):
+            plan = plan_outcome(
+                facts,
+                self._operation(operations, operation_id),
+                outcome,
+                operations=operations,
+                response_attempt=response_attempt,
+            )
+            self._write_outcome(state, plan)
+            return plan
+
+    def record_operation_failure_sync(self, payment_id, operation_id, evidence):
+        with self._current(payment_id) as (state, _facts, operations):
+            operation = plan_operation_failure(
+                self._operation(operations, operation_id), evidence
+            )
+            self._write_operation(state, operation)
+            return operation
+
+    def list_unresolved_operations_sync(self):
+        return tuple(
+            load_record(row.record, OperationRecord)
+            for row in DurableOperation.objects
+            .using(self.using)
+            .filter(unresolved=True)
+            .order_by('pk')
+        )
+
+    reserve_operation = sync_to_async(
+        reserve_operation_sync, thread_sensitive=True
+    )
+    claim_submission = sync_to_async(
+        claim_submission_sync, thread_sensitive=True
+    )
+    record_operation_outcome = sync_to_async(
+        record_operation_outcome_sync, thread_sensitive=True
+    )
+    record_operation_failure = sync_to_async(
+        record_operation_failure_sync, thread_sensitive=True
+    )
+    list_unresolved_operations = sync_to_async(
+        list_unresolved_operations_sync, thread_sensitive=True
+    )
     migrate_payment = sync_to_async(migrate_payment_sync, thread_sensitive=True)
     get_payment_facts = sync_to_async(
         get_payment_facts_sync, thread_sensitive=True
