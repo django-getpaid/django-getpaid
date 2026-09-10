@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import swapper
 from django import forms
-from django.http import HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect
 from getpaid_core.exceptions import GetPaidException
 
 from getpaid.flow_adapter import DjangoPaymentFlowAdapter, prepare_transaction
@@ -197,3 +197,32 @@ class TestPrepareTransaction:
         assert len(result['form']['fields']) == 2
         assert result['form']['fields'][0]['name'] == 'amount'
         assert result['form']['fields'][1]['name'] == 'currency'
+        assert set(result) == {'status_code', 'result', 'target_url', 'form'}
+
+    @pytest.mark.parametrize(
+        ('response', 'optional'),
+        [
+            (
+                HttpResponse(status=200),
+                {'message': 'Response has no context_data'},
+            ),
+            (HttpResponseRedirect('/pay/'), {'target_url': '/pay/'}),
+            (
+                HttpResponse(b'Gateway refused', status=400),
+                {'message': b'Gateway refused'},
+            ),
+        ],
+    )
+    def test_rest_response_preserves_branch_specific_payload(
+        self, response, optional
+    ):
+        payment = _make_payment()
+        with patch.object(
+            type(payment), 'prepare_transaction', return_value=response
+        ):
+            result = payment.prepare_transaction_for_rest()
+        assert result == {
+            'status_code': response.status_code,
+            'result': response,
+            **optional,
+        }

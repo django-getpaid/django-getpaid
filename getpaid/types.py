@@ -72,7 +72,7 @@ FRAUD_STATUS_CHOICES = tuple(
 # TypedDicts (Django-specific)
 # ---------------------------------------------------------------------------
 
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from django.http import HttpResponse
 
@@ -93,6 +93,6 @@ class PaymentForm(TypedDict):
 class RestfulResult(TypedDict):
     status_code: int
     result: HttpResponse
-    target_url: str | None
-    form: PaymentForm | None
-    message: str | bytes | None
+    target_url: NotRequired[str]
+    form: NotRequired[PaymentForm]
+    message: NotRequired[str | bytes]

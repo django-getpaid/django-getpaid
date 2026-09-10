@@ -9,7 +9,7 @@ from django.db import models, router
 from django.db.models import Q
 from django.db.transaction import atomic
 from django.forms import BaseForm
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import resolve_url
 from django.utils.translation import gettext_lazy as _
 from django.views import View
@@ -241,8 +241,9 @@ class AbstractPayment(models.Model):
         external_id is unique; empty strings would collide, while
         multiple NULLs are allowed.
         """
-        if not self.external_id:
-            self.external_id = None
+        payment = cast(CorePaymentProtocol, self)
+        if not payment.external_id:
+            payment.external_id = None
 
     # ---- Properties ----
 
@@ -297,10 +298,10 @@ class AbstractPayment(models.Model):
 
     def get_items(self) -> list[ItemInfo]:
         """Relay to order's get_items()."""
-        return self.order.get_items()  # ty: ignore[possibly-missing-attribute]
+        return cast(AbstractOrder, self.order).get_items()
 
     def get_buyer_info(self) -> BuyerInfo:
-        return self.order.get_buyer_info()  # ty: ignore[possibly-missing-attribute]
+        return cast(AbstractOrder, self.order).get_buyer_info()
 
     def _get_processor(self):
         """Get processor instance for this payment's backend."""
@@ -348,7 +349,8 @@ class AbstractPayment(models.Model):
         if url is not None:
             kwargs = self.get_return_redirect_kwargs(request, success)
             return resolve_url(url, **kwargs)
-        return resolve_url(self.order.get_return_url(self, success=success))  # ty: ignore[possibly-missing-attribute]
+        order = cast(AbstractOrder, self.order)
+        return resolve_url(order.get_return_url(self, success=success))
 
     def get_return_redirect_kwargs(
         self, request: HttpRequest, success: bool
@@ -372,7 +374,10 @@ class AbstractPayment(models.Model):
         **kwargs,
     ) -> RestfulResult:
         result = self.prepare_transaction(request=request, view=view, **kwargs)
-        data = {'status_code': result.status_code, 'result': result}
+        data: RestfulResult = {
+            'status_code': result.status_code,
+            'result': result,
+        }
         if result.status_code == 200:
             ctx = getattr(result, 'context_data', None)
             if ctx is None:
@@ -393,10 +398,10 @@ class AbstractPayment(models.Model):
                 ],
             }
         elif result.status_code == 302:
-            data['target_url'] = result.url  # ty: ignore[unresolved-attribute]
+            data['target_url'] = cast(HttpResponseRedirect, result).url
         else:
             data['message'] = result.content
-        return data  # ty: ignore[invalid-return-type]
+        return data
 
     @atomic
     def charge(
