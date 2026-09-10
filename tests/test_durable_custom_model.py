@@ -153,3 +153,39 @@ def test_custom_string_identity_and_all_storage_stay_on_selected_alias():
     call_command(
         'migrate', database='storage', check_unapplied=True, verbosity=0
     )
+
+
+def test_legacy_normalization_keeps_same_instance_edits_on_storage_alias():
+    from getpaid_core.enums import PaymentStatus
+
+    from tests.durable_test_app.models import Order, Payment
+
+    for alias in ('default', 'storage'):
+        order = Order.objects.using(alias).create(
+            name=alias, total=Decimal(100), currency='EUR'
+        )
+        Payment.objects.using(alias).create(
+            id='legacy-alias',
+            order=order,
+            amount_required=Decimal(100),
+            backend='getpaid.backends.dummy.processor',
+            currency='EUR',
+        )
+    payment = Payment.objects.using('storage').get(pk='legacy-alias')
+    payment.status = PaymentStatus.PRE_AUTH
+    payment.amount_required = '120'
+    payment.amount_paid = 20
+    payment.amount_locked = '80'
+    payment.amount_refunded = '0'
+    payment.charge(amount=30)
+    assert payment.amount_paid == Decimal(50)
+    assert payment.amount_locked == Decimal(50)
+    payment.refresh_from_db()
+    assert payment.amount_required == Decimal(120)
+    assert payment.amount_paid == Decimal(50)
+    assert payment.amount_locked == Decimal(50)
+    assert payment.status == PaymentStatus.PARTIAL
+    untouched = Payment.objects.using('default').get(pk='legacy-alias')
+    assert untouched.amount_required == Decimal(100)
+    assert untouched.amount_paid == Decimal(0)
+    assert untouched.status == PaymentStatus.NEW
