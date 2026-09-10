@@ -112,6 +112,9 @@ class DjangoPaymentFlowAdapter:
     def _get_processor(self):
         processor = _get_processor(self.payment, self.model_class)
         normalize_payment(self.payment)
+        # An empty semantic update asks core to validate the current amounts
+        # before any provider command, without duplicating its financial rules.
+        apply_payment_update(self.payment, PaymentUpdate())
         return processor
 
     def prepare(self, **kwargs: Any) -> Any:
