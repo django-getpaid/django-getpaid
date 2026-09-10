@@ -404,19 +404,54 @@ seven skips comprise four existing vendor-dependent tests, two durable modules,
 and the upcoming-core default-model probe). That is import/legacy regression
 evidence, **not durable 3.2 support**.
 
-Broader legacy checks are not green even at this work's baseline `00ff3e2`:
-14 `test_abstracts.py`/`test_flow_adapter.py` cases fail against development core
-because newly created monetary fields can still be integers and the core now
-requires Decimal. With released core, the lock-release test expects REFUNDED but
-receives CANCELLED, and the ecosystem-version parity test compares Django 3.2.1
-with core 3.2.0. These failures were reproduced on an isolated baseline source
-export; no tests were skipped or changed to conceal them. They need separate
-legacy next-major integration work, not changes to recorded-money arithmetic.
+**Historical baseline, now resolved:** at `00ff3e2`, 14
+`test_abstracts.py`/`test_flow_adapter.py` cases failed against development core
+because newly created monetary fields could still be integers. Released-core
+checks also exposed an incorrect REFUNDED expectation for an uncaptured lock
+release and an exact ecosystem-version parity assertion (Django 3.2.1 versus
+core 3.2.0). The baseline source-export transcripts remain historical evidence,
+not the current failure map.
 
-`ty` on all touched library files reports ten pre-existing diagnostics in
-`abstracts.py` (Django descriptor inference and legacy REST result typing),
-reproduced at the same baseline. Other touched library paths pass. Ruff passes
-on all touched Python paths. No full-stack or release readiness is claimed.
+The compatibility follow-up shares the legacy repository's Decimal normalizer
+with direct model/flow entrypoints. It normalizes the same instance, including
+explicit integer/string assignments, without reloading and losing caller edits.
+An empty semantic update delegates pre-dispatch amount validation to the active
+core FSM; the pinned development core rejects malformed/nonfinite/negative
+payment fields before provider commands. Callback normalization and validation
+run **after authentication**, before callback handling. Durable ownership checks
+and database aliases remain unchanged. No core financial rules are copied.
+
+Releasing a zero-captured authorization is tested as CANCELLED, with zero paid,
+refunded and remaining authorized amounts; no refund is fabricated. Package tests
+now verify installed metadata and declared dependency constraints, not equality
+between independently patch-released packages. Version numbers still cannot
+certify unreleased durable capabilities. REST result typing reflects the existing
+branch-specific payload: `status_code` and `result` are required; `target_url`,
+`form` and `message` are present only on their respective response branches.
+Runtime payloads are unchanged.
+
+Follow-up verification against core `f5a8aa4`, on Django 5.2.17 and 6.0.6:
+
+- Combined original durable selection plus legacy model/flow, monetary-boundary,
+  public-API and callback-adapter tests: **382 passed, four PostgreSQL-only skips**
+  per Django line. The original 180-test selection remains included.
+- Isolated PostgreSQL 17.11 legacy/durable selection: **334 passed** per line;
+  custom-model/independent-alias selection: **three passed** per line on both
+  SQLite and PostgreSQL. Only the unique testdb stack was started and removed,
+  without deleting volumes.
+- Released core 3.2.0 ordinary imports and representative legacy paths:
+  **128 passed, five skips** per line (four PostgreSQL-only tests and the existing
+  upcoming-core import probe). This does not certify upcoming strict validation
+  or any durable API on released core.
+- Broader non-browser run: **517 passed, 20 environment-dependent skips**;
+  all skipped PostgreSQL/custom-settings cases passed in their separate runs.
+  Two unawaited `AsyncMock` coroutine warnings remain visible in this run.
+- Ruff passes on all 19 selected changed Python paths. `ty` passes on all nine
+  touched library modules, including `abstracts.py`, plus the recorded-money
+  migration. The ten historical diagnostics are resolved without added ignores.
+
+No browser suite, live-provider behavior, Stripe durable support, historical
+payment import, consumer integration or full release readiness is claimed.
 
 ### Next-major presentation compatibility
 
