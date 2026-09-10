@@ -445,6 +445,7 @@ def _handle_paywall_callback(payment, request, **kwargs):
         processor, data, headers, raw_body, request, **kwargs
     )
     normalize_payment(payment)
+    apply_payment_update(payment, PaymentUpdate())
     update = bridge.call(
         processor,
         processor.handle_callback,
