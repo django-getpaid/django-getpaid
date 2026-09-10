@@ -5,6 +5,22 @@ from django.utils import timezone
 from getpaid.legacy_guard import arequire_legacy_payment, require_legacy_payment
 
 
+def normalize_payment(payment):
+    """Normalize Django's in-memory field values without reloading caller edits."""
+    for field_name in (
+        'amount_required',
+        'amount_paid',
+        'amount_locked',
+        'amount_refunded',
+    ):
+        value = getattr(payment, field_name)
+        if not isinstance(value, Decimal):
+            setattr(payment, field_name, Decimal(str(value)))
+    if payment.provider_data is None:
+        payment.provider_data = {}
+    return payment
+
+
 class DjangoPaymentRepository:
     def __init__(self, model_class) -> None:
         self.model_class = model_class
@@ -119,16 +135,4 @@ class DjangoPaymentRepository:
             require_legacy_payment(payment)
         return [self._normalize_payment(payment) for payment in payments]
 
-    def _normalize_payment(self, payment):
-        for field_name in (
-            'amount_required',
-            'amount_paid',
-            'amount_locked',
-            'amount_refunded',
-        ):
-            value = getattr(payment, field_name)
-            if not isinstance(value, Decimal):
-                setattr(payment, field_name, Decimal(str(value)))
-        if payment.provider_data is None:
-            payment.provider_data = {}
-        return payment
+    _normalize_payment = staticmethod(normalize_payment)

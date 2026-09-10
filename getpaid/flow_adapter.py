@@ -21,7 +21,7 @@ from getpaid_core.types import PaymentUpdate
 from getpaid.bridge import bridge
 from getpaid.legacy_guard import require_legacy_payment
 from getpaid.registry import registry as django_registry
-from getpaid.repository import DjangoPaymentRepository
+from getpaid.repository import DjangoPaymentRepository, normalize_payment
 
 
 def _resolve_backend_config(
@@ -109,9 +109,14 @@ class DjangoPaymentFlowAdapter:
         self.payment = payment
         self.model_class = model_class
 
+    def _get_processor(self):
+        processor = _get_processor(self.payment, self.model_class)
+        normalize_payment(self.payment)
+        return processor
+
     def prepare(self, **kwargs: Any) -> Any:
         """Prepare transaction."""
-        processor = _get_processor(self.payment, self.model_class)
+        processor = self._get_processor()
         result = bridge.call(processor, processor.prepare_transaction, **kwargs)
         apply_payment_update(
             self.payment,
@@ -126,7 +131,7 @@ class DjangoPaymentFlowAdapter:
 
     def fetch_status(self):
         """PULL flow: fetch status from gateway."""
-        processor = _get_processor(self.payment, self.model_class)
+        processor = self._get_processor()
         update = bridge.call(processor, processor.fetch_payment_status)
         if update is not None:
             apply_payment_update(self.payment, update)
@@ -143,7 +148,7 @@ class DjangoPaymentFlowAdapter:
                 f'Cannot charge payment in {self.payment.status!r} status. '
                 'Payment must be PRE_AUTH or IN_CHARGE.'
             )
-        processor = _get_processor(self.payment, self.model_class)
+        processor = self._get_processor()
         result = bridge.call(
             processor, processor.charge, amount=amount, **kwargs
         )
@@ -171,7 +176,7 @@ class DjangoPaymentFlowAdapter:
                 f'Cannot release lock for payment in {self.payment.status!r} '
                 'status. Payment must be PRE_AUTH.'
             )
-        processor = _get_processor(self.payment, self.model_class)
+        processor = self._get_processor()
         amount = bridge.call(processor, processor.release_lock, **kwargs)
         apply_payment_update(
             self.payment,
@@ -191,7 +196,7 @@ class DjangoPaymentFlowAdapter:
                 f'Cannot start refund for payment in {self.payment.status!r} '
                 'status. Payment must be PAID, PARTIAL, or REFUND_STARTED.'
             )
-        processor = _get_processor(self.payment, self.model_class)
+        processor = self._get_processor()
         result = bridge.call(
             processor, processor.start_refund, amount=amount, **kwargs
         )
@@ -207,7 +212,7 @@ class DjangoPaymentFlowAdapter:
 
     def cancel_refund(self, **kwargs: Any) -> bool:
         """Cancel an in-progress refund."""
-        processor = _get_processor(self.payment, self.model_class)
+        processor = self._get_processor()
         success = bridge.call(processor, processor.cancel_refund, **kwargs)
         if success:
             apply_payment_update(

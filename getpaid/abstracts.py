@@ -28,7 +28,7 @@ from getpaid.flow_adapter import (
     prepare_transaction,
 )
 from getpaid.legacy_guard import require_legacy_payment
-from getpaid.repository import DjangoPaymentRepository
+from getpaid.repository import DjangoPaymentRepository, normalize_payment
 from getpaid.types import (
     FRAUD_STATUS_CHOICES,
     PAYMENT_STATUS_CHOICES,
@@ -260,7 +260,7 @@ class AbstractPayment(models.Model):
         )
 
     def flag_as_fraud(self, message=''):
-        payment = cast(CorePaymentProtocol, self)
+        payment = cast(CorePaymentProtocol, normalize_payment(self))
         apply_payment_update(
             payment,
             PaymentUpdate(
@@ -270,7 +270,7 @@ class AbstractPayment(models.Model):
         )
 
     def flag_as_legit(self, message=''):
-        payment = cast(CorePaymentProtocol, self)
+        payment = cast(CorePaymentProtocol, normalize_payment(self))
         apply_payment_update(
             payment,
             PaymentUpdate(
@@ -280,7 +280,7 @@ class AbstractPayment(models.Model):
         )
 
     def flag_for_check(self, message=''):
-        payment = cast(CorePaymentProtocol, self)
+        payment = cast(CorePaymentProtocol, normalize_payment(self))
         apply_payment_update(
             payment,
             PaymentUpdate(
@@ -444,6 +444,7 @@ def _handle_paywall_callback(payment, request, **kwargs):
     bridge.call_verify_callback(
         processor, data, headers, raw_body, request, **kwargs
     )
+    normalize_payment(payment)
     update = bridge.call(
         processor,
         processor.handle_callback,
