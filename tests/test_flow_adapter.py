@@ -131,10 +131,16 @@ class TestAdapterReleaseLock:
             amount_locked=Decimal('100.00'),
         )
         adapter = DjangoPaymentFlowAdapter(payment, Payment)
-        adapter.release_lock()
+        assert payment.amount_paid == 0
+        assert payment.amount_refunded == 0
+        released = adapter.release_lock()
         payment.refresh_from_db()
+        assert released == Decimal('100.00')
         assert payment.amount_locked == Decimal('0.00')
-        assert payment.status == ps.REFUNDED
+        assert payment.amount_paid == Decimal('0.00')
+        assert payment.amount_refunded == Decimal('0.00')
+        # Releasing an uncaptured authorization returns no paid money.
+        assert payment.status == ps.CANCELLED
 
     def test_release_lock_rejects_invalid_status(self):
         payment = _make_payment(status=ps.NEW)
@@ -167,12 +173,10 @@ class TestPrepareTransaction:
         payment = _make_payment()
 
         mock_form = MagicMock()
-        mock_form.fields = OrderedDict(
-            [
-                ('amount', forms.DecimalField(initial='100.00', label='Amount')),
-                ('currency', forms.CharField(initial='EUR', label='Currency')),
-            ]
-        )
+        mock_form.fields = OrderedDict([
+            ('amount', forms.DecimalField(initial='100.00', label='Amount')),
+            ('currency', forms.CharField(initial='EUR', label='Currency')),
+        ])
 
         mock_response = MagicMock()
         mock_response.status_code = 200
