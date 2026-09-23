@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import swapper
 from django import forms
-from django.http import HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect
 from getpaid_core.exceptions import GetPaidException
 
 from getpaid.flow_adapter import DjangoPaymentFlowAdapter, prepare_transaction
@@ -131,10 +131,16 @@ class TestAdapterReleaseLock:
             amount_locked=Decimal('100.00'),
         )
         adapter = DjangoPaymentFlowAdapter(payment, Payment)
-        adapter.release_lock()
+        assert payment.amount_paid == 0
+        assert payment.amount_refunded == 0
+        released = adapter.release_lock()
         payment.refresh_from_db()
+        assert released == Decimal('100.00')
         assert payment.amount_locked == Decimal('0.00')
-        assert payment.status == ps.REFUNDED
+        assert payment.amount_paid == Decimal('0.00')
+        assert payment.amount_refunded == Decimal('0.00')
+        # Releasing an uncaptured authorization returns no paid money.
+        assert payment.status == ps.CANCELLED
 
     def test_release_lock_rejects_invalid_status(self):
         payment = _make_payment(status=ps.NEW)
@@ -167,12 +173,10 @@ class TestPrepareTransaction:
         payment = _make_payment()
 
         mock_form = MagicMock()
-        mock_form.fields = OrderedDict(
-            [
-                ('amount', forms.DecimalField(initial='100.00', label='Amount')),
-                ('currency', forms.CharField(initial='EUR', label='Currency')),
-            ]
-        )
+        mock_form.fields = OrderedDict([
+            ('amount', forms.DecimalField(initial='100.00', label='Amount')),
+            ('currency', forms.CharField(initial='EUR', label='Currency')),
+        ])
 
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -193,3 +197,32 @@ class TestPrepareTransaction:
         assert len(result['form']['fields']) == 2
         assert result['form']['fields'][0]['name'] == 'amount'
         assert result['form']['fields'][1]['name'] == 'currency'
+        assert set(result) == {'status_code', 'result', 'target_url', 'form'}
+
+    @pytest.mark.parametrize(
+        ('response', 'optional'),
+        [
+            (
+                HttpResponse(status=200),
+                {'message': 'Response has no context_data'},
+            ),
+            (HttpResponseRedirect('/pay/'), {'target_url': '/pay/'}),
+            (
+                HttpResponse(b'Gateway refused', status=400),
+                {'message': b'Gateway refused'},
+            ),
+        ],
+    )
+    def test_rest_response_preserves_branch_specific_payload(
+        self, response, optional
+    ):
+        payment = _make_payment()
+        with patch.object(
+            type(payment), 'prepare_transaction', return_value=response
+        ):
+            result = payment.prepare_transaction_for_rest()
+        assert result == {
+            'status_code': response.status_code,
+            'result': response,
+            **optional,
+        }

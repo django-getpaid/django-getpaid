@@ -1,15 +1,15 @@
 import logging
 import uuid
 from decimal import Decimal
-from typing import cast
+from typing import cast, override
 
 import swapper
 from django import forms
-from django.db import models
+from django.db import models, router
 from django.db.models import Q
 from django.db.transaction import atomic
 from django.forms import BaseForm
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import resolve_url
 from django.utils.translation import gettext_lazy as _
 from django.views import View
@@ -27,7 +27,8 @@ from getpaid.flow_adapter import (
     _get_processor,
     prepare_transaction,
 )
-from getpaid.repository import DjangoPaymentRepository
+from getpaid.legacy_guard import require_legacy_payment
+from getpaid.repository import DjangoPaymentRepository, normalize_payment
 from getpaid.types import (
     FRAUD_STATUS_CHOICES,
     PAYMENT_STATUS_CHOICES,
@@ -208,8 +209,31 @@ class AbstractPayment(models.Model):
         self._normalize_external_id()
 
     def save(self, *args, **kwargs):
+        # Django 5.2 still accepts using as the third positional argument.
+        using = kwargs.get('using', args[2] if len(args) > 2 else None)
+        using = using or router.db_for_write(type(self), instance=self)
+        require_legacy_payment(self, using=using)
         self._normalize_external_id()
         super().save(*args, **kwargs)
+
+    @override
+    def save_base(
+        self,
+        raw=False,
+        force_insert=False,
+        force_update=False,
+        using=None,
+        update_fields=None,
+    ):
+        using = using or router.db_for_write(type(self), instance=self)
+        require_legacy_payment(self, using=using)
+        return super().save_base(
+            raw=raw,
+            force_insert=force_insert,
+            force_update=force_update,
+            using=using,
+            update_fields=update_fields,
+        )
 
     def _normalize_external_id(self) -> None:
         """Normalize empty external_id to None.
@@ -217,8 +241,9 @@ class AbstractPayment(models.Model):
         external_id is unique; empty strings would collide, while
         multiple NULLs are allowed.
         """
-        if not self.external_id:
-            self.external_id = None
+        payment = cast(CorePaymentProtocol, self)
+        if not payment.external_id:
+            payment.external_id = None
 
     # ---- Properties ----
 
@@ -236,7 +261,7 @@ class AbstractPayment(models.Model):
         )
 
     def flag_as_fraud(self, message=''):
-        payment = cast(CorePaymentProtocol, self)
+        payment = cast(CorePaymentProtocol, normalize_payment(self))
         apply_payment_update(
             payment,
             PaymentUpdate(
@@ -246,7 +271,7 @@ class AbstractPayment(models.Model):
         )
 
     def flag_as_legit(self, message=''):
-        payment = cast(CorePaymentProtocol, self)
+        payment = cast(CorePaymentProtocol, normalize_payment(self))
         apply_payment_update(
             payment,
             PaymentUpdate(
@@ -256,7 +281,7 @@ class AbstractPayment(models.Model):
         )
 
     def flag_for_check(self, message=''):
-        payment = cast(CorePaymentProtocol, self)
+        payment = cast(CorePaymentProtocol, normalize_payment(self))
         apply_payment_update(
             payment,
             PaymentUpdate(
@@ -273,10 +298,10 @@ class AbstractPayment(models.Model):
 
     def get_items(self) -> list[ItemInfo]:
         """Relay to order's get_items()."""
-        return self.order.get_items()  # ty: ignore[possibly-missing-attribute]
+        return cast(AbstractOrder, self.order).get_items()
 
     def get_buyer_info(self) -> BuyerInfo:
-        return self.order.get_buyer_info()  # ty: ignore[possibly-missing-attribute]
+        return cast(AbstractOrder, self.order).get_buyer_info()
 
     def _get_processor(self):
         """Get processor instance for this payment's backend."""
@@ -324,7 +349,8 @@ class AbstractPayment(models.Model):
         if url is not None:
             kwargs = self.get_return_redirect_kwargs(request, success)
             return resolve_url(url, **kwargs)
-        return resolve_url(self.order.get_return_url(self, success=success))  # ty: ignore[possibly-missing-attribute]
+        order = cast(AbstractOrder, self.order)
+        return resolve_url(order.get_return_url(self, success=success))
 
     def get_return_redirect_kwargs(
         self, request: HttpRequest, success: bool
@@ -339,9 +365,7 @@ class AbstractPayment(models.Model):
         view: View | None = None,
         **kwargs,
     ) -> HttpResponse:
-        return prepare_transaction(
-            self, request=request, view=view, **kwargs
-        )
+        return prepare_transaction(self, request=request, view=view, **kwargs)
 
     def prepare_transaction_for_rest(
         self,
@@ -349,10 +373,11 @@ class AbstractPayment(models.Model):
         view: View | None = None,
         **kwargs,
     ) -> RestfulResult:
-        result = self.prepare_transaction(
-            request=request, view=view, **kwargs
-        )
-        data = {'status_code': result.status_code, 'result': result}
+        result = self.prepare_transaction(request=request, view=view, **kwargs)
+        data: RestfulResult = {
+            'status_code': result.status_code,
+            'result': result,
+        }
         if result.status_code == 200:
             ctx = getattr(result, 'context_data', None)
             if ctx is None:
@@ -373,10 +398,10 @@ class AbstractPayment(models.Model):
                 ],
             }
         elif result.status_code == 302:
-            data['target_url'] = result.url  # ty: ignore[unresolved-attribute]
+            data['target_url'] = cast(HttpResponseRedirect, result).url
         else:
             data['message'] = result.content
-        return data  # ty: ignore[invalid-return-type]
+        return data
 
     @atomic
     def charge(
@@ -391,9 +416,7 @@ class AbstractPayment(models.Model):
 
     @atomic
     def release_lock(self, **kwargs):
-        return DjangoPaymentFlowAdapter(self, type(self)).release_lock(
-            **kwargs
-        )
+        return DjangoPaymentFlowAdapter(self, type(self)).release_lock(**kwargs)
 
     @atomic
     def start_refund(
@@ -418,6 +441,7 @@ def _handle_paywall_callback(payment, request, **kwargs):
     from getpaid.adapters import adapt_callback_request
     from getpaid.bridge import bridge
 
+    require_legacy_payment(payment)
     processor = kwargs.pop('processor', None) or _get_processor(
         payment, type(payment)
     )
@@ -425,6 +449,8 @@ def _handle_paywall_callback(payment, request, **kwargs):
     bridge.call_verify_callback(
         processor, data, headers, raw_body, request, **kwargs
     )
+    normalize_payment(payment)
+    apply_payment_update(payment, PaymentUpdate())
     update = bridge.call(
         processor,
         processor.handle_callback,

@@ -2,6 +2,24 @@ from decimal import Decimal
 
 from django.utils import timezone
 
+from getpaid.legacy_guard import arequire_legacy_payment, require_legacy_payment
+
+
+def normalize_payment(payment):
+    """Normalize Django's in-memory field values without reloading caller edits."""
+    for field_name in (
+        'amount_required',
+        'amount_paid',
+        'amount_locked',
+        'amount_refunded',
+    ):
+        value = getattr(payment, field_name)
+        if not isinstance(value, Decimal):
+            setattr(payment, field_name, Decimal(str(value)))
+    if payment.provider_data is None:
+        payment.provider_data = {}
+    return payment
+
 
 class DjangoPaymentRepository:
     def __init__(self, model_class) -> None:
@@ -11,6 +29,7 @@ class DjangoPaymentRepository:
         payment = await self.model_class.objects.select_related('order').aget(
             pk=payment_id
         )
+        await arequire_legacy_payment(payment)
         return self._normalize_payment(payment)
 
     async def create(self, **kwargs):
@@ -55,14 +74,17 @@ class DjangoPaymentRepository:
         queryset = self.model_class.objects.select_related('order').filter(
             order_id=order_id,
         )
-        return [
-            self._normalize_payment(payment) async for payment in queryset
-        ]
+        payments = []
+        async for payment in queryset:
+            await arequire_legacy_payment(payment)
+            payments.append(self._normalize_payment(payment))
+        return payments
 
     def _get_by_id(self, payment_id):
         payment = self.model_class.objects.select_related('order').get(
             pk=payment_id
         )
+        require_legacy_payment(payment)
         return self._normalize_payment(payment)
 
     def _create(self, **kwargs):
@@ -109,18 +131,8 @@ class DjangoPaymentRepository:
                 order_id=order_id,
             )
         )
+        for payment in payments:
+            require_legacy_payment(payment)
         return [self._normalize_payment(payment) for payment in payments]
 
-    def _normalize_payment(self, payment):
-        for field_name in (
-            'amount_required',
-            'amount_paid',
-            'amount_locked',
-            'amount_refunded',
-        ):
-            value = getattr(payment, field_name)
-            if not isinstance(value, Decimal):
-                setattr(payment, field_name, Decimal(str(value)))
-        if payment.provider_data is None:
-            payment.provider_data = {}
-        return payment
+    _normalize_payment = staticmethod(normalize_payment)

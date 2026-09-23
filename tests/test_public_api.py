@@ -7,6 +7,7 @@ from pathlib import Path
 
 import getpaid_core
 import getpaid_paynow
+from packaging.requirements import Requirement
 
 import getpaid
 
@@ -63,9 +64,28 @@ def test_paynow_dev_dependency_floor() -> None:
     assert _version_tuple(dev_floor)[0] == current[0]
 
 
-def test_ecosystem_versions_match() -> None:
-    assert getpaid.__version__ == getpaid_core.__version__
-    assert getpaid.__version__ == getpaid_paynow.__version__
+def test_ecosystem_packages_satisfy_declared_dependencies() -> None:
+    """Independent patch releases need compatibility, not version parity.
+
+    This checks installed dependency metadata, not unreleased capabilities;
+    the import-boundary and durable conformance tests cover those APIs.
+    """
+    project = _pyproject()
+    requirements = {
+        requirement.name: requirement
+        for requirement in map(
+            Requirement,
+            project['project']['dependencies']
+            + project['dependency-groups']['dev'],
+        )
+    }
+    for package, module in (
+        ('python-getpaid-core', getpaid_core),
+        ('python-getpaid-paynow', getpaid_paynow),
+    ):
+        installed = metadata.version(package)
+        assert module.__version__ == installed
+        assert installed in requirements[package].specifier
 
 
 class TestExpandedPublicAPI:

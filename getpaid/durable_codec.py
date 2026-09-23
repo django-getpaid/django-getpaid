@@ -1,0 +1,198 @@
+"""Versioned, tagged JSON for normalized core values, never object deserialization.
+
+Only explicitly named record types/fields and finite scalar values are accepted.
+Tags occur outside user mappings, so metadata cannot impersonate a typed value.
+Unknown versions/fields fail closed rather than erase retained evidence.
+"""
+
+import math
+from collections.abc import Mapping
+from dataclasses import fields
+from datetime import datetime, timezone
+from decimal import Decimal
+from enum import Enum
+from zoneinfo import ZoneInfo
+
+from getpaid_core.durable import (
+    ObservationConflict,
+    OperationOutcome,
+    OperationRecord,
+    OperationState,
+    OperationType,
+    OperatorResolution,
+    PaymentFacts,
+    RecoveryEvidence,
+)
+from getpaid_core.enums import FraudStatus, PaymentStatus
+from getpaid_core.recorded_money import (
+    RecordedMoneyCommand,
+    RecordedMoneyEntry,
+    RecordedMoneyKind,
+    RecordingCorrectionReason,
+)
+
+_RECORDS = {
+    'RecordedMoneyCommand': (
+        RecordedMoneyCommand,
+        'command_id kind actor amount occurred_at note evidence_reference target_command_id correction_reason',
+    ),
+    'RecordedMoneyEntry': (
+        RecordedMoneyEntry,
+        'payment_id command recorded_at signed_amount effective_at evidence_reference',
+    ),
+    'PaymentFacts': (
+        PaymentFacts,
+        'payment_id amount_required backend captured_funds refunded_funds remaining_authorization status external_id fraud_status fraud_message reconciliation_required provider_data observation_conflicts',
+    ),
+    'ObservationConflict': (
+        ObservationConflict,
+        'event_identity semantic_content reason',
+    ),
+    'OperationRecord': (
+        OperationRecord,
+        'payment_id operation_id operation_type state resolved_amount parameters_digest starting_captured starting_refunded parameters starting_authorization backend reservation_sequence idempotency_key submitted_at submission_attempts pending_response_attempts retry_until idempotency_scope settled_amount correlation reconciliation_required conflicting_outcomes recovery_evidence resolutions',
+    ),
+    'OperationOutcome': (
+        OperationOutcome,
+        'state settled_amount correlation reconciliation_required external_id',
+    ),
+    'RecoveryEvidence': (
+        RecoveryEvidence,
+        'state settled_amount correlation external_id',
+    ),
+    'OperatorResolution': (
+        OperatorResolution,
+        'resolution_id actor reason evidence_references resolved_at outcome clear_payment_reconciliation',
+    ),
+}
+_ENUMS = {
+    cls.__name__: cls
+    for cls in (
+        PaymentStatus,
+        FraudStatus,
+        OperationState,
+        OperationType,
+        RecordedMoneyKind,
+        RecordingCorrectionReason,
+    )
+}
+
+
+def encode(value):
+    """Encode a complete supported value with no fallback or repr coercion."""
+    if isinstance(value, Enum):
+        if _ENUMS.get(type(value).__name__) is not type(value):
+            raise ValueError('Unsupported enum in durable storage.')
+        return ['enum', type(value).__name__, value.value]
+    if value is None or type(value) in (bool, int, str):
+        return ['scalar', value]
+    if type(value) is float and math.isfinite(value):
+        return ['scalar', value]
+    if type(value) is Decimal and value.is_finite():
+        return ['decimal', str(value)]
+    if type(value) is datetime and value.utcoffset() is not None:
+        if isinstance(value.tzinfo, ZoneInfo):
+            zone = ['zoneinfo', value.tzinfo.key]
+        elif isinstance(value.tzinfo, timezone):
+            zone = ['fixed', value.tzname()]
+        else:
+            raise ValueError(
+                'Durable datetimes require ZoneInfo or datetime.timezone.'
+            )
+        return ['datetime', value.isoformat(), value.fold, zone]
+    if isinstance(value, Mapping):
+        if any(type(key) is not str for key in value):
+            raise ValueError('Durable mapping keys must be strings.')
+        return ['mapping', [[key, encode(item)] for key, item in value.items()]]
+    if type(value) in (tuple, list):
+        return [type(value).__name__, [encode(item) for item in value]]
+    definition = _RECORDS.get(type(value).__name__)
+    if definition is not None and definition[0] is type(value):
+        names = definition[1].split()
+        if set(names) != {field.name for field in fields(value)}:
+            raise ValueError(
+                'Core record schema changed; upgrade storage codec.'
+            )
+        return [
+            'record',
+            type(value).__name__,
+            {name: encode(getattr(value, name)) for name in names},
+        ]
+    raise ValueError('Unsupported or nonfinite value in durable storage.')
+
+
+def decode(value):
+    """Read only this codec's allowlisted tagged tree."""
+    tag, *parts = value
+    if tag == 'scalar' and len(parts) == 1:
+        result = parts[0]
+        if (
+            result is None
+            or type(result) in (str, bool, int)
+            or (type(result) is float and math.isfinite(result))
+        ):
+            return result
+    if tag == 'decimal' and len(parts) == 1:
+        result = Decimal(parts[0])
+        if result.is_finite():
+            return result
+    if tag == 'datetime' and len(parts) == 3:
+        parsed = datetime.fromisoformat(parts[0])
+        offset = parsed.utcoffset()
+        zone_kind, zone_name = parts[2]
+        if offset is not None and zone_kind in ('zoneinfo', 'fixed'):
+            zone = (
+                ZoneInfo(zone_name)
+                if zone_kind == 'zoneinfo'
+                else timezone(offset, zone_name)
+            )
+            result = parsed.replace(tzinfo=zone, fold=parts[1])
+            if result.utcoffset() != offset:
+                raise ValueError(
+                    'Stored timezone rules changed; reconcile before writing.'
+                )
+            return result
+    if tag == 'enum' and len(parts) == 2:
+        return _ENUMS[parts[0]](parts[1])
+    if tag == 'mapping' and len(parts) == 1:
+        result = {key: decode(item) for key, item in parts[0]}
+        if len(result) == len(parts[0]) and all(
+            type(key) is str for key in result
+        ):
+            return result
+    if tag in ('tuple', 'list') and len(parts) == 1:
+        items = [decode(item) for item in parts[0]]
+        return tuple(items) if tag == 'tuple' else items
+    if tag == 'record' and len(parts) == 2:
+        cls, names = _RECORDS[parts[0]]
+        if set(names.split()) != {field.name for field in fields(cls)}:
+            raise ValueError(
+                'Core record schema changed; upgrade storage codec.'
+            )
+        if set(parts[1]) == set(names.split()):
+            decoded = {key: decode(item) for key, item in parts[1].items()}
+            derived = {
+                field.name: decoded.pop(field.name)
+                for field in fields(cls)
+                if not field.init
+            }
+            record = cls(**decoded)
+            if any(
+                getattr(record, name) != item for name, item in derived.items()
+            ):
+                raise ValueError('Stored derived core field does not match.')
+            return record
+    raise ValueError('Invalid durable storage encoding.')
+
+
+def dump_record(record):
+    return {'version': 1, 'value': encode(record)}
+
+
+def load_record(payload, expected_type):
+    if set(payload) != {'version', 'value'} or payload['version'] != 1:
+        raise ValueError('Unsupported durable storage version.')
+    value = decode(payload['value'])
+    if type(value) is not expected_type:
+        raise ValueError('Unexpected durable record type.')
+    return value
