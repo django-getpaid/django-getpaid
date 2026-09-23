@@ -4,6 +4,7 @@ Every synchronous mutation locks the existing payment before dependent reads.
 Async methods run only local storage work on a thread-sensitive connection.
 """
 
+from collections.abc import Iterable
 from contextlib import contextmanager
 from dataclasses import replace
 from datetime import datetime
@@ -90,21 +91,24 @@ class DjangoDurablePaymentRepository:
         """
         return transaction.atomic(using=self.using)
 
+    def _check_isolation(self):
+        database = connections[self.using]
+        if database.vendor == 'postgresql':
+            with database.cursor() as cursor:
+                cursor.execute('SHOW transaction_isolation')
+                if cursor.fetchone()[0] != 'read committed':
+                    raise NotSupportedError(
+                        'Durable storage requires PostgreSQL READ COMMITTED.'
+                    )
+        elif database.vendor != 'sqlite':
+            raise NotSupportedError(
+                'Durable storage supports PostgreSQL; SQLite is for semantic tests only.'
+            )
+
     @contextmanager
     def _locked_payment(self, payment_id):
         with self.atomic():
-            database = connections[self.using]
-            if database.vendor == 'postgresql':
-                with database.cursor() as cursor:
-                    cursor.execute('SHOW transaction_isolation')
-                    if cursor.fetchone()[0] != 'read committed':
-                        raise NotSupportedError(
-                            'Durable storage requires PostgreSQL READ COMMITTED.'
-                        )
-            elif database.vendor != 'sqlite':
-                raise NotSupportedError(
-                    'Durable storage supports PostgreSQL; SQLite is for semantic tests only.'
-                )
+            self._check_isolation()
             try:
                 payment = (
                     self.model_class._default_manager
@@ -294,6 +298,75 @@ class DjangoDurablePaymentRepository:
                     'A recorded-money root is required.'
                 )
             return self._recorded_history(state)
+
+    def get_recorded_money_histories_sync(
+        self, payment_ids: Iterable[str]
+    ) -> dict[str, tuple[RecordedMoneyEntry, ...]]:
+        """Read complete histories under root locks acquired in primary-key order.
+
+        Callers combining other aggregates must acquire locks in a consistent
+        order. Like the scalar read, this joins an outer transaction if present.
+        """
+        pk_field = self.model_class._meta.pk  # ty: ignore[unresolved-attribute]
+        identities = {
+            str(pk_field.to_python(identity)): None for identity in payment_ids
+        }
+        if not identities:
+            return {}
+        with self.atomic():
+            self._check_isolation()
+            # Materialize the entire ordered root-lock set before dependent reads.
+            payments = list(
+                self.model_class._default_manager
+                .using(self.using)
+                .select_for_update(of=('self',))
+                .filter(pk__in=identities)
+                .order_by('pk')
+            )
+            found = {str(payment.pk) for payment in payments}
+            if missing := identities.keys() - found:
+                raise KeyError(next(iter(missing)))
+            states = {
+                str(state.payment_id): state
+                for state in DurablePaymentState.objects.using(
+                    self.using
+                ).filter(payment_id__in=[payment.pk for payment in payments])
+            }
+            if missing := identities.keys() - states.keys():
+                raise KeyError(next(iter(missing)))
+            histories = {identity: [] for identity in identities}
+            state_ids = [state.pk for state in states.values()]
+            for state in states.values():
+                facts = load_record(state.facts, PaymentFacts)
+                if facts.backend != RECORDED_MONEY_BACKEND:
+                    raise InvalidTransitionError(
+                        'A recorded-money root is required.'
+                    )
+            # Keep the scalar boundary's operation-record decoding, but do it
+            # in one query for the entire set rather than one per root.
+            for row in (
+                DurableOperation.objects
+                .using(self.using)
+                .filter(payment_id__in=state_ids)
+                .order_by('pk')
+            ):
+                load_record(row.record, OperationRecord)
+            state_identity = {
+                state.pk: identity for identity, state in states.items()
+            }
+            for row in (
+                DurableRecordedMoneyEntry.objects
+                .using(self.using)
+                .filter(payment_id__in=state_ids)
+                .order_by('pk')
+            ):
+                histories[state_identity[row.payment_id]].append(
+                    load_record(row.record, RecordedMoneyEntry)
+                )
+            return {
+                identity: tuple(history)
+                for identity, history in histories.items()
+            }
 
     def get_payment_facts_sync(self, payment_id: str) -> PaymentFacts:
         try:
@@ -529,6 +602,9 @@ class DjangoDurablePaymentRepository:
     record_money = sync_to_async(record_money_sync, thread_sensitive=True)
     get_recorded_money_history = sync_to_async(
         get_recorded_money_history_sync, thread_sensitive=True
+    )
+    get_recorded_money_histories = sync_to_async(
+        get_recorded_money_histories_sync, thread_sensitive=True
     )
     apply_observation = sync_to_async(
         apply_observation_sync, thread_sensitive=True
