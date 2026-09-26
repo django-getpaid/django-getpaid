@@ -301,6 +301,155 @@ def _lock_worker(database, identity, output, *, recorded=False):
         connections.close_all()
 
 
+def _batch_reader_worker(database, identities, output, barrier=None):
+    import django
+
+    django.setup()
+    from django.db import connections
+
+    from getpaid.durable_repository import DjangoDurablePaymentRepository
+
+    database_connection = connections['default']
+    database_connection.settings_dict['NAME'] = database
+    try:
+        with database_connection.cursor() as cursor:
+            cursor.execute('SELECT pg_backend_pid()')
+            output.put(('pid', cursor.fetchone()[0]))
+        if barrier is not None:
+            barrier.wait(timeout=30)
+        histories = (
+            DjangoDurablePaymentRepository().get_recorded_money_histories_sync(
+                identities
+            )
+        )
+        output.put((
+            'result',
+            {key: len(entries) for key, entries in histories.items()},
+        ))
+    except BaseException:
+        output.put(('error', traceback.format_exc()))
+        raise
+    finally:
+        connections.close_all()
+
+
+@pytest.mark.parametrize('postgres_payment', ['recorded'], indirect=True)
+def test_batch_read_waits_for_writer_and_sees_committed_history(
+    postgres_payment, payment_factory
+):
+    from getpaid_core.recorded_money import RECORDED_MONEY_BACKEND
+
+    from tests.test_recorded_money import NOW, receipt
+
+    repository, identity = postgres_payment
+    repository.record_money_sync(identity, receipt(), now=NOW)
+    other = payment_factory(
+        backend=RECORDED_MONEY_BACKEND, amount_required=Decimal(100)
+    )
+    other_id = str(other.pk)
+    repository.record_money_sync(other_id, receipt(), now=NOW)
+    context = multiprocessing.get_context('spawn')
+    output = context.Queue()
+    worker = context.Process(
+        target=_batch_reader_worker,
+        args=(connection.settings_dict['NAME'], [other_id, identity], output),
+    )
+    try:
+        with repository.atomic():
+            for root_id in sorted((identity, other_id)):
+                repository.model_class.objects.select_for_update(
+                    of=('self',)
+                ).get(pk=root_id)
+            worker.start()
+            label, pid = output.get(timeout=30)
+            assert label == 'pid'
+            deadline = monotonic() + 10
+            blocked = False
+            while not blocked and monotonic() < deadline:
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        'SELECT cardinality(pg_blocking_pids(%s)) > 0', [pid]
+                    )
+                    blocked = cursor.fetchone()[0]
+                if not blocked:
+                    sleep(0.01)
+            assert blocked, 'Batch read did not wait for root row lock'
+            repository.record_money_sync(
+                other_id, receipt('committed', '10'), now=NOW
+            )
+        label, result = output.get(timeout=30)
+        assert (label, result) == ('result', {other_id: 2, identity: 1})
+        worker.join(timeout=30)
+        assert worker.exitcode == 0
+    finally:
+        if worker.is_alive():
+            worker.terminate()
+            worker.join(timeout=10)
+        output.close()
+
+
+def test_reverse_order_batches_do_not_deadlock(payment_factory):
+    from getpaid_core.recorded_money import RECORDED_MONEY_BACKEND
+
+    from getpaid.durable_repository import DjangoDurablePaymentRepository
+    from tests.test_recorded_money import NOW, receipt
+
+    if connection.vendor != 'postgresql':
+        pytest.skip('Requires PostgreSQL row locks.')
+    repository = DjangoDurablePaymentRepository()
+    identities = []
+    for _ in range(2):
+        payment = payment_factory(
+            backend=RECORDED_MONEY_BACKEND, amount_required=Decimal(100)
+        )
+        identities.append(str(payment.pk))
+        repository.record_money_sync(str(payment.pk), receipt(), now=NOW)
+    context = multiprocessing.get_context('spawn')
+    barrier = context.Barrier(2)
+    outputs = [context.Queue() for _ in range(2)]
+    workers = [
+        context.Process(
+            target=_batch_reader_worker,
+            args=(connection.settings_dict['NAME'], ids, output, barrier),
+        )
+        for ids, output in zip(
+            (identities, identities[::-1]), outputs, strict=True
+        )
+    ]
+    try:
+        for worker in workers:
+            worker.start()
+        for output in outputs:
+            assert output.get(timeout=30)[0] == 'pid'
+        for output in outputs:
+            assert output.get(timeout=30) == (
+                'result',
+                dict.fromkeys(identities, 1),
+            )
+        for worker in workers:
+            worker.join(timeout=30)
+            assert worker.exitcode == 0
+    finally:
+        for worker in workers:
+            if worker.is_alive():
+                worker.terminate()
+                worker.join(timeout=10)
+        for output in outputs:
+            output.close()
+
+
+@pytest.mark.parametrize('level', ['REPEATABLE READ', 'SERIALIZABLE'])
+def test_batch_read_refuses_old_snapshots(postgres_payment, level):
+    from django.db import NotSupportedError
+
+    repository, identity = postgres_payment
+    with repository.atomic():
+        with connection.cursor() as cursor:
+            cursor.execute(f'SET TRANSACTION ISOLATION LEVEL {level}')
+        with pytest.raises(NotSupportedError, match='READ COMMITTED'):
+            repository.get_recorded_money_histories_sync([identity])
+
+
 def test_repeatable_read_refused_before_reservation(postgres_payment):
     from django.db import NotSupportedError
 

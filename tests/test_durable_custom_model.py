@@ -100,6 +100,60 @@ def test_recorded_money_custom_model_alias_and_legacy_guard():
     )
 
 
+def test_batch_custom_string_keys_joined_manager_and_storage_alias():
+    from datetime import UTC, datetime
+
+    from getpaid_core.recorded_money import (
+        RECORDED_MONEY_BACKEND,
+        RecordedMoneyCommand,
+        RecordedMoneyKind,
+    )
+
+    from getpaid.durable_repository import DjangoDurablePaymentRepository
+    from tests.durable_test_app.models import Order, Payment
+
+    repository = DjangoDurablePaymentRepository(Payment, using='storage')
+    now = datetime(2026, 9, 20, tzinfo=UTC)
+    expected = {}
+    for identity in ('second', 'first'):
+        order = Order.objects.using('storage').create(
+            name=identity, total=Decimal(100), currency='EUR'
+        )
+        Payment.objects.using('storage').create(
+            id=identity,
+            order=order,
+            amount_required=Decimal(100),
+            backend=RECORDED_MONEY_BACKEND,
+            currency='EUR',
+        )
+        plan = repository.record_money_sync(
+            identity,
+            RecordedMoneyCommand(
+                f'receipt:{identity}',
+                RecordedMoneyKind.RECEIPT,
+                'operator:1',
+                Decimal(10),
+                now,
+            ),
+            now=now,
+        )
+        expected[identity] = (plan.entry,)
+    assert (
+        repository.get_recorded_money_histories_sync([
+            'second',
+            'first',
+            'second',
+        ])
+        == expected
+    )
+    assert not DjangoDurablePaymentRepository().get_recorded_money_histories_sync([])
+    with pytest.raises(KeyError):
+        DjangoDurablePaymentRepository().get_recorded_money_histories_sync([
+            'second',
+            'first',
+        ])
+
+
 def test_custom_string_identity_and_all_storage_stay_on_selected_alias():
     from getpaid_core.durable import OperationIntent, OperationType
     from getpaid_core.enums import PaymentStatus

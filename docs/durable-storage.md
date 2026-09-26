@@ -45,6 +45,7 @@ named `<method>_sync`, with identical arguments and return value.
 | `get_payment_facts(payment_id)` | `PaymentFacts`; missing/uninitialized raises `KeyError` |
 | `record_money(payment_id, command, *, now)` | Core `RecordedMoneyPlan`; atomically initialize/append/update, or exact replay without writes |
 | `get_recorded_money_history(payment_id)` | Complete commit-ordered `tuple[RecordedMoneyEntry, ...]` under the root lock; missing/uninitialized raises `KeyError`, wrong source raises `InvalidTransitionError` |
+| `get_recorded_money_histories(payment_ids)` | `dict[str, tuple[RecordedMoneyEntry, ...]]` for an iterable of canonical payment IDs; synchronous twin `get_recorded_money_histories_sync`. Empty input returns `{}`; duplicates collapse to one canonical key. All-or-nothing: a missing root or uninitialized state raises `KeyError`, a non-recorded durable backend raises `InvalidTransitionError`, and invalid keys or corrupt persisted records propagate their errors. No partial mapping is returned. |
 | `reserve_operation(payment_id, intent)` | `OperationRecord`, including identical-intent retries |
 | `claim_submission(payment_id, operation_id, *, expected_attempt, now, retry_until=None, idempotency_scope=None)` | `SubmissionPlan` |
 | `apply_observation(payment_id, update)` | `ObservationPlan`, including retained conflicts when `applied=False` |
@@ -138,6 +139,17 @@ locking an unchanged root does not refresh a transaction's older snapshot of
 its dependent records. Other database vendors are refused. SQLite is accepted
 for development/semantic tests only; its `select_for_update` is a no-op and
 **must not be used to claim concurrent money-movement safety**.
+
+Batch recorded-money reads validate isolation once, acquire **all** configured payment
+root locks in ascending primary-key order before loading any durable state or
+history, then load facts, retained provider-operation records and complete
+recorded histories in a fixed number of queries. Keys are normalized through
+Django's configured primary-key field and returned as canonical strings. Entries
+are ordered by insertion primary key within each root; never infer a balance
+from retired root fields or sum records in the caller. In a larger transaction,
+acquire any other application aggregate locks in a consistent order relative to
+these root locks to avoid a cross-aggregate lock inversion. SQLite only verifies
+semantics, not this concurrency guarantee.
 
 `atomic()` is a synchronous context manager for same-database application writes:
 
@@ -322,6 +334,7 @@ set -o pipefail
 timeout 600s "${DEV[@]}" pytest tests/test_reexports.py \
   tests/test_durable_repository.py tests/test_durable_storage_guards.py \
   tests/test_durable_codec.py tests/test_recorded_money.py \
+  tests/test_recorded_money_batch.py \
   tests/test_durable_legacy_guard.py tests/test_repository_async.py \
   tests/test_legacy_import_boundary.py tests/test_migration_checks.py -q \
   2>&1 | tee /tmp/getpaid-durable-sqlite.log
@@ -342,6 +355,7 @@ production database), and run:
 ```bash
 timeout 1800s "${DEV[@]}" --with 'psycopg[binary]' --with pytest-timeout pytest \
   tests/test_durable_postgres.py tests/test_recorded_money.py \
+  tests/test_recorded_money_batch.py \
   tests/test_durable_repository.py tests/test_durable_storage_guards.py \
   tests/test_durable_legacy_guard.py --timeout=300 -q \
   2>&1 | tee /tmp/getpaid-durable-postgres.log
